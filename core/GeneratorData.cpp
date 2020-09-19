@@ -22,7 +22,8 @@ GeneratorData::GeneratorData()
 	this->dLimCorrectionFactor = 1.0;
 	this->vesselFunction = 0;
 	this->resetsDLim = false;
-	this->didAllocateCostEstimator = false;
+	this->costEstimator = new VolumetricCostEstimator();
+	this->didAllocateCostEstimator = true;
 }
 
 GeneratorData::GeneratorData(int nLevelTest, int nTerminalTrial, double dLimReductionFactor, double perfusionAreaFactor, double closeNeighborhoodFactor, double midPointDlimFactor,

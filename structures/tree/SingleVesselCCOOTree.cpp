@@ -450,23 +450,6 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData* in
 	treeFile.close();
 }
 
-SingleVesselCCOOTree::SingleVesselCCOOTree(SingleVesselCCOOTree *baseTree) : 
-	AbstractObjectCCOTree(baseTree->instanceData) {
-	// AbstractTreeCCOOTree attributes
-	this->xPerf = baseTree->xPerf;
-	this->qProx = baseTree->qProx;
-	this->qReservedFactor = this->qReservedFactor;
-	this->gam = baseTree->gam;
-	this->epsLim = baseTree->epsLim;
-	this->nu = baseTree->nu;
-	this->refPressure = baseTree->refPressure;
-
-	// SingleVesselCCOOTree attributes
-	this->filenameCCO = this->filenameCCO;
-	this->rootRadius = baseTree->rootRadius;
-	this->variationTolerance = baseTree->variationTolerance;
-}
-
 SingleVesselCCOOTree::~SingleVesselCCOOTree() {
 }
 
@@ -1274,7 +1257,7 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 	(this->nTerms)++;
 	(this->nCommonTerminals++);
 
-	SingleVessel *parentInNewTree = copiedTo[(SingleVessel *) originalVessel->parent];
+	SingleVessel *parentInNewTree = copiedTo.at(static_cast<SingleVessel *>(originalVessel->parent));
 
 	//	Root
 	if (!parentInNewTree) {
@@ -1296,6 +1279,9 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 		newVessel->stage = originalVessel->stage;
 		newVessel->pressure = originalVessel->pressure;
 		newVessel->vesselFunction = originalVessel->vesselFunction;
+		newVessel->qReservedFraction = originalVessel->qReservedFraction;
+		newVessel->terminalType = originalVessel->terminalType;
+		newVessel->branchingMode = newVessel->branchingMode;	
 
 		//	Tree quantities
 		this->psiFactor = pow(newVessel->beta, 4) / newVessel->flow;	//	Not used
@@ -1337,12 +1323,20 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 		newVessel->xDist = originalVessel->xDist;
 		newVessel->parent = parentInNewTree;
 		newVessel->nLevel = (parentInNewTree->nLevel) + 1;
+		newVessel->beta = originalVessel->beta;
+		newVessel->radius = originalVessel->radius;
 		newVessel->length = originalVessel->length;
 		newVessel->viscosity = originalVessel->viscosity;
 		newVessel->resistance = originalVessel->resistance;
+		newVessel->flow = originalVessel->flow;
+		newVessel->treeVolume = originalVessel->treeVolume;
 		newVessel->ID = this->nTerms;
 		newVessel->stage = originalVessel->stage;
+		newVessel->pressure = originalVessel->pressure;
 		newVessel->vesselFunction = originalVessel->vesselFunction;
+		newVessel->qReservedFraction = originalVessel->qReservedFraction;
+		newVessel->terminalType = originalVessel->terminalType;
+		newVessel->branchingMode = originalVessel->branchingMode;	
 
 		newVessel->parent->addChild(newVessel);
 

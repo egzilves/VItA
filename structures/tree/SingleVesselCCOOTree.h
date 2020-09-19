@@ -79,11 +79,6 @@ public:
 	SingleVesselCCOOTree(string filenameCCO, GeneratorData* instanceData, double qi, AbstractConstraintFunction<double, int> *gam, AbstractConstraintFunction<double, int> *epsLim,
 			AbstractConstraintFunction<double, int> *nu, double refPressure, double viscosityTolerance);
 	/**
-	 * Creates a copy of the tree only with its parameters. Does not create vessel data.
-	 * @param baseTree Base tree.
-	 */
-	SingleVesselCCOOTree(SingleVesselCCOOTree *baseTree);
-	/**
 	 * Common destructor.
 	 */
 	~SingleVesselCCOOTree();

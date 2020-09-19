@@ -18,6 +18,7 @@ public:
 	AbstractConstraintFunction();
 	virtual ~AbstractConstraintFunction();
 	virtual T getValue(S treeCondition) = 0;
+	virtual AbstractConstraintFunction<T,S>* clone() = 0;
 };
 
 template <class T, class S>
