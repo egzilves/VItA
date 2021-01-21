@@ -2133,3 +2133,14 @@ double SingleVesselCCOOTree::getVariationTolerance()
 string SingleVesselCCOOTree::getFilenameCCO() {
 	return this->filenameCCO;
 }
+
+void SingleVesselCCOOTree::updateAll() {
+	// Update tree
+    this->updateTree(((SingleVessel *) this->getRoot()), this);
+	
+	double maxVariation = INFINITY;
+	while (maxVariation > this->variationTolerance) {
+			this->updateTreeViscositiesBeta(((SingleVessel *) this->getRoot()), &maxVariation);
+	}
+	this->computePressure(this->root);
+}
