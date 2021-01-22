@@ -2147,6 +2147,7 @@ double SingleVesselCCOOTree::getVariationTolerance()
 
 string SingleVesselCCOOTree::getFilenameCCO() {
 	return this->filenameCCO;
+<<<<<<< HEAD
 }
 
 bool SingleVesselCCOOTree::isValidAspectRatio(SingleVessel *vessel) {
@@ -2154,4 +2155,18 @@ bool SingleVesselCCOOTree::isValidAspectRatio(SingleVessel *vessel) {
 		return false;
 	}
 	return true;
+||||||| d5bfca0
+=======
+}
+
+void SingleVesselCCOOTree::updateAll() {
+	// Update tree
+    this->updateTree(((SingleVessel *) this->getRoot()), this);
+	
+	double maxVariation = INFINITY;
+	while (maxVariation > this->variationTolerance) {
+			this->updateTreeViscositiesBeta(((SingleVessel *) this->getRoot()), &maxVariation);
+	}
+	this->computePressure(this->root);
+>>>>>>> updateTree
 }

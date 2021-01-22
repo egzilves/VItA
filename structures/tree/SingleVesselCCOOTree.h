@@ -198,6 +198,8 @@ public:
 
 	string getFilenameCCO();
 
+	void updateAll();
+
 protected:
 	/**
 	 * Returns a string with the tree atributes to create the .cco file.
