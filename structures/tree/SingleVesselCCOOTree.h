@@ -302,6 +302,10 @@ private:
 
 	double getVariationTolerance();
 
+	/**
+	 * Checks if length/radius > 2.
+	 */
+	bool isValidAspectRatio(SingleVessel *vessel);
 };
 
 #endif /* TREE_SINGLEVESSELCCOOTREE_H_ */
