@@ -315,6 +315,11 @@ public:
 	 * @param isInCm.
 	 */
 	void setIsInCm(int isInCm);
+	/**
+	 * Setter of @p isFl
+	 * @param isFL
+	 */
+	void setIsFL(bool isFL);
 
 protected:
 	/**
