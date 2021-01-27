@@ -73,8 +73,10 @@ protected:
 	long long int pointCounter;
 	/**	Stage actually being build. */
 	int currentStage;
-	/**	If the tree is in cm, otherwise is assumed that is in mm (default) */
+	/**	If the tree is in cm, otherwise it is assumed that is in mm (default) */
 	int isInCm;
+	/** To check whether the tree user fixed viscosity or considers FL effect*/
+	bool isFL;
 
 	friend class PruningCCOOTree;
 

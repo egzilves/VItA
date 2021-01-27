@@ -1875,7 +1875,12 @@ void SingleVesselCCOOTree::updateTreeViscositiesBeta(SingleVessel* root, double*
 
 	vector<AbstractVascularElement *> rootChildren = root->getChildren();
 	if (rootChildren.empty()) {
-		root->viscosity = getNuFL(root->radius);
+		if (this->isFL) {
+			root->viscosity = getNuFL(root->radius);
+		}
+		else {
+			root->viscosity = this->nu->getValue(root->nLevel);
+		}
 		root->resistance = 8 * root->viscosity / M_PI * root->length;
 		root->pressure = root->resistance * root->flow + refPressure;
 		root->treeVolume = root->radius * root->radius * M_PI * root->length;
@@ -1927,7 +1932,12 @@ void SingleVesselCCOOTree::updateTreeViscositiesBeta(SingleVessel* root, double*
 			}
 		}
 
-		root->viscosity = getNuFL(root->radius);
+		if (this->isFL) {
+			root->viscosity = getNuFL(root->radius);
+		}
+		else {
+			root->viscosity = this->nu->getValue(root->nLevel);
+		}
 		root->localResistance = 8 * root->viscosity / M_PI * root->length;
 		root->resistance = root->localResistance + 1 / invResistanceContributions;
 		root->treeVolume = root->radius * root->radius * M_PI * root->length + totalChildrenVolume;
