@@ -368,6 +368,10 @@ int AbstractObjectCCOTree::getIsInCm() const
 }
 
 void AbstractObjectCCOTree::setIsInCm(int isInCm)
-		{
+{
 	this->isInCm = isInCm;
+}
+
+void AbstractObjectCCOTree::setIsFL(bool isFL) {
+	this->isFL = isFL;
 }
