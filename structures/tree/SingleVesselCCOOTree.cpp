@@ -1830,7 +1830,9 @@ void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* 
 				SingleVessel *currentVessel = (SingleVessel *) (*it);
 				double siblingsFlow = totalFlow - currentVessel->flow;
 				double siblingsResistance = 1 / (invTotalResistance - 1 / currentVessel->resistance);
+				// double betaRatio = sqrt(sqrt(-(siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));
 				double betaRatio = sqrt(sqrt((siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));
+				// double betaRatio = pow((siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance), 0.25);
 
 				currentVessel->beta = pow(1 + pow(betaRatio, gam->getValue(currentVessel->nLevel)), -1.0 / gam->getValue(currentVessel->nLevel));
 
