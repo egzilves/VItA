@@ -57,7 +57,7 @@ ConstantPiecewiseConstraintFunction<T,S>::~ConstantPiecewiseConstraintFunction()
 template <class T, class S>
 T ConstantPiecewiseConstraintFunction<T,S>::getValue(S treeCondition){
 	int i = 0;
-	for(vector<int>::iterator it = conditions.begin(); it != conditions.end(); ++it ){
+	for(auto it = conditions.begin(); it != conditions.end(); ++it ){
 		if(treeCondition >= *it)
 			++i;
 		else

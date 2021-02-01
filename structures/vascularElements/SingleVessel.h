@@ -61,6 +61,8 @@ public:
 	long long int ID;
 	/** Volume of this down tree branch.*/
 	double treeVolume;
+	/** Murray's gamma for the first time the vessel was created.**/
+	double ogGamma;
 
 	SingleVessel();
 	~SingleVessel();

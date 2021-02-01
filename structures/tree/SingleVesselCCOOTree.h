@@ -31,6 +31,8 @@ class SingleVesselCCOOTree: public AbstractObjectCCOTree {
 	double variationTolerance;
 	/**	Amount of non-common terminals. */
 	long long int nCommonTerminals;
+	/** Amount of tries for beta convergence.*/
+	unsigned long long int nBetaTries;
 	friend class PruningCCOOTree;
 	friend class BreadthFirstPruning;
 	friend class TreeMerger;
@@ -199,6 +201,11 @@ public:
 	string getFilenameCCO();
 
 	void updateAll();
+	
+	/**
+	 * Set the number of tries of beta convergence called by SingleVesselCCOOTree:evaluate methods.
+	 */
+	void setNBetaTries(unsigned long long int nTries);
 
 protected:
 	/**

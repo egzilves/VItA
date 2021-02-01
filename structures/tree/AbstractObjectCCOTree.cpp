@@ -30,6 +30,7 @@ AbstractObjectCCOTree::AbstractObjectCCOTree(GeneratorData *instanceData) {
 	this->qProx = 0;
 
 	this->gam = nullptr;
+	this->gamRadius = nullptr;
 	this->epsLim = nullptr;
 	this->nu = nullptr;
 
@@ -61,6 +62,7 @@ AbstractObjectCCOTree::AbstractObjectCCOTree(point xi, double qi, AbstractConstr
 	this->qProx = qi;
 
 	this->gam = gam;
+	this->gamRadius = nullptr;
 	this->epsLim = epsLim;
 	this->nu = nu;
 	this->refPressure = refPressure;
@@ -374,4 +376,8 @@ void AbstractObjectCCOTree::setIsInCm(int isInCm)
 
 void AbstractObjectCCOTree::setIsFL(bool isFL) {
 	this->isFL = isFL;
+}
+
+void AbstractObjectCCOTree::setGamRadius(AbstractConstraintFunction<double, double> *gamRad) {
+	this->gamRadius = gamRad;
 }

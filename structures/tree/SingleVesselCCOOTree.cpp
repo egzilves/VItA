@@ -30,6 +30,7 @@
 #include <iterator>
 #include <string>
 #include <vector>
+#include <climits>
 
 #include "AbstractCostEstimator.h"
 #include "../CCOCommonStructures.h"
@@ -45,6 +46,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(point xi, double rootRadius, double q
 	this->rootRadius = rootRadius;
 	this->variationTolerance = resistanceVariationTolerance;
 	this->nCommonTerminals = 0;
+	this->nBetaTries = ULLONG_MAX;
 }
 
 SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *instanceData, AbstractConstraintFunction<double, int> *gam, AbstractConstraintFunction<double, int> *epsLim,
@@ -73,6 +75,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 	treeFile >> pointCounter;
 	treeFile >> rootRadius;
 	treeFile >> variationTolerance;
+	this->nBetaTries = ULLONG_MAX;
 
 	treeFile >> token;
 	while (token.compare("*Vessels") != 0 && !treeFile.eof()) {
@@ -427,6 +430,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData* in
 	this->refPressure = refPressure;
 	this->pointCounter = 0l;
 	this->variationTolerance = viscosityTolerance;
+	this->nBetaTries = ULLONG_MAX;
 
 	this->nu = nu;
 	this->gam = gam;
@@ -1608,10 +1612,22 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 	//	Update post-order nLevel, flux, initial resistances and intial betas.
 	updateTree((SingleVessel *) clonedTree->root, clonedTree);
 
+	unsigned long long int counter = 0;
 	double maxVariation = INFINITY;
-	while (maxVariation > variationTolerance) {
+	while (maxVariation > variationTolerance && (counter < this->nBetaTries)) {
+		// printf("Max beta variation: %lf\n", maxVariation);
 		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);
+		++counter;
 	}
+
+	/* if (counter == this->nBetaTries) {
+		// fprintf(stderr, "Failed to converge.\n");
+		delete localEstimator;
+		delete clonedTree;
+		delete iNew;
+		delete iCon;
+		return INFINITY;
+	} */
 
 	//	Check the symmetry constraint only for the newest vessel.
 	if (!isSymmetricallyValid(iCon->beta, iNew->beta, iCon->nLevel)) {
@@ -1684,11 +1700,22 @@ double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double d
 	//	Update post-order nLevel, flux, initial resistances and intial betas.
 	updateTree((SingleVessel *) clonedTree->root, clonedTree);
 
+	unsigned long long int counter = 0;
 	double maxVariation = INFINITY;
-	while (maxVariation > variationTolerance) {
+	while (maxVariation > variationTolerance && (counter < this->nBetaTries)) {
+		// printf("Max beta variation: %lf\n", maxVariation);
 		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);
+		++counter;
 	}
 
+	/* if (counter == this->nBetaTries) {
+		// fprintf(stderr, "Failed to converge.\n");
+		delete localEstimator;
+		delete clonedTree;
+		delete iNew;
+		return INFINITY;
+	}
+ */
 	//	FIXME Define symmetry law for N-ary bifurcations (Most different betas?)
 	//	Check the symmetry constraint only for the newest vessel.
 	if (!isSymmetricallyValid( ((SingleVessel *)clonedParent->getChildren()[0])->beta, iNew->beta, iNew->nLevel)) {
@@ -1790,6 +1817,7 @@ SingleVessel* SingleVesselCCOOTree::cloneTree(SingleVessel* root, unordered_map<
 	copy->flow = root->flow;
 	copy->viscosity = root->viscosity;
 	copy->treeVolume = root->treeVolume;
+	copy->ogGamma = root->ogGamma;
 
 	(*segments)[copy->vtkSegmentId] = copy;
 
@@ -1829,13 +1857,23 @@ void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* 
 			for (vector<AbstractVascularElement *>::iterator it = rootChildren.begin(); it != rootChildren.end(); ++it) {
 				SingleVessel *currentVessel = (SingleVessel *) (*it);
 				double siblingsFlow = totalFlow - currentVessel->flow;
-				double siblingsResistance = 1 / (invTotalResistance - 1 / currentVessel->resistance);
-				// double betaRatio = sqrt(sqrt(-(siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));
-				double betaRatio = sqrt(sqrt((siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));
-				// double betaRatio = pow((siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance), 0.25);
-
-				currentVessel->beta = pow(1 + pow(betaRatio, gam->getValue(currentVessel->nLevel)), -1.0 / gam->getValue(currentVessel->nLevel));
-
+				double siblingsResistance = 1 / (invTotalResistance - 1 / currentVessel->resistance);				
+				double betaRatio = sqrt(sqrt((siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));				
+				if (this->gamRadius) {
+					// double curGamma = this->gamRadius->getValue(root->radius);
+					// double term1 = pow(betaRatio, curGamma);
+					// double term2 = pow(1+term1, -1./curGamma);
+					// currentVessel->beta = term2;
+					// printf("term1 = %lf\n", term1);
+					// printf("betaRatio = %lf\n", betaRatio);
+					// printf("gamma = %lf\n", this->gamRadius->getValue(root->radius));
+					// currentVessel->beta = pow(1 + term1, -1.0 / gamRadius->getValue(root->radius));
+					// currentVessel->beta = pow(1 + pow(betaRatio, this->gamRadius->getValue(root->radius)), -1.0 / this->gamRadius->getValue(root->radius));
+					currentVessel->beta = pow(1 + pow(betaRatio, root->ogGamma), -1.0 / root->ogGamma);
+				}
+				else {
+					currentVessel->beta = pow(1 + pow(betaRatio, gam->getValue(root->nLevel)), -1.0 / gam->getValue(root->nLevel));
+				}
 				double betaSqr = currentVessel->beta * currentVessel->beta;
 				invResistanceContributions += betaSqr * betaSqr / currentVessel->resistance;
 			}
@@ -1871,8 +1909,12 @@ int SingleVesselCCOOTree::areValidAngles(point xBif, point xNew, SingleVessel* p
 void SingleVesselCCOOTree::updateTreeViscositiesBeta(SingleVessel* root, double* maxBetaVariation) {
 	if (root->parent) {
 		root->radius = root->beta * ((SingleVessel*) root->parent)->radius;
+
 	} else {
-		root->radius = root->beta;
+		root->radius = root->beta;		
+	}
+	if ((root->ogGamma == -1) && this->gamRadius) {
+		root->ogGamma = this->gamRadius->getValue(root->radius);
 	}
 
 	vector<AbstractVascularElement *> rootChildren = root->getChildren();
@@ -1923,8 +1965,17 @@ void SingleVesselCCOOTree::updateTreeViscositiesBeta(SingleVessel* root, double*
 				double siblingsResistance = 1 / (invTotalResistance - 1 / currentVessel->resistance);
 				double betaRatio = sqrt(sqrt(((totalChildrenFlow - currentVessel->flow) * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));
 				double previousBeta = currentVessel->beta;
-				currentVessel->beta = pow(1 + pow(betaRatio, gam->getValue(currentVessel->nLevel)), -1 / gam->getValue(currentVessel->nLevel));
-
+				if (this->gamRadius) {
+					// double curGamma = this->gamRadius->getValue(root->radius);
+					// double term1 = pow(betaRatio, curGamma);
+					// double term2 = pow(1+term1, -1./curGamma);
+					// currentVessel->beta = term2;
+					// currentVessel->beta = pow(1 + pow(betaRatio, this->gamRadius->getValue(root->radius)), -1.0 / gamRadius->getValue(root->radius));
+					currentVessel->beta = pow(1 + pow(betaRatio, root->ogGamma), -1.0 /root->ogGamma);
+				}
+				else {
+					currentVessel->beta = pow(1 + pow(betaRatio, gam->getValue(root->nLevel)), -1.0 / gam->getValue(root->nLevel));
+				}
 				double betaVariation = abs(currentVessel->beta - previousBeta);
 				if (betaVariation > *maxBetaVariation)
 					*maxBetaVariation = betaVariation;
@@ -1965,6 +2016,7 @@ SingleVesselCCOOTree* SingleVesselCCOOTree::cloneUpTo(int levels, SingleVessel* 
 	copy->psiFactor = this->psiFactor;
 	copy->dp = this->dp;
 	copy->nTerms = this->nTerms;
+	copy->gamRadius = this->gamRadius;
 
 	copy->root = this->cloneTree(subtreeRoot, &(copy->elements));
 	((SingleVessel *) copy->root)->beta = subtreeRoot->radius;
@@ -2177,4 +2229,8 @@ void SingleVesselCCOOTree::updateAll() {
 			this->updateTreeViscositiesBeta(((SingleVessel *) this->getRoot()), &maxVariation);
 	}
 	this->computePressure(this->root);
+}
+
+void SingleVesselCCOOTree::setNBetaTries(unsigned long long int nTries) {
+	this->nBetaTries = nTries;
 }

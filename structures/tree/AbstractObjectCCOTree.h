@@ -47,6 +47,8 @@ protected:
 	double qReservedFactor;
 	/** Constraint for the ratio between parent and child radius based on the Murray's Law. */
 	AbstractConstraintFunction<double, int> *gam;
+	/** Constraint for the ratio between parent and child radius based on the Murray's Law using parent vessel radius. */
+	AbstractConstraintFunction<double, double> *gamRadius;
 	/** Constraint for the symmetry between sibling vessels. */
 	AbstractConstraintFunction<double, int> *epsLim;
 	/** Constraint for the vessel viscosity. */
@@ -320,7 +322,11 @@ public:
 	 * @param isFL
 	 */
 	void setIsFL(bool isFL);
-
+	/**
+	* Sets if the tree will use a radius-based gamma instead of a level-based.
+	*/
+	void setGamRadius(AbstractConstraintFunction<double, double> *gamRam);
+	
 protected:
 	/**
 	 * Writes a string with the vessel attributes in a .cco file.
@@ -351,6 +357,8 @@ protected:
 	 * @return	Amount of terminals in the subtree.
 	 */
 	long long int countTerminals(AbstractVascularElement* root, AbstractVascularElement::TERMINAL_TYPE type);
+
+	
 
 private:
 	void saveVessels(AbstractVascularElement *root, ofstream *treeFile);
