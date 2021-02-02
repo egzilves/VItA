@@ -31,11 +31,18 @@ class SingleVesselCCOOTree: public AbstractObjectCCOTree {
 	double variationTolerance;
 	/**	Amount of non-common terminals. */
 	long long int nCommonTerminals;
+<<<<<<< HEAD
 	/** Amount of tries for beta convergence.*/
 	unsigned long long int nBetaTries;
+||||||| 412d906
+=======
+	/** Use gamma based on stage. */
+	bool isGammaStage;
+>>>>>>> lfmc
 	friend class PruningCCOOTree;
 	friend class BreadthFirstPruning;
 	friend class TreeMerger;
+	friend class StagedFRROTreeGeneratorLogger;
 public:
 	/**
 	 * Common tree creator.
@@ -207,6 +214,11 @@ public:
 	 */
 	void setNBetaTries(unsigned long long int nTries);
 
+	/**
+	 * Set if the tree updates gamma using stage or level.
+	 */
+	void setIsGammaStage(bool isGammaStage);
+
 protected:
 	/**
 	 * Returns a string with the tree atributes to create the .cco file.
@@ -315,6 +327,11 @@ private:
 	 * Checks if length/radius > 2.
 	 */
 	bool isValidAspectRatio(SingleVessel *vessel);
+
+	/*
+	* Returns the gamma.
+	*/
+	double getGamma(SingleVessel* vessel);
 };
 
 #endif /* TREE_SINGLEVESSELCCOOTREE_H_ */

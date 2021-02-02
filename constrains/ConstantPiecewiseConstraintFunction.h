@@ -41,6 +41,11 @@ public:
 	 * @return Constraint function value.
 	 */
 	T getValue(S treeCondition);
+
+	vector<T> getValues();
+
+	vector<S> getConditions();
+
 	ConstantPiecewiseConstraintFunction<T, S>  *clone() override;
 };
 
@@ -70,6 +75,16 @@ T ConstantPiecewiseConstraintFunction<T,S>::getValue(S treeCondition){
 template<class T, class S>
 ConstantPiecewiseConstraintFunction<T, S> * ConstantPiecewiseConstraintFunction<T, S>::clone() {
 	return new ConstantPiecewiseConstraintFunction<T, S>(this->values, this->conditions);
+}
+
+template<class T, class S>
+vector<T> ConstantPiecewiseConstraintFunction<T, S>::getValues() {
+	return this->values;
+}
+
+template<class T, class S>
+vector<S> ConstantPiecewiseConstraintFunction<T, S>::getConditions() {
+	return this->conditions;
 }
 
 #endif /* CONSTANTPIECEWISECONSTRAINTFUNCTION_H_ */

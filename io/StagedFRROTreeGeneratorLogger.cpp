@@ -1,5 +1,6 @@
 // Standard library dependencies
 #include<cstdio>
+#include<typeinfo>
 
 // VItA dependencies
 #include"../core/StagedFRROTreeGenerator.h"
@@ -17,6 +18,8 @@
 #include"../structures/domain/DummyDomain.h"
 #include"../structures/domain/StagedDomain.h"
 #include"../constrains/AbstractConstraintFunction.h"
+#include"../constrains/ConstantConstraintFunction.h"
+#include"../constrains/ConstantPiecewiseConstraintFunction.h"
 #include"../structures/tree/AbstractObjectCCOTree.h"
 #include"../structures/tree/SingleVesselCCOOTree.h"
 #include"../constrains/AbstractConstraintFunction.h"
@@ -48,13 +51,43 @@ void logGenData(FILE *fp, GeneratorData *data)
     fprintf(fp, "reset_d_lim = %d.\n", (int) data->resetsDLim);
 }
 
+void logConstraint(FILE *fp, AbstractConstraintFunction<double, int> *constraint) {
+    const type_info& type_constant = typeid(ConstantConstraintFunction<double, int>);
+    const type_info& constraint_type = typeid(*constraint);
+    // Is ConstantConstraintFunction
+    if (type_constant.hash_code() == constraint_type.hash_code()) {
+        fprintf(fp, "ConstantConstraintFunction = %lf\n", constraint->getValue(0));
+    }
+    // Is ConstantPiecewiseConstraintFunction
+    else {
+        ConstantPiecewiseConstraintFunction<double, int> *pieceConstraint = static_cast<ConstantPiecewiseConstraintFunction<double, int> *>(constraint);
+        fprintf(fp, "ConstantPiecewiseConstraintFunction\n");
+        vector<double> values = pieceConstraint->getValues();
+        vector<int> conditions = pieceConstraint->getConditions();
+        size_t size = values.size();
+        fprintf(fp, "Values = ");
+        for (size_t i = 0; i < size; ++i) {
+            fprintf(fp, "%lf ", values[i]);
+        }
+        fprintf(fp, "\n");
+        fprintf(fp, "Conditions = ");
+        for (size_t i = 0; i < size; ++i) {
+            fprintf(fp, "%d ", conditions[i]);
+        }
+        fprintf(fp, "\n");
+    }
+}
+
 void logDomain(FILE *fp, AbstractDomain *domain, long long int n_term, AbstractConstraintFunction<double, int> *gam,
     AbstractConstraintFunction<double, int> *epsLim, AbstractConstraintFunction<double, int> *nu)
 {
     fprintf(fp, "n_term = %lld.\n", n_term);
-    fprintf(fp, "gamma = %f.\n", gam->getValue(0));
-    fprintf(fp, "eps_lim = %0f.\n", epsLim->getValue(0));
-    fprintf(fp, "nu = %f.\n", nu->getValue(0));
+    fprintf(fp, "gamma\n");
+    logConstraint(fp, gam);
+    fprintf(fp, "eps_lim\n");
+    logConstraint(fp, epsLim);
+    fprintf(fp, "nu\n");
+    logConstraint(fp, nu);
     fprintf(fp, "n_draw = %d.\n", domain->getDraw());
     fprintf(fp, "random seed = %d.\n", domain->getSeed());
     fprintf(fp, "characteristic_lenght = %f.\n", domain->getCharacteristicLength());
@@ -101,12 +134,14 @@ void StagedFRROTreeGeneratorLogger::write()
         fprintf(fp, "Input CCO filename = %s\n", filenameCCO.c_str());
         fprintf(fp, "Root influx = %f.\n", q0);
     }
-    
+    fprintf(fp, "isInCm = %d\n", (int) tree->isInCm);
+    fprintf(fp, "isFL = %d\n", (int) tree->isFL);
+    fprintf(fp, "isGammaStage = %d\n", (int) tree->isGammaStage);
     for (int i = 0; i < size; ++i) {
         fprintf(fp, "\n");
         fprintf(fp, "Stage[%d]\n", i);
         logDomainFiles(fp, (*domains)[i]);
-        logDomain(fp, (*domains)[i], (*nTerms)[i], (*gams)[0], (*epsLims)[0], (*nus)[0]);
+        logDomain(fp, (*domains)[i], (*nTerms)[i], (*gams)[i], (*epsLims)[i], (*nus)[i]);
     }
     
     fprintf(fp, "\n");
