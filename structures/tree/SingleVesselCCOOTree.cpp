@@ -1819,12 +1819,8 @@ SingleVessel* SingleVesselCCOOTree::cloneTree(SingleVessel* root, unordered_map<
 	copy->flow = root->flow;
 	copy->viscosity = root->viscosity;
 	copy->treeVolume = root->treeVolume;
-<<<<<<< HEAD
 	copy->ogGamma = root->ogGamma;
-||||||| 412d906
-=======
 	copy->stage = root->stage;
->>>>>>> lfmc
 
 	(*segments)[copy->vtkSegmentId] = copy;
 
@@ -1864,36 +1860,10 @@ void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* 
 			for (vector<AbstractVascularElement *>::iterator it = rootChildren.begin(); it != rootChildren.end(); ++it) {
 				SingleVessel *currentVessel = (SingleVessel *) (*it);
 				double siblingsFlow = totalFlow - currentVessel->flow;
-<<<<<<< HEAD
-				double siblingsResistance = 1 / (invTotalResistance - 1 / currentVessel->resistance);				
-				double betaRatio = sqrt(sqrt((siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));				
-				if (this->gamRadius) {
-					// double curGamma = this->gamRadius->getValue(root->radius);
-					// double term1 = pow(betaRatio, curGamma);
-					// double term2 = pow(1+term1, -1./curGamma);
-					// currentVessel->beta = term2;
-					// printf("term1 = %lf\n", term1);
-					// printf("betaRatio = %lf\n", betaRatio);
-					// printf("gamma = %lf\n", this->gamRadius->getValue(root->radius));
-					// currentVessel->beta = pow(1 + term1, -1.0 / gamRadius->getValue(root->radius));
-					// currentVessel->beta = pow(1 + pow(betaRatio, this->gamRadius->getValue(root->radius)), -1.0 / this->gamRadius->getValue(root->radius));
-					currentVessel->beta = pow(1 + pow(betaRatio, root->ogGamma), -1.0 / root->ogGamma);
-				}
-				else {
-					currentVessel->beta = pow(1 + pow(betaRatio, gam->getValue(root->nLevel)), -1.0 / gam->getValue(root->nLevel));
-				}
-||||||| 412d906
-				double siblingsResistance = 1 / (invTotalResistance - 1 / currentVessel->resistance);
-				double betaRatio = sqrt(sqrt((siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));
-
-				currentVessel->beta = pow(1 + pow(betaRatio, gam->getValue(currentVessel->nLevel)), -1.0 / gam->getValue(currentVessel->nLevel));
-
-=======
 				double siblingsResistance = 1 / (invTotalResistance - 1 / currentVessel->resistance);
 				double betaRatio = sqrt(sqrt((siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));
 
 				currentVessel->beta = pow(1 + pow(betaRatio, this->getGamma(currentVessel)), -1.0 / this->getGamma(currentVessel));
->>>>>>> lfmc
 				double betaSqr = currentVessel->beta * currentVessel->beta;
 				invResistanceContributions += betaSqr * betaSqr / currentVessel->resistance;
 			}
@@ -1985,25 +1955,8 @@ void SingleVesselCCOOTree::updateTreeViscositiesBeta(SingleVessel* root, double*
 				double siblingsResistance = 1 / (invTotalResistance - 1 / currentVessel->resistance);
 				double betaRatio = sqrt(sqrt(((totalChildrenFlow - currentVessel->flow) * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));
 				double previousBeta = currentVessel->beta;
-<<<<<<< HEAD
-				if (this->gamRadius) {
-					// double curGamma = this->gamRadius->getValue(root->radius);
-					// double term1 = pow(betaRatio, curGamma);
-					// double term2 = pow(1+term1, -1./curGamma);
-					// currentVessel->beta = term2;
-					// currentVessel->beta = pow(1 + pow(betaRatio, this->gamRadius->getValue(root->radius)), -1.0 / gamRadius->getValue(root->radius));
-					currentVessel->beta = pow(1 + pow(betaRatio, root->ogGamma), -1.0 /root->ogGamma);
-				}
-				else {
-					currentVessel->beta = pow(1 + pow(betaRatio, gam->getValue(root->nLevel)), -1.0 / gam->getValue(root->nLevel));
-				}
-||||||| 412d906
-				currentVessel->beta = pow(1 + pow(betaRatio, gam->getValue(currentVessel->nLevel)), -1 / gam->getValue(currentVessel->nLevel));
-
-=======
 				currentVessel->beta = pow(1 + pow(betaRatio, this->getGamma(currentVessel)), -1.0 / this->getGamma(currentVessel));
 
->>>>>>> lfmc
 				double betaVariation = abs(currentVessel->beta - previousBeta);
 				if (betaVariation > *maxBetaVariation)
 					*maxBetaVariation = betaVariation;
@@ -2044,14 +1997,10 @@ SingleVesselCCOOTree* SingleVesselCCOOTree::cloneUpTo(int levels, SingleVessel* 
 	copy->psiFactor = this->psiFactor;
 	copy->dp = this->dp;
 	copy->nTerms = this->nTerms;
-<<<<<<< HEAD
 	copy->gamRadius = this->gamRadius;
-||||||| 412d906
-=======
 	copy->isFL = this->isFL;
 	copy->isGammaStage = this->isGammaStage;
 	copy->isInCm = this->isInCm;
->>>>>>> lfmc
 
 	copy->root = this->cloneTree(subtreeRoot, &(copy->elements));
 	((SingleVessel *) copy->root)->beta = subtreeRoot->radius;
@@ -2264,13 +2213,10 @@ void SingleVesselCCOOTree::updateAll() {
 			this->updateTreeViscositiesBeta(((SingleVessel *) this->getRoot()), &maxVariation);
 	}
 	this->computePressure(this->root);
-<<<<<<< HEAD
 }
 
 void SingleVesselCCOOTree::setNBetaTries(unsigned long long int nTries) {
 	this->nBetaTries = nTries;
-||||||| 412d906
-=======
 }
 
 void SingleVesselCCOOTree::setIsGammaStage(bool isGammaStage) {
@@ -2282,5 +2228,4 @@ double SingleVesselCCOOTree::getGamma(SingleVessel *vessel) {
 		return this->gam->getValue(vessel->stage);
 	}
 	return this->gam->getValue(vessel->nLevel);
->>>>>>> lfmc
 }

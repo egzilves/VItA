@@ -31,14 +31,10 @@ class SingleVesselCCOOTree: public AbstractObjectCCOTree {
 	double variationTolerance;
 	/**	Amount of non-common terminals. */
 	long long int nCommonTerminals;
-<<<<<<< HEAD
 	/** Amount of tries for beta convergence.*/
 	unsigned long long int nBetaTries;
-||||||| 412d906
-=======
 	/** Use gamma based on stage. */
 	bool isGammaStage;
->>>>>>> lfmc
 	friend class PruningCCOOTree;
 	friend class BreadthFirstPruning;
 	friend class TreeMerger;
