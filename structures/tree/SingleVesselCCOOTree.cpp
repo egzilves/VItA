@@ -1585,12 +1585,16 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 	iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
 	iNew->parent = clonedParent;
 	iNew->stage = this->currentStage;
+	// We need an initial radius to calibrate when using gamRadius approach
+	iNew->radius = clonedParent->radius;
 
 	SingleVessel *iCon = new SingleVessel();
 	iCon->nLevel = clonedParent->nLevel + 1;
 	iCon->length = sqrt(dCon ^ dCon);
 	iCon->parent = clonedParent;
 	iCon->stage = clonedParent->stage;
+	// We need an initial radius to calibrate when using gamRadius approach
+	iCon->radius = clonedParent->radius;
 
 	vector<AbstractVascularElement *> prevChildrenParent = clonedParent->getChildren();
 	if (prevChildrenParent.empty()) {
@@ -1691,6 +1695,8 @@ double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double d
 	iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
 	iNew->parent = clonedParent;
 	iNew->stage = this->currentStage;
+	// We need an initial radius to calibrate when using gamRadius approach
+	iNew->radius = clonedParent->radius;
 
 	vector<AbstractVascularElement *> prevChildrenParent = clonedParent->getChildren();
 	clonedParent->addChild(iNew);
@@ -1819,7 +1825,6 @@ SingleVessel* SingleVesselCCOOTree::cloneTree(SingleVessel* root, unordered_map<
 	copy->flow = root->flow;
 	copy->viscosity = root->viscosity;
 	copy->treeVolume = root->treeVolume;
-	copy->ogGamma = root->ogGamma;
 	copy->stage = root->stage;
 
 	(*segments)[copy->vtkSegmentId] = copy;
@@ -1902,9 +1907,6 @@ void SingleVesselCCOOTree::updateTreeViscositiesBeta(SingleVessel* root, double*
 
 	} else {
 		root->radius = root->beta;		
-	}
-	if ((root->ogGamma == -1) && this->gamRadius) {
-		root->ogGamma = this->gamRadius->getValue(root->radius);
 	}
 
 	vector<AbstractVascularElement *> rootChildren = root->getChildren();
@@ -2224,7 +2226,10 @@ void SingleVesselCCOOTree::setIsGammaStage(bool isGammaStage) {
 }
 
 double SingleVesselCCOOTree::getGamma(SingleVessel *vessel) {
-	if (this->isGammaStage) {
+	if (this->gamRadius) {
+		return this->gamRadius->getValue(vessel->radius);
+	}
+	else if (this->isGammaStage) {
 		return this->gam->getValue(vessel->stage);
 	}
 	return this->gam->getValue(vessel->nLevel);

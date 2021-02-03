@@ -78,6 +78,33 @@ void logConstraint(FILE *fp, AbstractConstraintFunction<double, int> *constraint
     }
 }
 
+void logConstraint(FILE *fp, AbstractConstraintFunction<double, double> *constraint) {
+    const type_info& type_constant = typeid(ConstantConstraintFunction<double, double>);
+    const type_info& constraint_type = typeid(*constraint);
+    // Is ConstantConstraintFunction
+    if (type_constant.hash_code() == constraint_type.hash_code()) {
+        fprintf(fp, "ConstantConstraintFunction = %lf\n", constraint->getValue(0));
+    }
+    // Is ConstantPiecewiseConstraintFunction
+    else {
+        ConstantPiecewiseConstraintFunction<double, double> *pieceConstraint = static_cast<ConstantPiecewiseConstraintFunction<double, double> *>(constraint);
+        fprintf(fp, "ConstantPiecewiseConstraintFunction\n");
+        vector<double> values = pieceConstraint->getValues();
+        vector<double> conditions = pieceConstraint->getConditions();
+        size_t size = values.size();
+        fprintf(fp, "Values = ");
+        for (size_t i = 0; i < size; ++i) {
+            fprintf(fp, "%lf ", values[i]);
+        }
+        fprintf(fp, "\n");
+        fprintf(fp, "Conditions = ");
+        for (size_t i = 0; i < size; ++i) {
+            fprintf(fp, "%lf ", conditions[i]);
+        }
+        fprintf(fp, "\n");
+    }
+}
+
 void logDomain(FILE *fp, AbstractDomain *domain, long long int n_term, AbstractConstraintFunction<double, int> *gam,
     AbstractConstraintFunction<double, int> *epsLim, AbstractConstraintFunction<double, int> *nu)
 {
@@ -137,6 +164,10 @@ void StagedFRROTreeGeneratorLogger::write()
     fprintf(fp, "isInCm = %d\n", (int) tree->isInCm);
     fprintf(fp, "isFL = %d\n", (int) tree->isFL);
     fprintf(fp, "isGammaStage = %d\n", (int) tree->isGammaStage);
+    if (tree->gamRadius) {
+        fprintf(fp, "Gamma radius:\n");
+        logConstraint(fp, tree->gamRadius);
+    }
     for (int i = 0; i < size; ++i) {
         fprintf(fp, "\n");
         fprintf(fp, "Stage[%d]\n", i);
