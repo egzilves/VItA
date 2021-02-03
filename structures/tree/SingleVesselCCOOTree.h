@@ -308,6 +308,11 @@ private:
 	 * Checks if length/radius > 2.
 	 */
 	bool isValidAspectRatio(SingleVessel *vessel);
+
+	/** 
+	 * Get vessel resistance.
+	 */
+	double getRealViscosity(SingleVessel *vessel);
 };
 
 #endif /* TREE_SINGLEVESSELCCOOTREE_H_ */
