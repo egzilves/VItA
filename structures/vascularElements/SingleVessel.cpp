@@ -15,7 +15,6 @@ SingleVessel::SingleVessel() :
 		AbstractVascularElement() {
 	vessels.push_back(this);
 	branchingMode = BRANCHING_MODE::DEFORMABLE_PARENT;
-	this->ogGamma = -1;
 }
 
 SingleVessel::~SingleVessel() {
