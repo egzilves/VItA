@@ -31,8 +31,6 @@ class SingleVesselCCOOTree: public AbstractObjectCCOTree {
 	double variationTolerance;
 	/**	Amount of non-common terminals. */
 	long long int nCommonTerminals;
-	/** Amount of tries for beta convergence.*/
-	unsigned long long int nBetaTries;
 	/** Use gamma based on stage. */
 	bool isGammaStage;
 	friend class PruningCCOOTree;
@@ -204,11 +202,6 @@ public:
 	string getFilenameCCO();
 
 	void updateAll();
-	
-	/**
-	 * Set the number of tries of beta convergence called by SingleVesselCCOOTree:evaluate methods.
-	 */
-	void setNBetaTries(unsigned long long int nTries);
 
 	/**
 	 * Set if the tree updates gamma using stage or level.
@@ -328,6 +321,11 @@ private:
 	* Returns the gamma.
 	*/
 	double getGamma(SingleVessel* vessel);
+
+	/** 
+	 * Get vessel resistance.
+	 */
+	double getRealViscosity(SingleVessel *vessel);
 };
 
 #endif /* TREE_SINGLEVESSELCCOOTREE_H_ */

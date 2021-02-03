@@ -46,7 +46,6 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(point xi, double rootRadius, double q
 	this->rootRadius = rootRadius;
 	this->variationTolerance = resistanceVariationTolerance;
 	this->nCommonTerminals = 0;
-	this->nBetaTries = ULLONG_MAX;
 }
 
 SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *instanceData, AbstractConstraintFunction<double, int> *gam, AbstractConstraintFunction<double, int> *epsLim,
@@ -75,7 +74,6 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 	treeFile >> pointCounter;
 	treeFile >> rootRadius;
 	treeFile >> variationTolerance;
-	this->nBetaTries = ULLONG_MAX;
 
 	treeFile >> token;
 	while (token.compare("*Vessels") != 0 && !treeFile.eof()) {
@@ -430,7 +428,6 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData* in
 	this->refPressure = refPressure;
 	this->pointCounter = 0l;
 	this->variationTolerance = viscosityTolerance;
-	this->nBetaTries = ULLONG_MAX;
 
 	this->nu = nu;
 	this->gam = gam;
@@ -1618,22 +1615,11 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 	//	Update post-order nLevel, flux, initial resistances and intial betas.
 	updateTree((SingleVessel *) clonedTree->root, clonedTree);
 
-	unsigned long long int counter = 0;
 	double maxVariation = INFINITY;
-	while (maxVariation > variationTolerance && (counter < this->nBetaTries)) {
+	while (maxVariation > variationTolerance) {
 		// printf("Max beta variation: %lf\n", maxVariation);
-		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);
-		++counter;
+		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);		
 	}
-
-	/* if (counter == this->nBetaTries) {
-		// fprintf(stderr, "Failed to converge.\n");
-		delete localEstimator;
-		delete clonedTree;
-		delete iNew;
-		delete iCon;
-		return INFINITY;
-	} */
 
 	//	Check the symmetry constraint only for the newest vessel.
 	if (!isSymmetricallyValid(iCon->beta, iNew->beta, iCon->nLevel)) {
@@ -1709,22 +1695,11 @@ double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double d
 	//	Update post-order nLevel, flux, initial resistances and intial betas.
 	updateTree((SingleVessel *) clonedTree->root, clonedTree);
 
-	unsigned long long int counter = 0;
 	double maxVariation = INFINITY;
-	while (maxVariation > variationTolerance && (counter < this->nBetaTries)) {
-		// printf("Max beta variation: %lf\n", maxVariation);
+	while (maxVariation > variationTolerance) {		
 		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);
-		++counter;
 	}
 
-	/* if (counter == this->nBetaTries) {
-		// fprintf(stderr, "Failed to converge.\n");
-		delete localEstimator;
-		delete clonedTree;
-		delete iNew;
-		return INFINITY;
-	}
- */
 	//	FIXME Define symmetry law for N-ary bifurcations (Most different betas?)
 	//	Check the symmetry constraint only for the newest vessel.
 	if (!isSymmetricallyValid( ((SingleVessel *)clonedParent->getChildren()[0])->beta, iNew->beta, iNew->nLevel)) {
@@ -1911,12 +1886,7 @@ void SingleVesselCCOOTree::updateTreeViscositiesBeta(SingleVessel* root, double*
 
 	vector<AbstractVascularElement *> rootChildren = root->getChildren();
 	if (rootChildren.empty()) {
-		if (this->isFL) {
-			root->viscosity = getNuFL(root->radius);
-		}
-		else {
-			root->viscosity = this->nu->getValue(root->nLevel);
-		}
+		root->viscosity = this->getRealViscosity(root);
 		root->resistance = 8 * root->viscosity / M_PI * root->length;
 		root->pressure = root->resistance * root->flow + refPressure;
 		root->treeVolume = root->radius * root->radius * M_PI * root->length;
@@ -1968,12 +1938,7 @@ void SingleVesselCCOOTree::updateTreeViscositiesBeta(SingleVessel* root, double*
 			}
 		}
 
-		if (this->isFL) {
-			root->viscosity = getNuFL(root->radius);
-		}
-		else {
-			root->viscosity = this->nu->getValue(root->nLevel);
-		}
+		root->viscosity = this->getRealViscosity(root);
 		root->localResistance = 8 * root->viscosity / M_PI * root->length;
 		root->resistance = root->localResistance + 1 / invResistanceContributions;
 		root->treeVolume = root->radius * root->radius * M_PI * root->length + totalChildrenVolume;
@@ -2217,10 +2182,6 @@ void SingleVesselCCOOTree::updateAll() {
 	this->computePressure(this->root);
 }
 
-void SingleVesselCCOOTree::setNBetaTries(unsigned long long int nTries) {
-	this->nBetaTries = nTries;
-}
-
 void SingleVesselCCOOTree::setIsGammaStage(bool isGammaStage) {
 	this->isGammaStage = isGammaStage;
 }
@@ -2233,4 +2194,11 @@ double SingleVesselCCOOTree::getGamma(SingleVessel *vessel) {
 		return this->gam->getValue(vessel->stage);
 	}
 	return this->gam->getValue(vessel->nLevel);
+}
+
+double SingleVesselCCOOTree::getRealViscosity(SingleVessel* vessel) {
+	if (this->isFL) {
+		return this->getNuFL(vessel->radius);
+	}
+	return this->nu->getValue(vessel->nLevel);
 }
