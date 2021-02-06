@@ -118,9 +118,9 @@ public:
 	 */
 	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction);
 
-	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_map<string, SingleVessel *>* stringToPointer);
+	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int stage, unordered_map<string, SingleVessel *>* stringToPointer);
 
-	void addVesselMerge(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_map<string, SingleVessel *>* stringToPointer);
+	void addVesselMerge(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int savedStage, unordered_map<string, SingleVessel *>* stringToPointer);
 	/** 
 	 * Adds a vessel that has already been validated. This function is used by BreadthFirstPrunning.
 	 * @param newVessel Vessel that will be added.

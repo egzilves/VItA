@@ -662,7 +662,7 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 
 }
 
-void SingleVesselCCOOTree::addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction,
+void SingleVesselCCOOTree::addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int savedStage,
 	unordered_map<string, SingleVessel *>* stringToPointer) {
 	printf("SingleVesselCCOOTree::addVesselMergeFast\n");
 	nTerms++;
@@ -695,6 +695,7 @@ void SingleVesselCCOOTree::addVesselMergeFast(point xProx, point xDist, Abstract
 		newRoot->stage = currentStage;
 		newRoot->pressure = newRoot->resistance * newRoot->flow + refPressure;
 		newRoot->vesselFunction = vesselFunction;
+		newRoot->stage = savedStage;
 
 		//	Tree quantities
 		psiFactor = pow(newRoot->beta, 4) / newRoot->flow;	//	Not used
@@ -745,8 +746,9 @@ void SingleVesselCCOOTree::addVesselMergeFast(point xProx, point xDist, Abstract
 		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
 		iNew->parent = parent;
 		iNew->ID = nTerms;
-		iNew->stage = currentStage;
+		iNew->stage = savedStage;
 		iNew->vesselFunction = vesselFunction;
+		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
 
 		parent->addChild(iNew);
 
@@ -795,8 +797,9 @@ void SingleVesselCCOOTree::addVesselMergeFast(point xProx, point xDist, Abstract
 		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
 		iNew->parent = parent;
 		iNew->ID = nTerms;
-		iNew->stage = currentStage;
+		iNew->stage = savedStage;
 		iNew->vesselFunction = vesselFunction;
+		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
 
 		SingleVessel *iCon = new SingleVessel();
 		iCon->xProx = xProx;
@@ -819,6 +822,7 @@ void SingleVesselCCOOTree::addVesselMergeFast(point xProx, point xDist, Abstract
 		iCon->branchingMode = parent->branchingMode;
 		iCon->stage = ((SingleVessel *) parent)->stage;
 		iCon->vesselFunction = ((SingleVessel *) parent)->vesselFunction;
+		iCon->radius = static_cast<SingleVessel *>(parent)->radius;
 
 		vector<AbstractVascularElement *> prevChildrenParent = parent->getChildren();
 		if (prevChildrenParent.empty()) {
@@ -897,7 +901,7 @@ void SingleVesselCCOOTree::addVesselMergeFast(point xProx, point xDist, Abstract
 }
 
 void SingleVesselCCOOTree::addVesselMerge(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction,
-	unordered_map<string, SingleVessel *>* stringToPointer) {
+	int savedStage, unordered_map<string, SingleVessel *>* stringToPointer) {
 	printf("SingleVesselCCOOTree::addVesselMerge\n");
 	nTerms++;
 	nCommonTerminals++;
@@ -979,7 +983,8 @@ void SingleVesselCCOOTree::addVesselMerge(point xProx, point xDist, AbstractVasc
 		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
 		iNew->parent = parent;
 		iNew->ID = nTerms;
-		iNew->stage = currentStage;
+		iNew->stage = savedStage;
+		iNew->radius = ((SingleVessel *) parent)->radius;
 		iNew->vesselFunction = vesselFunction;
 
 		parent->addChild(iNew);
@@ -1038,7 +1043,8 @@ void SingleVesselCCOOTree::addVesselMerge(point xProx, point xDist, AbstractVasc
 		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
 		iNew->parent = parent;
 		iNew->ID = nTerms;
-		iNew->stage = currentStage;
+		iNew->stage = savedStage;
+		iNew->radius = ((SingleVessel *) parent)->radius;
 		iNew->vesselFunction = vesselFunction;
 
 		SingleVessel *iCon = new SingleVessel();
@@ -1061,6 +1067,7 @@ void SingleVesselCCOOTree::addVesselMerge(point xProx, point xDist, AbstractVasc
 		iCon->ID = ((SingleVessel *) parent)->ID;
 		iCon->branchingMode = parent->branchingMode;
 		iCon->stage = ((SingleVessel *) parent)->stage;
+		iCon->radius = ((SingleVessel *) parent)->radius;
 		iCon->vesselFunction = ((SingleVessel *) parent)->vesselFunction;
 
 		vector<AbstractVascularElement *> prevChildrenParent = parent->getChildren();
