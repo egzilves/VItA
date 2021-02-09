@@ -45,6 +45,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(point xi, double rootRadius, double q
 	this->rootRadius = rootRadius;
 	this->variationTolerance = resistanceVariationTolerance;
 	this->nCommonTerminals = 0;
+	this->isGammaStage = false;
 }
 
 SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *instanceData, AbstractConstraintFunction<double, int> *gam, AbstractConstraintFunction<double, int> *epsLim,
@@ -176,6 +177,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 	this->nu = nu;
 	this->gam = gam;
 	this->epsLim = epsLim;
+	this->isGammaStage = false;
 
 	cout << "Tree successfully loaded" << endl;
 	cout << "Creating VTK structure..." << endl;
@@ -431,6 +433,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData* in
 	this->nu = nu;
 	this->gam = gam;
 	this->epsLim = epsLim;
+	this->isGammaStage = false;
 
 	cout << "Tree successfully loaded" << endl;
 	cout << "Creating VTK structure..." << endl;
