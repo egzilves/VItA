@@ -544,6 +544,7 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 		iNew->ID = nTerms;
 		iNew->stage = currentStage;
 		iNew->vesselFunction = vesselFunction;
+		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
 
 		parent->addChild(iNew);
 
@@ -592,6 +593,7 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 		iNew->ID = nTerms;
 		iNew->stage = currentStage;
 		iNew->vesselFunction = vesselFunction;
+		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
 
 		SingleVessel *iCon = new SingleVessel();
 		iCon->xProx = xProx;
@@ -604,6 +606,7 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 		iCon->branchingMode = parent->branchingMode;
 		iCon->stage = ((SingleVessel *) parent)->stage;
 		iCon->vesselFunction = ((SingleVessel *) parent)->vesselFunction;
+		iCon->radius = static_cast<SingleVessel *>(parent)->radius;
 
 		vector<AbstractVascularElement *> prevChildrenParent = parent->getChildren();
 		if (prevChildrenParent.empty()) {
@@ -989,6 +992,7 @@ void SingleVesselCCOOTree::addVesselMerge(point xProx, point xDist, AbstractVasc
 		iNew->stage = savedStage;
 		iNew->radius = ((SingleVessel *) parent)->radius;
 		iNew->vesselFunction = vesselFunction;
+		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
 
 		parent->addChild(iNew);
 
@@ -1049,6 +1053,7 @@ void SingleVesselCCOOTree::addVesselMerge(point xProx, point xDist, AbstractVasc
 		iNew->stage = savedStage;
 		iNew->radius = ((SingleVessel *) parent)->radius;
 		iNew->vesselFunction = vesselFunction;
+		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
 
 		SingleVessel *iCon = new SingleVessel();
 		iCon->xProx = xProx;
@@ -1072,6 +1077,7 @@ void SingleVesselCCOOTree::addVesselMerge(point xProx, point xDist, AbstractVasc
 		iCon->stage = ((SingleVessel *) parent)->stage;
 		iCon->radius = ((SingleVessel *) parent)->radius;
 		iCon->vesselFunction = ((SingleVessel *) parent)->vesselFunction;
+		iCon->radius = static_cast<SingleVessel *>(parent)->radius;
 
 		vector<AbstractVascularElement *> prevChildrenParent = parent->getChildren();
 		if (prevChildrenParent.empty()) {
@@ -1232,7 +1238,7 @@ void SingleVesselCCOOTree::addValitatedVessel(SingleVessel *newVessel, SingleVes
 		newVessel->ID = this->nTerms;
 		newVessel->stage = originalVessel->stage;
 		newVessel->vesselFunction = originalVessel->vesselFunction;
-
+		newVessel->radius = originalVessel->radius;
 		newVessel->parent->addChild(newVessel);
 
 		//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
