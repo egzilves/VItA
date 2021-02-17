@@ -1975,6 +1975,7 @@ SingleVesselCCOOTree* SingleVesselCCOOTree::cloneUpTo(int levels, SingleVessel* 
 	copy->dp = this->dp;
 	copy->nTerms = this->nTerms;
 	copy->gamRadius = this->gamRadius;
+	copy->gamFlow = this->gamFlow;
 	copy->isFL = this->isFL;
 	copy->isGammaStage = this->isGammaStage;
 	copy->isInCm = this->isInCm;
@@ -2199,6 +2200,9 @@ void SingleVesselCCOOTree::setIsGammaStage(bool isGammaStage) {
 double SingleVesselCCOOTree::getGamma(SingleVessel *vessel) {
 	if (this->gamRadius) {
 		return this->gamRadius->getValue(vessel->radius);
+	}
+	else if (this->gamFlow) {
+		return this->gamFlow->getValue(vessel->flow);
 	}
 	else if (this->isGammaStage) {
 		return this->gam->getValue(vessel->stage);

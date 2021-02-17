@@ -49,6 +49,8 @@ protected:
 	AbstractConstraintFunction<double, int> *gam;
 	/** Constraint for the ratio between parent and child radius based on the Murray's Law using parent vessel radius. */
 	AbstractConstraintFunction<double, double> *gamRadius;
+	/** Constraint for the ratio between parent and child radius based on the Murray's Law using parent vessel radius. */
+	AbstractConstraintFunction<double, double> *gamFlow;
 	/** Constraint for the symmetry between sibling vessels. */
 	AbstractConstraintFunction<double, int> *epsLim;
 	/** Constraint for the vessel viscosity. */
@@ -326,6 +328,11 @@ public:
 	* Sets if the tree will use a radius-based gamma instead of a level-based.
 	*/
 	void setGamRadius(AbstractConstraintFunction<double, double> *gamRam);
+	/**
+	* Sets if the tree will use a flow-based gamma instead of a level-based.
+	*/
+	void setGamFlow(AbstractConstraintFunction<double, double> *gamFlow);
+
 	
 protected:
 	/**
