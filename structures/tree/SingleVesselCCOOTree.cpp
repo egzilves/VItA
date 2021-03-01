@@ -2181,7 +2181,6 @@ double SingleVesselCCOOTree::getVariationTolerance()
 
 string SingleVesselCCOOTree::getFilenameCCO() {
 	return this->filenameCCO;
-<<<<<<< HEAD
 }
 
 bool SingleVesselCCOOTree::isValidAspectRatio(SingleVessel *vessel) {
@@ -2225,8 +2224,3 @@ double SingleVesselCCOOTree::getRealViscosity(SingleVessel* vessel) {
 	}
 	return this->nu->getValue(vessel->nLevel);
 }
-||||||| af158e0
-}
-=======
-}
->>>>>>> functional
