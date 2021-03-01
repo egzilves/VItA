@@ -624,7 +624,7 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 		((SingleVessel *) parent)->xDist = xProx;
 		((SingleVessel *) parent)->length = sqrt(dBif ^ dBif);
 
-		//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
+		//	Update post-order nLevel and flow, and determine initial resistance and beta values.
 		updateTree(((SingleVessel *) root), this);
 
 		//	Update resistance, pressure and betas
@@ -1832,7 +1832,6 @@ SingleVessel* SingleVesselCCOOTree::cloneTree(SingleVessel* root, unordered_map<
 void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* tree) {
 	if (root->getChildren().empty()) {
 		root->flow = root->getTerminalFlow(tree->qProx, tree->qProx * tree->qReservedFactor, tree->nCommonTerminals); //tree->qProx / tree->nTerms;
-		root->pressure = root->resistance * root->flow + refPressure;
 //		cout << tree->qProx << " " << tree->qReservedFactor << " " << tree->nCommonTerminals << " " << root->flow << endl;
 	} else {
 		vector<AbstractVascularElement *> rootChildren = root->getChildren();
@@ -1861,12 +1860,13 @@ void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* 
 
 				currentVessel->beta = pow(1 + pow(betaRatio, this->getGamma(currentVessel)), -1.0 / this->getGamma(currentVessel));
 				double betaSqr = currentVessel->beta * currentVessel->beta;
+				//	Check! This expression
 				invResistanceContributions += betaSqr * betaSqr / currentVessel->resistance;
 			}
 		}
 		root->localResistance = 8 * nu->getValue(root->nLevel) / M_PI * root->length;
+		//	Check! Is not 1/ (1/localResistance + invResistanceContribution)?
 		root->resistance = root->localResistance + 1 / invResistanceContributions;
-		root->pressure = root->resistance * root->flow + refPressure;
 	}
 }
 
@@ -1958,8 +1958,10 @@ void SingleVesselCCOOTree::updateTreeViscositiesBeta(SingleVessel* root, double*
 		root->localResistance = 8 * root->viscosity / M_PI * root->length;
 		root->resistance = root->localResistance + 1 / invResistanceContributions;
 		root->treeVolume = root->radius * root->radius * M_PI * root->length + totalChildrenVolume;
-		root->pressure = root->resistance * root->flow + refPressure;
 	}
+
+	double radiusSqr = root->radius * root->radius;
+	root->pressure = root->resistance * root->flow / (radiusSqr * radiusSqr) + refPressure;
 
 }
 
@@ -2179,6 +2181,7 @@ double SingleVesselCCOOTree::getVariationTolerance()
 
 string SingleVesselCCOOTree::getFilenameCCO() {
 	return this->filenameCCO;
+<<<<<<< HEAD
 }
 
 bool SingleVesselCCOOTree::isValidAspectRatio(SingleVessel *vessel) {
@@ -2222,3 +2225,8 @@ double SingleVesselCCOOTree::getRealViscosity(SingleVessel* vessel) {
 	}
 	return this->nu->getValue(vessel->nLevel);
 }
+||||||| af158e0
+}
+=======
+}
+>>>>>>> functional

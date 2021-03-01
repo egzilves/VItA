@@ -3,6 +3,8 @@
 /*
  * SingleVesselCCOOTree.h
  *
+ *	Jan 28, 2021: Important! This class needs cleaning and refactoring.
+ *
  *  Created on: Mar 29, 2018
  *      Author: Gonzalo D. Maso Talou
  */
@@ -127,6 +129,7 @@ public:
 	 * @param originalVessel Vessel that has been validaded in a previous tree.
 	 * @param copiedTo Mapping such that copiedTo[originalVessel] = copiedVessel;
 	*/
+	//	FIXME This function probably should be part of other class
 	void addValitatedVessel(SingleVessel *newVessel, SingleVessel *originalVessel, unordered_map<SingleVessel *, SingleVessel *>& copiedTo);
 
 	/** 
@@ -135,6 +138,7 @@ public:
 	 * @param originalVessel Vessel that has been validaded in a previous tree.
 	 * @param copiedTo Mapping such that copiedTo[originalVessel] = copiedVessel;
 	*/
+	//	FIXME This function probably should be part of other class
 	void addValitatedVesselFast(SingleVessel *newVessel, SingleVessel *originalVessel, unordered_map<SingleVessel *, SingleVessel *>& copiedTo);
 
 //	/**

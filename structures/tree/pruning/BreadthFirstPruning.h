@@ -6,6 +6,8 @@
 #include"../AbstractCostEstimator.h" 
 #include<queue>
 
+//	TODO The class is not following the abstract prunnig class.
+//	TODO Two implementations in one class, Split this class into two.
 class BreadthFirstPruning {
 private:
     const SingleVesselCCOOTree *ogTree;
