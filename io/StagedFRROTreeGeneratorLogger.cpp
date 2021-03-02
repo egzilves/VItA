@@ -168,6 +168,10 @@ void StagedFRROTreeGeneratorLogger::write()
         fprintf(fp, "Gamma radius:\n");
         logConstraint(fp, tree->gamRadius);
     }
+    if (tree->gamFlow) {
+        fprintf(fp, "Gamma flow:\n");
+        logConstraint(fp, tree->gamFlow);
+    }
     for (int i = 0; i < size; ++i) {
         fprintf(fp, "\n");
         fprintf(fp, "Stage[%d]\n", i);
