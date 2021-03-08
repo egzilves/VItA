@@ -177,6 +177,7 @@ set(STRUCTURES_TREE_CPP
     structures/tree/AbstractStructuredCCOTree.cpp
     structures/tree/AdimSproutingVolumetricCostEstimator.cpp
     structures/tree/PowerCostEstimator.cpp
+    structures/tree/DoublePowerCostEstimator.cpp
     structures/tree/LinearCombinationCostEstimator.cpp
     structures/tree/FRRCCOSTree.cpp
     structures/tree/FRRVariableViscosityCCOSTree.cpp
@@ -191,6 +192,7 @@ set(STRUCTURES_TREE_HPP
     structures/tree/AbstractStructuredCCOTree.h
     structures/tree/AdimSproutingVolumetricCostEstimator.h
     structures/tree/PowerCostEstimator.h
+    structures/tree/DoublePowerCostEstimator.h
     structures/tree/LinearCombinationCostEstimator.h
     structures/tree/FRRCCOSTree.h
     structures/tree/FRRVariableViscosityCCOSTree.h
