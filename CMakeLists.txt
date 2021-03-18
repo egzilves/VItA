@@ -264,6 +264,21 @@ endif()
 
 add_library(vita ${SOURCE_CPP})
 
+#[[
+set(VTK_LIBS 
+    vtkCommonCore-9.0
+    vtkCommonDataModel-9.0
+    vtkCommonExecutionModel-9.0
+    vtkFiltersFlowPaths-9.0
+    vtkFiltersModeling-9.0
+    vtkIOCore-9.0
+    vtkIOLegacy-9.0
+    vtkIOXML-9.0
+    vtkIOGeometry-9.0)
+
+set(VTK_INCLUDE /usr/local/include/vtk-9.0)
+]]
+
 set(VTK_LIBS 
     vtkCommonCore-8.1
     vtkCommonDataModel-8.1
@@ -275,11 +290,9 @@ set(VTK_LIBS
     vtkIOXML-8.1
     vtkIOGeometry-8.1)
 
-set(VTK_INSTALL CACHE PATH "VTK install location.")
-set(VTK_INCLUDE $CACHE{VTK_INSTALL}/include/vtk-8.1)
+set(VTK_INCLUDE /usr/local/include/vtk-8.1)
 
 target_include_directories(vita PUBLIC ${VTK_INCLUDE})
-target_link_options(vita PUBLIC -L$CACHE{VTK_INSTALL}/lib)
 target_link_libraries(vita PUBLIC ${VTK_LIBS} gomp)
 
 # set_target_properties(vita PROPERTIES PUBLIC_HEADER "${SOURCE_HPP}")
