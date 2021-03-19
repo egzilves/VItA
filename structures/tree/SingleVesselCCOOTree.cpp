@@ -662,6 +662,202 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 
 }
 
+void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<SingleVessel *> * ogVessels, vector<long long int> *terminals, int mergeStage) {
+
+	nTerms++;
+	nCommonTerminals++;
+
+	//	Root
+	if (!parent) {
+
+		SingleVessel * newRoot = new SingleVessel();
+
+		//	Nodal quantities
+		newRoot->xDist = xDist;
+		newRoot->xProx = this->xPerf;
+		point dist = newRoot->xDist - newRoot->xProx;
+		newRoot->nLevel = 0;
+		newRoot->beta = rootRadius;
+		newRoot->radius = rootRadius;
+		newRoot->length = sqrt(dist ^ dist);
+		newRoot->viscosity = nu->getValue(newRoot->nLevel);
+		newRoot->resistance = (8 * newRoot->viscosity / M_PI) * newRoot->length;
+		newRoot->flow = qProx;
+		newRoot->treeVolume = M_PI * newRoot->length * rootRadius * rootRadius;
+		newRoot->parent = NULL;
+		newRoot->ID = nTerms;
+		newRoot->stage = currentStage;
+		newRoot->pressure = newRoot->resistance * newRoot->flow + refPressure;
+		newRoot->vesselFunction = vesselFunction;
+
+		//	Tree quantities
+		psiFactor = pow(newRoot->beta, 4) / newRoot->flow;	//	Not used
+		dp = newRoot->resistance / psiFactor;
+
+		//	Update tree geometry
+		vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+		vtkIdType idProx = pts->InsertNextPoint(newRoot->xProx.p);
+		vtkIdType idDist = pts->InsertNextPoint(newRoot->xDist.p);
+		vtkTree->SetPoints(pts);
+
+		newRoot->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		newRoot->vtkSegment->GetPointIds()->SetId(0, idProx); // the second 0 is the index of xProx
+		newRoot->vtkSegment->GetPointIds()->SetId(1, idDist); // the second 1 is the index of xDist
+		vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+		newRoot->vtkSegmentId = lines->InsertNextCell(newRoot->vtkSegment);
+		vtkTree->SetLines(lines);
+		elements[newRoot->vtkSegmentId] = newRoot;
+
+		root = newRoot;
+
+		//	Update tree locator
+		vtkTreeLocator->SetDataSet(vtkTree);
+		vtkTreeLocator->BuildLocator();
+	}
+	//	Non-root case & distal branching
+	else if(parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
+
+		if(parent->getChildren().empty()){
+			nTerms--;
+			nCommonTerminals--;
+		}
+
+		//	Add segment iNew, iCon and iBif in the cloned tree updating nLevel and lengths
+		point dNew = xDist - xProx;
+
+		SingleVessel *iNew = new SingleVessel();
+		iNew->xProx = xProx;
+		iNew->xDist = xDist;
+		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+		iNew->length = sqrt(dNew ^ dNew);
+		iNew->viscosity = nu->getValue(iNew->nLevel);
+		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
+		iNew->parent = parent;
+		iNew->ID = nTerms;
+		iNew->stage = currentStage;
+		iNew->vesselFunction = vesselFunction;
+
+		parent->addChild(iNew);
+
+		//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
+		updateTree(((SingleVessel *) root), this, ogVessels, terminals, mergeStage);
+
+		//	Update resistance, pressure and betas
+		double maxVariation = INFINITY;
+		while (maxVariation > variationTolerance) {
+			updateTreeViscositiesBeta(((SingleVessel *) root), &maxVariation);
+		}
+
+		//	Update tree geometry
+		vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
+
+		iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		iNew->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second index is the global index of the mesh point
+		iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
+
+		iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
+		elements[iNew->vtkSegmentId] = iNew;
+
+		vtkTree->BuildCells();
+		vtkTree->Modified();
+
+		//	Update tree locator
+		vtkTreeLocator->Update();
+
+	}
+	//	Non-root case & not distal branching
+	else{
+
+		//	Add segment iNew, iCon and iBif in the cloned tree updating nLevel and lengths
+		point dNew = xDist - xProx;
+		point dCon = ((SingleVessel *) parent)->xDist - xProx;
+		point dBif = xProx - ((SingleVessel *) parent)->xProx;
+
+		SingleVessel *iNew = new SingleVessel();
+		iNew->xProx = xProx;
+		iNew->xDist = xDist;
+		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+		iNew->length = sqrt(dNew ^ dNew);
+		iNew->viscosity = nu->getValue(iNew->nLevel);
+		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
+		iNew->parent = parent;
+		iNew->ID = nTerms;
+		iNew->stage = currentStage;
+		iNew->vesselFunction = vesselFunction;
+
+		SingleVessel *iCon = new SingleVessel();
+		iCon->xProx = xProx;
+		iCon->xDist = ((SingleVessel *) parent)->xDist;
+		iCon->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+		iCon->length = sqrt(dCon ^ dCon);
+		iCon->viscosity = nu->getValue(iCon->nLevel);
+		iCon->parent = parent;
+		iCon->ID = ((SingleVessel *) parent)->ID;
+		iCon->branchingMode = parent->branchingMode;
+		iCon->stage = ((SingleVessel *) parent)->stage;
+		iCon->vesselFunction = ((SingleVessel *) parent)->vesselFunction;
+
+		vector<AbstractVascularElement *> prevChildrenParent = parent->getChildren();
+		if (prevChildrenParent.empty()) {
+			iCon->resistance = 8 * iCon->viscosity / M_PI * iCon->length;
+		} else {
+			for (vector<AbstractVascularElement *>::iterator it = prevChildrenParent.begin(); it != prevChildrenParent.end(); ++it) {
+				iCon->addChild(*it);
+				(*it)->parent = iCon;
+			}
+			parent->removeChildren();
+		}
+		parent->addChild(iNew);
+		parent->addChild(iCon);
+
+		((SingleVessel *) parent)->xDist = xProx;
+		((SingleVessel *) parent)->length = sqrt(dBif ^ dBif);
+
+		//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
+		terminals->at(2) = terminals->at(2) + 1;
+		updateTree(((SingleVessel *) root), this, ogVessels, terminals, mergeStage);
+
+		//	Update resistance, pressure and betas
+		double maxVariation = INFINITY;
+		while (maxVariation > variationTolerance) {
+			updateTreeViscositiesBeta(((SingleVessel *) root), &maxVariation);
+		}
+
+		//	Update tree geometry
+		vtkIdType idProx = vtkTree->GetPoints()->InsertNextPoint(xProx.p);
+		vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
+
+		iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		iNew->vtkSegment->GetPointIds()->SetId(0, idProx); // the second index is the global index of the mesh point
+		iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
+
+		iCon->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		iCon->vtkSegment->GetPointIds()->SetId(0, idProx); // the second 0 is the index of xProx
+		iCon->vtkSegment->GetPointIds()->SetId(1, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second 1 is the index of xDist
+
+		iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
+		iCon->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iCon->vtkSegment);
+
+		elements[iNew->vtkSegmentId] = iNew;
+		elements[iCon->vtkSegmentId] = iCon;
+
+//		cout << "Parent VTK Cell ids : " << vtkTree->GetCell(parent->vtkSegmentId)->GetPointIds()->GetNumberOfIds() << endl;
+//		cout << "Intented modified id " << parent->vtkSegment->GetPointId(1) << endl;
+		vtkTree->ReplaceCellPoint(((SingleVessel *) parent)->vtkSegmentId, ((SingleVessel *) parent)->vtkSegment->GetPointId(1), idProx);
+		((SingleVessel *) parent)->vtkSegment->GetPointIds()->SetId(1, idProx);
+
+		vtkTree->BuildCells();
+		vtkTree->Modified();
+
+//		cout << "Points = " << vtkTree->GetNumberOfPoints() << endl;
+//		cout << "Vessels = " << vtkTree->GetNumberOfLines() << endl;
+
+		//	Update tree locator
+		vtkTreeLocator->Update();
+	}
+
+}
+
 void SingleVesselCCOOTree::addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int savedStage,
 	unordered_map<string, SingleVessel *>* stringToPointer) {
 	printf("SingleVesselCCOOTree::addVesselMergeFast\n");
@@ -1561,6 +1757,73 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 	return *cost != INFINITY;
 }
 
+int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dLim, point* xBif, double* cost, unordered_set<SingleVessel *> *ogVessels,vector<long long int> *terminals, int mergeStage) {
+
+	vector<point> bifPoints;
+	parent->getBranchingPoints(&bifPoints, xNew);
+	SingleVessel *pVessel = (SingleVessel *) parent;
+
+	vector<double> costs(bifPoints.size(), INFINITY);
+	for (unsigned int i = 0; i < bifPoints.size(); ++i) {
+		point bif = bifPoints[i];
+		//	TODO Implement the BIG if as a filter design pattern for testing vessels. IMPORTANT! Benchmark that implementation against the hardcoded version to evaluate the performance since
+		//	its a highly covered piece of the code. Advantages: can dynamically modify the checks at different stages to enhance computation.
+		// Branching is distal or angles are valid
+		if (pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING || (areValidAngles(bif, xNew, pVessel, domain->getMinBifurcationAngle())
+				&&	isValidOpeningAngle(bif, xNew, pVessel, domain->getMinPlaneAngle()))
+			) {
+			/* x_n, bif is inside the domain ANDAND
+			((Vessel is perforator OR x_p,x_b is inside) AND
+			x_b, x_p is inside)
+			In other words
+			v_new is inside the domain AND
+			(parent vessel is distal OR
+			((v_p is inside the domain OR parente vessel is perforator) AND
+			v_s is inside the domain))
+			*/
+			if (domain->isSegmentInside(xNew, bif) && (pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING ||
+					((pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR ||  domain->isSegmentInside(pVessel->xProx, bif)) && domain->isSegmentInside(pVessel->xDist, bif)) ) ) {
+				/* v_new, v_s and v_p do not intersect neighbouring vessel */
+				if (!isIntersectingVessels(xNew, bif, pVessel, neighbors) &&
+						!isIntersectingVessels(pVessel->xProx, bif, pVessel, neighbors) &&
+						!isIntersectingVessels(pVessel->xDist, bif, pVessel, neighbors)) {
+					// Is distal
+					if(pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
+						costs[i] = evaluate(xNew, pVessel, dLim, ogVessels, terminals, mergeStage);
+					}
+					// Is rigid/deformable/no_branching
+					else{
+						costs[i] = evaluate(xNew, bif, pVessel, dLim, ogVessels, terminals, mergeStage);
+					//cout << "Cost for xNew " << xNew << " and " << parent->vtkSegmentId << " with bifurcation at " << coordinates[majorIndex + j-1] << " is " << costs[majorIndex + j-1] << endl;
+					}
+				} else {
+					costs[i] = INFINITY;
+					// cout << "Intersection detected." << endl;
+				}
+			} else {
+				costs[i] = INFINITY;
+				// cout << "Cost for bifurcation outside the domain." << endl;
+			}
+		} else {
+			costs[i] = INFINITY;
+			// cout << "Small angle detected." << endl;
+		}
+//#pragma omp critical
+//			cout << "Cost of bifurcation at coordinates " << coordinates[majorIndex + j] << " is " << costs[majorIndex + j] << endl;
+	}
+
+	*cost = INFINITY;
+	*xBif = {INFINITY,INFINITY,INFINITY};
+	for (unsigned int i = 0; i < bifPoints.size(); ++i) {
+		if (costs[i] < *cost) {
+			*cost = costs[i];
+			*xBif = bifPoints[i];
+		}
+	}
+
+	return *cost != INFINITY;
+}
+
 double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *parent, double dLim) {
 
 	SingleVesselCCOOTree *clonedTree = cloneUpTo(instanceData->nLevelTest, parent);
@@ -1659,6 +1922,106 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 
 }
 
+double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *parent, double dLim, unordered_set<SingleVessel *> *ogVessels, vector<long long int> *terminals, int mergeStage) {
+
+	SingleVesselCCOOTree *clonedTree = cloneUpTo(instanceData->nLevelTest, parent);
+//	SingleVesselCCOOTree *clonedTree = this->clone();
+
+	AbstractCostEstimator *localEstimator = instanceData->costEstimator->clone();
+	localEstimator->previousState(clonedTree, parent, xNew, xTest, dLim);
+
+	clonedTree->nTerms++;
+	clonedTree->nCommonTerminals++;
+
+	//	Fast-forward until parent in the cloned tree
+	auto it = clonedTree->elements.begin();
+	for (; ((SingleVessel *) (it->second))->vtkSegmentId != ((SingleVessel *) parent)->vtkSegmentId; ++it)
+		;
+	SingleVessel *clonedParent = (SingleVessel *) (it->second);
+
+	//	Add segment iNew, iCon and iBif in the cloned tree updating nLevel and lengths
+	point dNew = xNew - xTest;
+	point dCon = clonedParent->xDist - xTest;
+	point dBif = xTest - clonedParent->xProx;
+
+	SingleVessel *iNew = new SingleVessel();
+	iNew->nLevel = clonedParent->nLevel + 1;
+	iNew->length = sqrt(dNew ^ dNew);
+	iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
+	iNew->parent = clonedParent;
+	iNew->stage = this->currentStage;
+	// We need an initial radius to calibrate when using gamRadius approach
+	iNew->radius = clonedParent->radius;
+
+	SingleVessel *iCon = new SingleVessel();
+	iCon->nLevel = clonedParent->nLevel + 1;
+	iCon->length = sqrt(dCon ^ dCon);
+	iCon->parent = clonedParent;
+	iCon->stage = clonedParent->stage;
+	// We need an initial radius to calibrate when using gamRadius approach
+	iCon->radius = clonedParent->radius;
+
+	vector<AbstractVascularElement *> prevChildrenParent = clonedParent->getChildren();
+	if (prevChildrenParent.empty()) {
+		iCon->resistance = 8 * nu->getValue(iCon->nLevel) / M_PI * iCon->length;
+	} else {
+		for (vector<AbstractVascularElement *>::iterator it = prevChildrenParent.begin(); it != prevChildrenParent.end(); ++it) {
+			iCon->addChild(*it);
+			(*it)->parent = iCon;
+		}
+		clonedParent->removeChildren();
+	}
+	clonedParent->addChild(iNew);
+	clonedParent->addChild(iCon);
+
+	//	Not needed because the updates use the tree structure to visit and update (not the element structure)
+//	clonedTree->elements.push_back(iNew);
+//	clonedTree->elements.push_back(iCon);
+
+	clonedParent->length = sqrt(dBif ^ dBif);
+
+	//	Update post-order nLevel, flux, initial resistances and intial betas.
+	vector<long long int> *terminals_updated {new vector<long long int>({terminals->at(0), terminals->at(1), terminals->at(2) + 1})};
+	updateTree((SingleVessel *) clonedTree->root, clonedTree, ogVessels, terminals, mergeStage);
+	delete terminals_updated;
+
+	double maxVariation = INFINITY;
+	while (maxVariation > variationTolerance) {
+		// printf("Max beta variation: %lf\n", maxVariation);
+		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);		
+	}
+
+	//	Check the symmetry constraint only for the newest vessel.
+	if (!isSymmetricallyValid(iCon->beta, iNew->beta, iCon->nLevel)) {
+		delete localEstimator;
+		delete clonedTree;
+		delete iNew;
+		delete iCon;
+		return INFINITY;
+	}
+
+	if (!isValidAspectRatio(iNew) || !isValidAspectRatio(iCon) || !isValidAspectRatio(clonedParent)) {
+		delete localEstimator;
+		delete clonedTree;
+		delete iNew;
+		delete iCon;
+		return INFINITY;
+	}
+
+	//	Compute cost and checks the geometric constraint only at the terminals - if the last is violated, cost is INFINITY
+	double diffCost = localEstimator->computeCost(clonedTree);
+
+	delete localEstimator;
+	delete clonedTree;
+
+	// As iCon and iNew are not added to clonedTree->elements we have to manually delete it.
+	delete iNew;
+	delete iCon;
+
+	return diffCost;
+
+}
+
 double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double dLim) {
 
 	SingleVesselCCOOTree *clonedTree = cloneUpTo(instanceData->nLevelTest, parent);
@@ -1701,6 +2064,83 @@ double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double d
 
 	//	Update post-order nLevel, flux, initial resistances and intial betas.
 	updateTree((SingleVessel *) clonedTree->root, clonedTree);
+
+	double maxVariation = INFINITY;
+	while (maxVariation > variationTolerance) {		
+		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);
+	}
+
+	//	FIXME Define symmetry law for N-ary bifurcations (Most different betas?)
+	//	Check the symmetry constraint only for the newest vessel.
+	if (!isSymmetricallyValid( ((SingleVessel *)clonedParent->getChildren()[0])->beta, iNew->beta, iNew->nLevel)) {
+		delete localEstimator;
+		delete clonedTree;
+		delete iNew;
+		return INFINITY;
+	}
+
+	if (!isValidAspectRatio(clonedParent) || !isValidAspectRatio(iNew)) {
+		delete localEstimator;
+		delete clonedTree;
+		delete iNew;
+		return INFINITY;
+	}
+
+	//	Compute cost and checks the geometric constraint only at the terminals - if the last is unsatisfied, cost is INFINITY
+	double diffCost = localEstimator->computeCost(clonedTree);
+
+	delete localEstimator;
+	delete clonedTree;
+
+	// As iNew is not added to clonedTree->elements we have to manually delete it
+	delete iNew;
+
+	return diffCost;
+
+}
+
+double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double dLim, unordered_set<SingleVessel *> *ogVessels, vector<long long int> *terminals, int mergeStage) {
+
+	SingleVesselCCOOTree *clonedTree = cloneUpTo(instanceData->nLevelTest, parent);
+//	SingleVesselCCOOTree *clonedTree = this->clone();
+
+	AbstractCostEstimator *localEstimator = instanceData->costEstimator->clone();
+	localEstimator->previousState(clonedTree, parent, xNew, parent->xDist, dLim);
+
+	if(parent->getChildren().size()>0){
+		clonedTree->nTerms++;
+		clonedTree->nCommonTerminals++;
+	}
+
+	//	Fast-forward until parent in the cloned tree
+	auto it = clonedTree->elements.begin();
+	for (; ((SingleVessel *) (it->second))->vtkSegmentId != ((SingleVessel *) parent)->vtkSegmentId; ++it)
+		;
+	SingleVessel *clonedParent = (SingleVessel *) (it->second);
+
+	//	Add segment iNew, iCon and iBif in the cloned tree updating nLevel and lengths
+	point dNew = xNew - clonedParent->xDist;
+	point dBif = clonedParent->xDist - clonedParent->xProx;
+
+	SingleVessel *iNew = new SingleVessel();
+	iNew->nLevel = clonedParent->nLevel + 1;
+	iNew->length = sqrt(dNew ^ dNew);
+	iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
+	iNew->parent = clonedParent;
+	iNew->stage = this->currentStage;
+	// We need an initial radius to calibrate when using gamRadius approach
+	iNew->radius = clonedParent->radius;
+
+	vector<AbstractVascularElement *> prevChildrenParent = clonedParent->getChildren();
+	clonedParent->addChild(iNew);
+
+	//	Same as in the other case, element structure is not needed for the following updates in the cloned tree.
+//	clonedTree->elements.push_back(iNew);
+
+	clonedParent->length = sqrt(dBif ^ dBif);
+
+	//	Update post-order nLevel, flux, initial resistances and intial betas.
+	updateTree((SingleVessel *) clonedTree->root, clonedTree, ogVessels, terminals, mergeStage);
 
 	double maxVariation = INFINITY;
 	while (maxVariation > variationTolerance) {		
@@ -1833,6 +2273,52 @@ void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* 
 			SingleVessel *currentVessel = (SingleVessel *) (*it);
 			currentVessel->nLevel = root->nLevel + 1;
 			updateTree(currentVessel, tree);
+			totalFlow += currentVessel->flow;
+			invTotalResistance += 1 / currentVessel->resistance;
+		}
+		root->flow = totalFlow;
+
+		double invResistanceContributions = 0.0;
+		if (rootChildren.size() == 1) {
+			SingleVessel *currentVessel = (SingleVessel *) rootChildren[0];
+			currentVessel->beta = 1.0;
+			invResistanceContributions = 1 / currentVessel->resistance;
+		} else {
+			for (vector<AbstractVascularElement *>::iterator it = rootChildren.begin(); it != rootChildren.end(); ++it) {
+				SingleVessel *currentVessel = (SingleVessel *) (*it);
+				double siblingsFlow = totalFlow - currentVessel->flow;
+				double siblingsResistance = 1 / (invTotalResistance - 1 / currentVessel->resistance);
+				double betaRatio = sqrt(sqrt((siblingsFlow * siblingsResistance) / (currentVessel->flow * currentVessel->resistance)));
+
+				currentVessel->beta = pow(1 + pow(betaRatio, this->getGamma(currentVessel)), -1.0 / this->getGamma(currentVessel));
+				double betaSqr = currentVessel->beta * currentVessel->beta;
+				invResistanceContributions += betaSqr * betaSqr / currentVessel->resistance;
+			}
+		}
+		root->localResistance = 8 * nu->getValue(root->nLevel) / M_PI * root->length;
+		root->resistance = root->localResistance + 1 / invResistanceContributions;
+		root->pressure = root->resistance * root->flow + refPressure;
+	}
+}
+
+void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* tree, unordered_set<SingleVessel *>* ogVessels, vector<long long int> *terminals, int mergeStage) {
+	if (root->getChildren().empty()) {
+		if (root->stage >= mergeStage || ogVessels->find(root) != ogVessels->end()) {
+			root->flow = (terminals->at(1) * this->qProx) / (terminals->at(0) * terminals->at(2));
+		}
+		else {
+			root->flow = (terminals->at(0) - terminals->at(1) * this->qProx) / (terminals->at(0) - terminals->at(2));
+		}
+		root->pressure = root->resistance * root->flow + refPressure;
+//		cout << tree->qProx << " " << tree->qReservedFactor << " " << tree->nCommonTerminals << " " << root->flow << endl;
+	} else {
+		vector<AbstractVascularElement *> rootChildren = root->getChildren();
+		double totalFlow = 0.0;
+		double invTotalResistance = 0.0;
+		for (vector<AbstractVascularElement *>::iterator it = rootChildren.begin(); it != rootChildren.end(); ++it) {
+			SingleVessel *currentVessel = (SingleVessel *) (*it);
+			currentVessel->nLevel = root->nLevel + 1;
+			updateTree(currentVessel, tree, ogVessels, terminals, mergeStage);
 			totalFlow += currentVessel->flow;
 			invTotalResistance += 1 / currentVessel->resistance;
 		}

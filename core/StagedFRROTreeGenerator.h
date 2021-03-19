@@ -140,7 +140,7 @@ public:
 	 */
 	AbstractObjectCCOTree *resumeSavePoints(long long int saveInterval, string tempDirectory, FILE *fp);
 
-	AbstractObjectCCOTree *resumeSavePointsMidPoint(long long int saveInterval, string tempDirectory, FILE *fp);
+	AbstractObjectCCOTree *resumeSavePointsMidPoint(long long int saveInterval, string tempDirectory, FILE *fp, long long int nPart, int mergeStage);
 	
 	StagedDomain* getDomain();
 	/**
