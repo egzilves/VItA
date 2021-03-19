@@ -387,3 +387,11 @@ void AbstractObjectCCOTree::setGamRadius(AbstractConstraintFunction<double, doub
 void AbstractObjectCCOTree::setGamFlow(AbstractConstraintFunction<double, double> *gamFlow) {
 	this->gamFlow = gamFlow;
 }
+
+int AbstractObjectCCOTree::testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost, unordered_set<SingleVessel *>* ogVessels, vector<long long int> *terminals, int mergeStage) {
+	return 0;
+}
+
+void AbstractObjectCCOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<SingleVessel *> *ogVessels, vector<long long int> *terminals, int mergeStage) {
+	return;
+}
