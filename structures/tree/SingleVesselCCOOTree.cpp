@@ -2316,7 +2316,7 @@ void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* 
 			root->flow = (terminals->at(1) * this->qProx) / (terminals->at(0) * terminals->at(2));
 		}
 		else {
-			root->flow = (terminals->at(0) - terminals->at(1) * this->qProx) / (terminals->at(0) - terminals->at(2));
+			root->flow = ((terminals->at(0) - terminals->at(1)) * this->qProx) / (terminals->at(0) * (terminals->at(0) - terminals->at(2)));
 		}
 		root->pressure = root->resistance * root->flow + refPressure;
 //		cout << tree->qProx << " " << tree->qReservedFactor << " " << tree->nCommonTerminals << " " << root->flow << endl;
