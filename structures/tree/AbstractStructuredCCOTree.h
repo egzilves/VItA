@@ -99,7 +99,6 @@ public:
 	 * @param parent	Parent to the new vessel.
 	 */
 	virtual void addVessel(point xProx, point xDist, vessel *parent) = 0;
-	virtual void addVessel(point xProx, point xDist, vessel *parent, unordered_set<vtkIdType> *ogVessels, vector<long long int> *terminal);
 	/**
 	 * For a given spatial point @p xNew test its connection with @p parent vessel. It must evaluate if the restrictions
 	 * of geometry and symmetry are satisfied and also if it do not intersects with other vessel of this tree. It returns
@@ -114,7 +113,6 @@ public:
 	 * @return	If the connection of the tree with xNew is possible. If not @p cost is INFINITY.
 	 */
 	virtual int testVessel(point xNew, vessel *parent, AbstractDomain *domain, vector<vessel *> neighbors, double dlim, point *xBif, double *cost) = 0;
-	virtual int testVessel(point xNew, vessel *parent, AbstractDomain *domain, vector<vessel *> neighbors, double dlim, point *xBif, double *cost, unordered_set<vtkIdType> *ogVessels, vector<long long int> *terminal);
 	/**
 	 * Computes the pressure for the whole tree for a given reference pressure P_r (default P_r=0 Pa).
 	 * @param root	Tree root.
