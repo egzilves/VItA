@@ -119,7 +119,7 @@ public:
 	 */
 	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction);
 
-	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType> *ogVessels, vector<long long int> *terminals) override;
+	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) override;
 
 	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int stage, unordered_map<string, SingleVessel *>* stringToPointer);
 
@@ -165,7 +165,7 @@ public:
 	 */
 	int testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost);
 
-	int testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost, unordered_set<vtkIdType>* ogVessels, vector<long long int> *terminals) override;
+	int testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) override;
 
 	/**
 	 * Prints the current tree node by node.
@@ -243,7 +243,7 @@ private:
 	 * @param dLim Minimum distance from the new vessel to the tree.
 	 */
 	double evaluate(point xNew, point xTest, SingleVessel *parent, double dLim);
-	double evaluate(point xNew, point xTest, SingleVessel *parent, double dLim, unordered_set<vtkIdType>* originalVessels, vector<long long int> *nPartTotal);
+	double evaluate(point xNew, point xTest, SingleVessel *parent, double dLim, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart);
 	/**
 	 * Returns a partial variation of the cost functional due to the new segment inclusion. This method is only used for DISTAL_BRANCHING vessels.
 	 * @param xNew	Proximal point of the new vessel.
@@ -251,7 +251,7 @@ private:
 	 * @param dLim Minimum distance from the new vessel to the tree.
 	 */
 	double evaluate(point xNew, SingleVessel *parent, double dLim);
-	double evaluate(point xNew, SingleVessel *parent, double dLim, unordered_set<vtkIdType>* originalVessels, vector<long long int> *nPartTotal);
+	double evaluate(point xNew, SingleVessel *parent, double dLim, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart);
 	/**
 	 * Updates the tree values for the current topology in only one tree "in order" swept (O(N)).
 	 * As the recursion deepens, the level number is computed for each element. As the
@@ -262,7 +262,7 @@ private:
 	 */
 	void updateTree(SingleVessel *root, SingleVesselCCOOTree *tree);
 
-	void updateTree(SingleVessel *root, SingleVesselCCOOTree *tree, unordered_set<vtkIdType>* originalVessels, vector<long long int> *nPartTotal);
+	void updateTree(SingleVessel *root, SingleVesselCCOOTree *tree, unordered_set<vtkIdType>* partVessels, long long int *nPartTotal, const vector<double> qPart);
 	/**
 	 * For a giving pair of beta between sibling of a parent vessel, it analyze the symmetry constrain given by
 	 * epsLim function.

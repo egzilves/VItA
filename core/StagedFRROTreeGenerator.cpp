@@ -625,38 +625,41 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePoints(long long int s
 	return tree;
 }
 
-static void originalVesselsRecursive(SingleVessel *root, unordered_set<vtkIdType>* originals, vtkSmartPointer<vtkSelectEnclosedPoints> enclosedPoints, long long int &nEnclosed) {
+static void originalVesselsRecursive(SingleVessel *root, unordered_set<vtkIdType>* originals, vtkSmartPointer<vtkSelectEnclosedPoints> enclosedPoints, long long int &partTerm) {
 	if(!root) {
 		return;
 	}
 	point midPoint = (root->xProx + root->xDist) / 2.;
 	if (enclosedPoints->IsInsideSurface(midPoint.p)) {
 		originals->insert(root->vtkSegmentId);
-		++nEnclosed;
+		if ((root->children).empty()) {
+			++partTerm;
+		}
 	}
 	for(auto it = root->getChildren().begin(); it != root->getChildren().end(); ++it) {
-		originalVesselsRecursive(static_cast<SingleVessel *>((*it)), originals, enclosedPoints, nEnclosed);
+		originalVesselsRecursive(static_cast<SingleVessel *>((*it)), originals, enclosedPoints, partTerm);
 	}
 }
 
 
-static unordered_set<vtkIdType>* originalVessels(SingleVesselCCOOTree *tree, vtkSmartPointer<vtkSelectEnclosedPoints> enclosedPoints, long long int &nEnclosed) {
-	nEnclosed = 0;
+static unordered_set<vtkIdType>* originalVessels(SingleVesselCCOOTree *tree, vtkSmartPointer<vtkSelectEnclosedPoints> enclosedPoints, long long int &partTerm) {	
 	unordered_set<vtkIdType>* originalSV = new unordered_set<vtkIdType>;
-	originalVesselsRecursive(static_cast<SingleVessel *>(tree->getRoot()), originalSV, enclosedPoints, nEnclosed);
+	originalVesselsRecursive(static_cast<SingleVessel *>(tree->getRoot()), originalSV, enclosedPoints, partTerm);
 	return originalSV;
 }
 
-AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePointsMidPoint(long long int saveInterval, string tempDirectory, FILE *fp, long long int nPart) {
+AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePointsMidPoint(long long int saveInterval, string tempDirectory, FILE *fp) {
 	this->beginTime = time(nullptr);
 	this->dLimInitial = this->dLim;
 
-	long long int nEnclosed {0};
 	vtkSmartPointer<vtkSelectEnclosedPoints> enclosedPoints = domain->getEnclosedPoints();
 	/* It holds all the segments such that the midpoint is inside the partition. */
-	unordered_set<vtkIdType> *ogVessels = originalVessels(static_cast<SingleVesselCCOOTree *>(this->tree), enclosedPoints, nEnclosed);
-	long long int nPartTotal {nEnclosed + nPart};
-	vector<long long int> *terminals = new vector<long long int>{this->nTerminals, nPartTotal, nEnclosed};
+	long long int partTerm {0};
+	unordered_set<vtkIdType> *partVessels = originalVessels(static_cast<SingleVesselCCOOTree *>(this->tree), enclosedPoints, partTerm);
+	// Assuming that all terminals have the same outflow.
+	const double qOutsideTerm {this->tree->getQProx() / this->tree->getNTerms()};
+	const double qPart {partTerm * qOutsideTerm};
+	const vector<double> qPartitions {qPart, qOutsideTerm};
 
 //	VTKObjectTreeSplinesNodalWriter *nodalWriter = new VTKObjectTreeSplinesNodalWriter();
 	generatesConfigurationFile(ios::out);
@@ -699,12 +702,11 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePointsMidPoint(long lo
 			for (unsigned j = 0; j < neighborVessels.size(); ++j) {
 				point xBif;
 				double cost;
-				auto ogIt = ogVessels->find(static_cast<SingleVessel *>(neighborVessels[j])->vtkSegmentId);
-				if (ogIt == ogVessels->end()) {
+				if (partVessels->find(static_cast<SingleVessel *>(neighborVessels[j])->vtkSegmentId) == partVessels->end()) {
 					continue;
 				} 
 				tree->testVessel(xNew, neighborVessels[j], domain,
-						neighborVessels, dLim, &xBif, &cost, ogVessels, terminals); //	Inf cost stands for invalid solution
+						neighborVessels, dLim, &xBif, &cost, partVessels, &partTerm, qPartitions); //	Inf cost stands for invalid solution
 #pragma omp critical
 				{
 					if (cost < minCost) {
@@ -733,7 +735,7 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePointsMidPoint(long lo
 				fwrite(&(minParentSV->xDist.p[2]), sizeof(double), 1, fp);
 				fwrite(&(instanceData->vesselFunction), sizeof(int), 1, fp);
 				fwrite(&(this->stage), sizeof(int), 1, fp);
-				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, ogVessels, terminals);
+				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, partVessels, &partTerm, qPartitions);
 				invalidTerminal = false;
 			}
 		}
@@ -748,9 +750,8 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePointsMidPoint(long lo
 	this->endTime = time(nullptr);
 	this->dLimLast = this->dLim;
 
-	ogVessels->clear();
-	delete ogVessels;
-	delete terminals;
+	partVessels->clear();
+	delete partVessels;
 
 	saveStatus(nTerminals-1);
 	markTimestampOnConfigurationFile("Final tree volume " + to_string(((SingleVessel *) tree->getRoot())->treeVolume));
