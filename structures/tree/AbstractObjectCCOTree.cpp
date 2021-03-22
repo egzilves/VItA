@@ -388,10 +388,10 @@ void AbstractObjectCCOTree::setGamFlow(AbstractConstraintFunction<double, double
 	this->gamFlow = gamFlow;
 }
 
-int AbstractObjectCCOTree::testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost, unordered_set<SingleVessel *>* ogVessels, vector<long long int> *terminals, int mergeStage) {
+int AbstractObjectCCOTree::testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) {
 	return 0;
 }
 
-void AbstractObjectCCOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<SingleVessel *> *ogVessels, vector<long long int> *terminals, int mergeStage) {
+void AbstractObjectCCOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) {
 	return;
 }

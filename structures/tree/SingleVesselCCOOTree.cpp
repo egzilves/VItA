@@ -668,7 +668,7 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 
 }
 
-void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<SingleVessel *> * ogVessels, vector<long long int> *terminals, int mergeStage) {
+void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType> * partVessels, long long int *termPart, const vector<double> qPart) {
 
 	nTerms++;
 	nCommonTerminals++;
@@ -713,6 +713,7 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 		newRoot->vtkSegmentId = lines->InsertNextCell(newRoot->vtkSegment);
 		vtkTree->SetLines(lines);
 		elements[newRoot->vtkSegmentId] = newRoot;
+		partVessels->insert(newRoot->vtkSegmentId);
 
 		root = newRoot;
 
@@ -746,7 +747,7 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 		parent->addChild(iNew);
 
 		//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
-		updateTree(((SingleVessel *) root), this, ogVessels, terminals, mergeStage);
+		updateTree(((SingleVessel *) root), this, partVessels, termPart, qPart);
 
 		//	Update resistance, pressure and betas
 		double maxVariation = INFINITY;
@@ -763,6 +764,7 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 
 		iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
 		elements[iNew->vtkSegmentId] = iNew;
+		partVessels->insert(iNew->vtkSegmentId);
 
 		vtkTree->BuildCells();
 		vtkTree->Modified();
@@ -820,8 +822,9 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 		((SingleVessel *) parent)->length = sqrt(dBif ^ dBif);
 
 		//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
-		terminals->at(2) = terminals->at(2) + 1;
-		updateTree(((SingleVessel *) root), this, ogVessels, terminals, mergeStage);
+		// terminals->at(2) = terminals->at(2) + 1;
+		++(*termPart);
+		updateTree(((SingleVessel *) root), this, partVessels, termPart, qPart);
 
 		//	Update resistance, pressure and betas
 		double maxVariation = INFINITY;
@@ -846,6 +849,8 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 
 		elements[iNew->vtkSegmentId] = iNew;
 		elements[iCon->vtkSegmentId] = iCon;
+		partVessels->insert(iNew->vtkSegmentId);
+		partVessels->insert(iCon->vtkSegmentId);
 
 //		cout << "Parent VTK Cell ids : " << vtkTree->GetCell(parent->vtkSegmentId)->GetPointIds()->GetNumberOfIds() << endl;
 //		cout << "Intented modified id " << parent->vtkSegment->GetPointId(1) << endl;
@@ -1766,7 +1771,7 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 	return *cost != INFINITY;
 }
 
-int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dLim, point* xBif, double* cost, unordered_set<SingleVessel *> *ogVessels,vector<long long int> *terminals, int mergeStage) {
+int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dLim, point* xBif, double* cost, unordered_set<vtkIdType> *partVessels,long long int *termPart, const vector<double> qPart) {
 
 	vector<point> bifPoints;
 	parent->getBranchingPoints(&bifPoints, xNew);
@@ -1798,11 +1803,11 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 						!isIntersectingVessels(pVessel->xDist, bif, pVessel, neighbors)) {
 					// Is distal
 					if(pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
-						costs[i] = evaluate(xNew, pVessel, dLim, ogVessels, terminals, mergeStage);
+						costs[i] = evaluate(xNew, pVessel, dLim, partVessels, termPart, qPart);
 					}
 					// Is rigid/deformable/no_branching
 					else{
-						costs[i] = evaluate(xNew, bif, pVessel, dLim, ogVessels, terminals, mergeStage);
+						costs[i] = evaluate(xNew, bif, pVessel, dLim, partVessels, termPart, qPart);
 					//cout << "Cost for xNew " << xNew << " and " << parent->vtkSegmentId << " with bifurcation at " << coordinates[majorIndex + j-1] << " is " << costs[majorIndex + j-1] << endl;
 					}
 				} else {
@@ -1931,7 +1936,7 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 
 }
 
-double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *parent, double dLim, unordered_set<SingleVessel *> *ogVessels, vector<long long int> *terminals, int mergeStage) {
+double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *parent, double dLim, unordered_set<vtkIdType> *partVessels, long long int *termPart, const vector<double> qPart) {
 
 	SingleVesselCCOOTree *clonedTree = cloneUpTo(instanceData->nLevelTest, parent);
 //	SingleVesselCCOOTree *clonedTree = this->clone();
@@ -1990,9 +1995,8 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 	clonedParent->length = sqrt(dBif ^ dBif);
 
 	//	Update post-order nLevel, flux, initial resistances and intial betas.
-	vector<long long int> *terminals_updated {new vector<long long int>({terminals->at(0), terminals->at(1), terminals->at(2) + 1})};
-	updateTree((SingleVessel *) clonedTree->root, clonedTree, ogVessels, terminals, mergeStage);
-	delete terminals_updated;
+	long long int termPartClone = (*termPart) + 1;
+	updateTree((SingleVessel *) clonedTree->root, clonedTree, partVessels, &termPartClone, qPart);	
 
 	double maxVariation = INFINITY;
 	while (maxVariation > variationTolerance) {
@@ -2108,7 +2112,7 @@ double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double d
 
 }
 
-double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double dLim, unordered_set<SingleVessel *> *ogVessels, vector<long long int> *terminals, int mergeStage) {
+double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double dLim, unordered_set<vtkIdType> *partVessels, long long int *termPart, const vector<double> qPart) {
 
 	SingleVesselCCOOTree *clonedTree = cloneUpTo(instanceData->nLevelTest, parent);
 //	SingleVesselCCOOTree *clonedTree = this->clone();
@@ -2149,7 +2153,7 @@ double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double d
 	clonedParent->length = sqrt(dBif ^ dBif);
 
 	//	Update post-order nLevel, flux, initial resistances and intial betas.
-	updateTree((SingleVessel *) clonedTree->root, clonedTree, ogVessels, terminals, mergeStage);
+	updateTree((SingleVessel *) clonedTree->root, clonedTree, partVessels, termPart, qPart);
 
 	double maxVariation = INFINITY;
 	while (maxVariation > variationTolerance) {		
@@ -2310,14 +2314,17 @@ void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* 
 	}
 }
 
-void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* tree, unordered_set<SingleVessel *>* ogVessels, vector<long long int> *terminals, int mergeStage) {
+void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* tree, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) {
 	if (root->getChildren().empty()) {
-		if (root->stage >= mergeStage || ogVessels->find(root) != ogVessels->end()) {
-			root->flow = (terminals->at(1) * this->qProx) / (terminals->at(0) * terminals->at(2));
+		/* If the parent is inside the partition, then certainly so is the child. The original partition vessels are the only ones whose parents are not in ogVessels,
+		but they're in a smaller quantity, and we can be faster by testing the parent condition firts.*/
+		if (partVessels->find(static_cast<SingleVessel *>(root->parent)->vtkSegmentId) != partVessels->end() || partVessels->find(root->vtkSegmentId) != partVessels->end()) {
+			root->flow = qPart[0] / (*termPart);
 		}
 		else {
-			root->flow = ((terminals->at(0) - terminals->at(1)) * this->qProx) / (terminals->at(0) * (terminals->at(0) - terminals->at(2)));
+			root->flow = qPart[1];
 		}
+		// Otherwise, the flow is kept constant.
 		root->pressure = root->resistance * root->flow + refPressure;
 //		cout << tree->qProx << " " << tree->qReservedFactor << " " << tree->nCommonTerminals << " " << root->flow << endl;
 	} else {
@@ -2327,7 +2334,7 @@ void SingleVesselCCOOTree::updateTree(SingleVessel* root, SingleVesselCCOOTree* 
 		for (vector<AbstractVascularElement *>::iterator it = rootChildren.begin(); it != rootChildren.end(); ++it) {
 			SingleVessel *currentVessel = (SingleVessel *) (*it);
 			currentVessel->nLevel = root->nLevel + 1;
-			updateTree(currentVessel, tree, ogVessels, terminals, mergeStage);
+			updateTree(currentVessel, tree, partVessels, termPart, qPart);
 			totalFlow += currentVessel->flow;
 			invTotalResistance += 1 / currentVessel->resistance;
 		}
