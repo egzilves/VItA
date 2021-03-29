@@ -1998,10 +1998,17 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 	long long int termPartClone = (*termPart) + 1;
 	updateTree((SingleVessel *) clonedTree->root, clonedTree, partVessels, &termPartClone, qPart);	
 
+	size_t maxTries = 1000, noTries =0;
 	double maxVariation = INFINITY;
-	while (maxVariation > variationTolerance) {
-		// printf("Max beta variation: %lf\n", maxVariation);
-		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);		
+	while (maxVariation > variationTolerance && noTries < maxTries ) {
+		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);
+		++noTries;
+	}
+	if (noTries == maxTries) {
+		delete localEstimator;
+		delete clonedTree;
+		delete iNew;
+		return INFINITY;
 	}
 
 	//	Check the symmetry constraint only for the newest vessel.
@@ -2155,11 +2162,19 @@ double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double d
 	//	Update post-order nLevel, flux, initial resistances and intial betas.
 	updateTree((SingleVessel *) clonedTree->root, clonedTree, partVessels, termPart, qPart);
 
+	size_t maxTries = 1000, noTries =0;
 	double maxVariation = INFINITY;
-	while (maxVariation > variationTolerance) {		
+	while (maxVariation > variationTolerance && noTries < maxTries ) {
 		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);
+		++noTries;
 	}
-
+	if (noTries == maxTries) {
+		delete localEstimator;
+		delete clonedTree;
+		delete iNew;
+		return INFINITY;
+	}
+	
 	//	FIXME Define symmetry law for N-ary bifurcations (Most different betas?)
 	//	Check the symmetry constraint only for the newest vessel.
 	if (!isSymmetricallyValid( ((SingleVessel *)clonedParent->getChildren()[0])->beta, iNew->beta, iNew->nLevel)) {
