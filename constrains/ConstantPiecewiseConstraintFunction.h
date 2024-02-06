@@ -41,6 +41,12 @@ public:
 	 * @return Constraint function value.
 	 */
 	T getValue(S treeCondition);
+
+	vector<T> getValues();
+
+	vector<S> getConditions();
+
+	ConstantPiecewiseConstraintFunction<T, S>  *clone() override;
 };
 
 template <class T, class S>
@@ -56,7 +62,7 @@ ConstantPiecewiseConstraintFunction<T,S>::~ConstantPiecewiseConstraintFunction()
 template <class T, class S>
 T ConstantPiecewiseConstraintFunction<T,S>::getValue(S treeCondition){
 	int i = 0;
-	for(vector<int>::iterator it = conditions.begin(); it != conditions.end(); ++it ){
+	for(auto it = conditions.begin(); it != conditions.end(); ++it ){
 		if(treeCondition >= *it)
 			++i;
 		else
@@ -64,6 +70,21 @@ T ConstantPiecewiseConstraintFunction<T,S>::getValue(S treeCondition){
 	}
 	--i;
 	return values[i];
+}
+
+template<class T, class S>
+ConstantPiecewiseConstraintFunction<T, S> * ConstantPiecewiseConstraintFunction<T, S>::clone() {
+	return new ConstantPiecewiseConstraintFunction<T, S>(this->values, this->conditions);
+}
+
+template<class T, class S>
+vector<T> ConstantPiecewiseConstraintFunction<T, S>::getValues() {
+	return this->values;
+}
+
+template<class T, class S>
+vector<S> ConstantPiecewiseConstraintFunction<T, S>::getConditions() {
+	return this->conditions;
 }
 
 #endif /* CONSTANTPIECEWISECONSTRAINTFUNCTION_H_ */

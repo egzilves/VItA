@@ -30,6 +30,8 @@ AbstractObjectCCOTree::AbstractObjectCCOTree(GeneratorData *instanceData) {
 	this->qProx = 0;
 
 	this->gam = nullptr;
+	this->gamRadius = nullptr;
+	this->gamFlow = nullptr;
 	this->epsLim = nullptr;
 	this->nu = nullptr;
 
@@ -44,6 +46,7 @@ AbstractObjectCCOTree::AbstractObjectCCOTree(GeneratorData *instanceData) {
 
 	this->currentStage = 0;
 	this->isInCm = 0;
+	this->isFL = true;
 
 }
 
@@ -60,6 +63,8 @@ AbstractObjectCCOTree::AbstractObjectCCOTree(point xi, double qi, AbstractConstr
 	this->qProx = qi;
 
 	this->gam = gam;
+	this->gamRadius = nullptr;
+	this->gamFlow = nullptr;
 	this->epsLim = epsLim;
 	this->nu = nu;
 	this->refPressure = refPressure;
@@ -75,6 +80,7 @@ AbstractObjectCCOTree::AbstractObjectCCOTree(point xi, double qi, AbstractConstr
 
 	this->currentStage = 0;
 	this->isInCm = 0;
+	this->isFL = true;
 }
 
 AbstractObjectCCOTree::~AbstractObjectCCOTree() {
@@ -366,6 +372,26 @@ int AbstractObjectCCOTree::getIsInCm() const
 }
 
 void AbstractObjectCCOTree::setIsInCm(int isInCm)
-		{
+{
 	this->isInCm = isInCm;
+}
+
+void AbstractObjectCCOTree::setIsFL(bool isFL) {
+	this->isFL = isFL;
+}
+
+void AbstractObjectCCOTree::setGamRadius(AbstractConstraintFunction<double, double> *gamRad) {
+	this->gamRadius = gamRad;
+}
+
+void AbstractObjectCCOTree::setGamFlow(AbstractConstraintFunction<double, double> *gamFlow) {
+	this->gamFlow = gamFlow;
+}
+
+int AbstractObjectCCOTree::testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) {
+	return 0;
+}
+
+void AbstractObjectCCOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) {
+	return;
 }

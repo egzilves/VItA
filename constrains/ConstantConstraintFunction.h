@@ -19,6 +19,7 @@ public:
 	ConstantConstraintFunction(T value);
 	virtual ~ConstantConstraintFunction();
 	T getValue(S treeCondition);
+	ConstantConstraintFunction<T,S> *clone() override;
 };
 
 template <class T, class S>
@@ -34,6 +35,11 @@ ConstantConstraintFunction<T,S>::~ConstantConstraintFunction() {
 template<class T, class S>
 T ConstantConstraintFunction<T,S>::getValue(S treeCondition) {
 	return value;
+}
+
+template<class T, class S>
+ConstantConstraintFunction<T, S> * ConstantConstraintFunction<T, S>::clone() {
+	return new ConstantConstraintFunction<T, S>(this->value);
 }
 
 #endif /* CONSTANTCONSTRAINTFUNCTION_H_ */

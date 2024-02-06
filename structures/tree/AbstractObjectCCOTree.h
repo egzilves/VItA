@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <fstream>
 #include <unordered_map>
+#include <unordered_set>
 
 using namespace std;
 
@@ -47,6 +48,10 @@ protected:
 	double qReservedFactor;
 	/** Constraint for the ratio between parent and child radius based on the Murray's Law. */
 	AbstractConstraintFunction<double, int> *gam;
+	/** Constraint for the ratio between parent and child radius based on the Murray's Law using parent vessel radius. */
+	AbstractConstraintFunction<double, double> *gamRadius;
+	/** Constraint for the ratio between parent and child radius based on the Murray's Law using parent vessel radius. */
+	AbstractConstraintFunction<double, double> *gamFlow;
 	/** Constraint for the symmetry between sibling vessels. */
 	AbstractConstraintFunction<double, int> *epsLim;
 	/** Constraint for the vessel viscosity. */
@@ -73,8 +78,10 @@ protected:
 	long long int pointCounter;
 	/**	Stage actually being build. */
 	int currentStage;
-	/**	If the tree is in cm, otherwise is assumed that is in mm (default) */
+	/**	If the tree is in cm, otherwise it is assumed that is in mm (default) */
 	int isInCm;
+	/** To check whether the tree user fixed viscosity or considers FL effect*/
+	bool isFL;
 
 	friend class PruningCCOOTree;
 
@@ -124,6 +131,7 @@ public:
 	 * @param parent	Parent to the new vessel.
 	 */
 	virtual void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction) = 0;
+	virtual void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart);
 	/**
 	 * For a given spatial point @p xNew test its connection with @p parent vessel. It must evaluate if the restrictions
 	 * of geometry and symmetry are satisfied and also if it do not intersects with other vessel of this tree. It returns
@@ -138,6 +146,7 @@ public:
 	 * @return	If the connection of the tree with xNew is possible. If not @p cost is INFINITY.
 	 */
 	virtual int testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost) = 0;
+	virtual int testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart);
 	/**
 	 * Computes the pressure for the whole tree for a given reference pressure P_r (default P_r=0 Pa).
 	 * @param root	Tree root.
@@ -313,7 +322,21 @@ public:
 	 * @param isInCm.
 	 */
 	void setIsInCm(int isInCm);
+	/**
+	 * Setter of @p isFl
+	 * @param isFL
+	 */
+	void setIsFL(bool isFL);
+	/**
+	* Sets if the tree will use a radius-based gamma instead of a level-based.
+	*/
+	void setGamRadius(AbstractConstraintFunction<double, double> *gamRam);
+	/**
+	* Sets if the tree will use a flow-based gamma instead of a level-based.
+	*/
+	void setGamFlow(AbstractConstraintFunction<double, double> *gamFlow);
 
+	
 protected:
 	/**
 	 * Writes a string with the vessel attributes in a .cco file.
@@ -344,6 +367,8 @@ protected:
 	 * @return	Amount of terminals in the subtree.
 	 */
 	long long int countTerminals(AbstractVascularElement* root, AbstractVascularElement::TERMINAL_TYPE type);
+
+	
 
 private:
 	void saveVessels(AbstractVascularElement *root, ofstream *treeFile);

@@ -15,6 +15,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include<unordered_set>
 
 #include "../../constrains/AbstractConstraintFunction.h"
 #include "../vascularElements/SingleVessel.h"
@@ -33,10 +34,12 @@ class SingleVesselCCOOTree: public AbstractObjectCCOTree {
 	double variationTolerance;
 	/**	Amount of non-common terminals. */
 	long long int nCommonTerminals;
-	//	FIXME These classes should not have this kind of permissions, must rework the architecture to a POO strategy.
+	/** Use gamma based on stage. */
+	bool isGammaStage;
 	friend class PruningCCOOTree;
 	friend class BreadthFirstPruning;
 	friend class TreeMerger;
+	friend class StagedFRROTreeGeneratorLogger;
 public:
 	/**
 	 * Common tree creator.
@@ -82,11 +85,6 @@ public:
 	SingleVesselCCOOTree(string filenameCCO, GeneratorData* instanceData, double qi, AbstractConstraintFunction<double, int> *gam, AbstractConstraintFunction<double, int> *epsLim,
 			AbstractConstraintFunction<double, int> *nu, double refPressure, double viscosityTolerance);
 	/**
-	 * Creates a copy of the tree only with its parameters. Does not create vessel data.
-	 * @param baseTree Base tree.
-	 */
-	SingleVesselCCOOTree(SingleVesselCCOOTree *baseTree);
-	/**
 	 * Common destructor.
 	 */
 	~SingleVesselCCOOTree();
@@ -123,11 +121,11 @@ public:
 	 */
 	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction);
 
-	//	FIXME This function probably should be part of other class
-	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_map<string, SingleVessel *>* stringToPointer);
+	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) override;
 
-	//	FIXME This function probably should be part of other class
-	void addVesselMerge(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_map<string, SingleVessel *>* stringToPointer);
+	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int stage, unordered_map<string, SingleVessel *>* stringToPointer);
+
+	void addVesselMerge(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int savedStage, unordered_map<string, SingleVessel *>* stringToPointer);
 	/** 
 	 * Adds a vessel that has already been validated. This function is used by BreadthFirstPrunning.
 	 * @param newVessel Vessel that will be added.
@@ -171,6 +169,8 @@ public:
 	 */
 	int testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost);
 
+	int testVessel(point xNew, AbstractVascularElement *parent, AbstractDomain *domain, vector<AbstractVascularElement *> neighbors, double dlim, point *xBif, double *cost, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) override;
+
 	/**
 	 * Prints the current tree node by node.
 	 */
@@ -210,6 +210,13 @@ public:
 
 	string getFilenameCCO();
 
+	void updateAll();
+
+	/**
+	 * Set if the tree updates gamma using stage or level.
+	 */
+	void setIsGammaStage(bool isGammaStage);
+
 protected:
 	/**
 	 * Returns a string with the tree atributes to create the .cco file.
@@ -240,6 +247,7 @@ private:
 	 * @param dLim Minimum distance from the new vessel to the tree.
 	 */
 	double evaluate(point xNew, point xTest, SingleVessel *parent, double dLim);
+	double evaluate(point xNew, point xTest, SingleVessel *parent, double dLim, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart);
 	/**
 	 * Returns a partial variation of the cost functional due to the new segment inclusion. This method is only used for DISTAL_BRANCHING vessels.
 	 * @param xNew	Proximal point of the new vessel.
@@ -247,6 +255,7 @@ private:
 	 * @param dLim Minimum distance from the new vessel to the tree.
 	 */
 	double evaluate(point xNew, SingleVessel *parent, double dLim);
+	double evaluate(point xNew, SingleVessel *parent, double dLim, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart);
 	/**
 	 * Updates the tree values for the current topology in only one tree "in order" swept (O(N)).
 	 * As the recursion deepens, the level number is computed for each element. As the
@@ -256,6 +265,8 @@ private:
 	 * @param tree Tree to update.
 	 */
 	void updateTree(SingleVessel *root, SingleVesselCCOOTree *tree);
+
+	void updateTree(SingleVessel *root, SingleVesselCCOOTree *tree, unordered_set<vtkIdType>* partVessels, long long int *nPartTotal, const vector<double> qPart);
 	/**
 	 * For a giving pair of beta between sibling of a parent vessel, it analyze the symmetry constrain given by
 	 * epsLim function.
@@ -314,6 +325,20 @@ private:
 
 	double getVariationTolerance();
 
+	/**
+	 * Checks if length/radius > 2.
+	 */
+	bool isValidAspectRatio(SingleVessel *vessel);
+
+	/*
+	* Returns the gamma.
+	*/
+	double getGamma(SingleVessel* vessel);
+
+	/** 
+	 * Get vessel resistance.
+	 */
+	double getRealViscosity(SingleVessel *vessel);
 };
 
 #endif /* TREE_SINGLEVESSELCCOOTREE_H_ */

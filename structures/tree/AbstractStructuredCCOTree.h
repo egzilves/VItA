@@ -24,6 +24,7 @@
 #include <vector>
 #include <iomanip>
 #include <fstream>
+#include <unordered_set>
 
 /**
  * Generic CCO Tree structure and required methods.
