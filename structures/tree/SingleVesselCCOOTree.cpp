@@ -2321,7 +2321,8 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 		return INFINITY;
 	}
 
-	if (!isValidAspectRatio(iNew) || !isValidAspectRatio(iCon) || !isValidAspectRatio(clonedParent)) {
+	if (!isValidAspectRatio(iNew) || !isValidAspectRatio(iCon) || !isValidAspectRatio(clonedParent) || 
+			!isValidLengthRatio(clonedParent, iCon)) {
 		delete localEstimator;
 		delete clonedTree;
 		delete iNew;
@@ -2427,7 +2428,8 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 		return INFINITY;
 	}
 
-	if (!isValidAspectRatio(iNew) || !isValidAspectRatio(iCon) || !isValidAspectRatio(clonedParent)) {
+	if (!isValidAspectRatio(iNew) || !isValidAspectRatio(iCon) || !isValidAspectRatio(clonedParent) || 
+			!isValidLengthRatio(clonedParent, iCon)) {
 		delete localEstimator;
 		delete clonedTree;
 		delete iNew;
@@ -3100,6 +3102,14 @@ string SingleVesselCCOOTree::getFilenameCCO() {
 
 bool SingleVesselCCOOTree::isValidAspectRatio(SingleVessel *vessel) {
 	if (vessel->length/vessel->radius <= 2) {
+		return false;
+	}
+	return true;
+}
+
+bool SingleVesselCCOOTree::isValidLengthRatio(SingleVessel *vessel1, SingleVessel *vessel2) {
+	double total_length = vessel1->length + vessel2->length;
+	if ((vessel1->length / total_length <= 0.1) || (vessel2->length / total_length <= 0.1)) {
 		return false;
 	}
 	return true;

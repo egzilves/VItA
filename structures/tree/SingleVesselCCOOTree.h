@@ -344,6 +344,11 @@ private:
 	 */
 	bool isValidAspectRatio(SingleVessel *vessel);
 
+	/**
+	 * Checks if length ratio is not smaller than 10% of parent, receives parent iPar and continuation iCon, not new vessel
+	 */
+	bool isValidLengthRatio(SingleVessel *vessel1, SingleVessel *vessel2);
+
 	/*
 	* Returns the gamma.
 	*/
