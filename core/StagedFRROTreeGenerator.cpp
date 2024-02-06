@@ -110,7 +110,8 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::generate(long long int saveInter
 		xNew = domain->getRandomPoint();
 	} while (!isValidRootSegment(xNew, ++i));
 
-	tree->addVessel(xNew, xNew, NULL, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction);
+	tree->addVessel(xNew, xNew, NULL, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, 
+					(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 
 	for (long long i = 1; i < nTerminals; i = tree->getNTerms()) {
 
@@ -155,7 +156,8 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::generate(long long int saveInter
 
 			if (minCost < INFINITY) {
 				cout << "Added with a cost of " << minCost << endl;
-				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction);
+				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, 
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 				invalidTerminal = false;
 			}
 		}
@@ -192,7 +194,8 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::generateExperimental(long long i
 		xNew = domain->getRandomPoint();
 	} while (!isValidRootSegment(xNew, ++i));
 
-	tree->addVessel(xNew, xNew, NULL, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction);
+	tree->addVessel(xNew, xNew, NULL, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+					(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 
 	for (long long i = 1; i < nTerminals; i = tree->getNTerms()) {
 
@@ -240,7 +243,8 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::generateExperimental(long long i
 
 			if (minCost < INFINITY) {
 				cout << "Added with a cost of " << minCost << endl;
-				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction);
+				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, 
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 				invalidTerminal = false;
 			}
 		}
@@ -416,7 +420,8 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::resume(long long int saveInterva
 
 			if (minCost < INFINITY) {
 				cout << "Added with a cost of " << minCost << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
-				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction);
+				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, 
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 				invalidTerminal = false;
 			}
 		}
@@ -504,7 +509,8 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeExperimental(long long int
 
 			if (minCost < INFINITY) {
 				cout << "Added with a cost of " << minCost << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
-				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction);
+				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, 
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 				invalidTerminal = false;
 			}
 		}
@@ -602,7 +608,8 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePoints(long long int s
 				fwrite(&(minParentSV->xDist.p[1]), sizeof(double), 1, fp);
 				fwrite(&(minParentSV->xDist.p[2]), sizeof(double), 1, fp);
 				fwrite(&(instanceData->vesselFunction), sizeof(int), 1, fp);
-				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction);				
+				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, 
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);								
 				invalidTerminal = false;
 			}
 		}
@@ -735,7 +742,8 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePointsMidPoint(long lo
 				fwrite(&(minParentSV->xDist.p[2]), sizeof(double), 1, fp);
 				fwrite(&(instanceData->vesselFunction), sizeof(int), 1, fp);
 				fwrite(&(this->stage), sizeof(int), 1, fp);
-				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, partVessels, &partTerm, qPartitions);
+				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, 
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode, partVessels, &partTerm, qPartitions);
 				invalidTerminal = false;
 			}
 		}
