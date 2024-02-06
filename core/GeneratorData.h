@@ -78,6 +78,22 @@ public:
 	 */
 	GeneratorData(int nLevelTest, int nTerminalTrial, double dLimReductionFactor, double perfusionAreaFactor, double closeNeighborhoodFactor, double midPointDlimFactor, int nBifurcationTest, int vesselFunction, bool resetDLim, AbstractCostEstimator *costEstimator);
 	/**
+	 * Constructor with user parameters.
+	 * @param nLevelTest Levels for tree scaling for each new segment test.
+	 * @param nTerminalTrial Number of trials before diminish dlim.
+	 * @param dLimReductionFactor Factor by which the Dlim constraint diminish after N failed trials.
+	 * @param perfusionAreaFactor Factor that scales the perfusion area by which Dlim is computed.
+	 * @param closeNeighborhoodFactor Factor that increase the neighborhood to search nearest neighbors.
+	 * @param midPointDlimFactor Factor to scale the dLim to the middle point of the new vessel to avoid close neighbors.
+	 * @param nBifurcationTest Number of bifurcation sites tested in the optimization process.
+	 * @param vesselFunction Functionality of the generated vessels.
+	 * @param resetDLim Indicates if dLimCorrectionFactor must be resetted to 1 when the stage begins.
+	 * @param costEstimator Cost estimator used to compute the functional at the current stage.
+	 * @param branchingMode Branching mode used for vessels in this stage.
+	 */
+	GeneratorData(int nLevelTest, int nTerminalTrial, double dLimReductionFactor, double perfusionAreaFactor, double closeNeighborhoodFactor, 
+				double midPointDlimFactor, int nBifurcationTest, int vesselFunction, bool resetDLim, AbstractCostEstimator *costEstimator, int branchingMode);
+	/**
 	 * Destructor
 	 */
 	~GeneratorData();
@@ -125,6 +141,10 @@ public:
 	 * Cost estimator for the given stage.
 	 */
 	AbstractCostEstimator *costEstimator;
+	/**
+	 * Branching of the vessel generated in this stage.
+	 */
+	int branchingMode;
 
 };
 
@@ -137,6 +157,7 @@ inline ostream& operator<<(ostream& os, GeneratorData *instanceData) {
 	os << "Perfusion area factor : " << instanceData->perfusionAreaFactor << endl;
 	os << "Close neighborhood factor : " << instanceData->closeNeighborhoodFactor << endl;
 //	os << "Cost estimator : " << typeid(instanceData->costEstimator).name() << endl;
+	os << "Branching mode : " << instanceData->branchingMode << endl;
 	return os;
 }
 

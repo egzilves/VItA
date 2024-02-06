@@ -24,6 +24,7 @@ GeneratorData::GeneratorData()
 	this->resetsDLim = false;
 	this->costEstimator = new VolumetricCostEstimator();
 	this->didAllocateCostEstimator = true;
+	this->branchingMode = AbstractVascularElement::BRANCHING_MODE::DEFORMABLE_PARENT;
 }
 
 GeneratorData::GeneratorData(int nLevelTest, int nTerminalTrial, double dLimReductionFactor, double perfusionAreaFactor, double closeNeighborhoodFactor, double midPointDlimFactor,
@@ -41,6 +42,7 @@ GeneratorData::GeneratorData(int nLevelTest, int nTerminalTrial, double dLimRedu
 	this->resetsDLim = false;
 	this->costEstimator = new VolumetricCostEstimator();
 	this->didAllocateCostEstimator = true;
+	this->branchingMode = AbstractVascularElement::BRANCHING_MODE::DEFORMABLE_PARENT;
 }
 
 GeneratorData::GeneratorData(int nLevelTest, int nTerminalTrial, double dLimReductionFactor, double perfusionAreaFactor, double closeNeighborhoodFactor, double midPointDlimFactor,
@@ -58,6 +60,7 @@ GeneratorData::GeneratorData(int nLevelTest, int nTerminalTrial, double dLimRedu
 	this->resetsDLim = false;
 	this->costEstimator = new VolumetricCostEstimator();
 	this->didAllocateCostEstimator = true;
+	this->branchingMode = AbstractVascularElement::BRANCHING_MODE::DEFORMABLE_PARENT;
 }
 
 GeneratorData::GeneratorData(int nLevelTest, int nTerminalTrial, double dLimReductionFactor, double perfusionAreaFactor, double closeNeighborhoodFactor, double midPointDlimFactor,
@@ -75,6 +78,7 @@ GeneratorData::GeneratorData(int nLevelTest, int nTerminalTrial, double dLimRedu
 	this->resetsDLim = resetDLim;
 	this->costEstimator = new VolumetricCostEstimator();
 	this->didAllocateCostEstimator = true;
+	this->branchingMode = AbstractVascularElement::BRANCHING_MODE::DEFORMABLE_PARENT;
 }
 
 GeneratorData::GeneratorData(int nLevelTest, int nTerminalTrial, double dLimReductionFactor, double perfusionAreaFactor, double closeNeighborhoodFactor, double midPointDlimFactor,
@@ -86,7 +90,24 @@ GeneratorData::GeneratorData(int nLevelTest, int nTerminalTrial, double dLimRedu
 	this->closeNeighborhoodFactor = closeNeighborhoodFactor;
 	this->midPointDlimFactor = midPointDlimFactor;
 	this->nBifurcationTest = nBifurcationTest;
+	this->dLimCorrectionFactor = 1.0;
+	this->vesselFunction = vesselFunction;
+	this->resetsDLim = resetDLim;
+	this->costEstimator = costEstimator;
+	this->didAllocateCostEstimator = false;
+	this->branchingMode = AbstractVascularElement::BRANCHING_MODE::DEFORMABLE_PARENT;
+}
 
+GeneratorData::GeneratorData(int nLevelTest, int nTerminalTrial, double dLimReductionFactor, double perfusionAreaFactor, double closeNeighborhoodFactor, double midPointDlimFactor,
+		int nBifurcationTest, int vesselFunction, bool resetDLim, AbstractCostEstimator *costEstimator, int branchingMode){
+	this->nLevelTest = nLevelTest;
+	this->nTerminalTrial = nTerminalTrial;
+	this->dLimReductionFactor = dLimReductionFactor;
+	this->perfusionAreaFactor = perfusionAreaFactor;
+	this->closeNeighborhoodFactor = closeNeighborhoodFactor;
+	this->midPointDlimFactor = midPointDlimFactor;
+	this->nBifurcationTest = nBifurcationTest;
+	this->branchingMode = branchingMode;
 	this->dLimCorrectionFactor = 1.0;
 	this->vesselFunction = vesselFunction;
 	this->resetsDLim = resetDLim;
