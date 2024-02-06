@@ -123,6 +123,20 @@ public:
 
 	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) override;
 
+/**
+	 * Adds a new vessel to the CCO tree. @param xProx and @param xDist are the proximal and distal nodes of the new
+	 * vessel and @param parent is the attachment parent vessel.
+	 * @param xProx	Proximal point of the new vessel.
+	 * @param xDist Distal point of the new vessel.
+	 * @param parent	Parent to the new vessel.
+	 * @param vesselFunction Vessel function of the added vessel.
+	 * @param branchingMode Branching mode of the added vessel.
+	 */
+	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
+					AbstractVascularElement::BRANCHING_MODE branchingMode);
+	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
+					AbstractVascularElement::BRANCHING_MODE branchingMode, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) override;
+
 	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int stage, unordered_map<string, SingleVessel *>* stringToPointer);
 
 	void addVesselMerge(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int savedStage, unordered_map<string, SingleVessel *>* stringToPointer);
