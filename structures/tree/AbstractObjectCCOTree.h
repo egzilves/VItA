@@ -132,6 +132,16 @@ public:
 	 */
 	virtual void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction) = 0;
 	virtual void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart);
+/**
+	 * Adds a new vessel to the CCO tree. @param xProx and @param xDist are the proximal and distal nodes of the new
+	 * vessel and @param parent is the attachment parent vessel.
+	 * @param xProx	Proximal point of the new vessel.
+	 * @param xDist Distal point of the new vessel.
+	 * @param parent	Parent to the new vessel.
+	 * @param branchingMode Branching mode.
+	 */
+	virtual void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, AbstractVascularElement::BRANCHING_MODE branchingMode) = 0;
+	virtual void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, AbstractVascularElement::BRANCHING_MODE branchingmode, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart);
 	/**
 	 * For a given spatial point @p xNew test its connection with @p parent vessel. It must evaluate if the restrictions
 	 * of geometry and symmetry are satisfied and also if it do not intersects with other vessel of this tree. It returns

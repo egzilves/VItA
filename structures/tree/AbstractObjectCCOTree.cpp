@@ -395,3 +395,7 @@ int AbstractObjectCCOTree::testVessel(point xNew, AbstractVascularElement *paren
 void AbstractObjectCCOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) {
 	return;
 }
+
+void AbstractObjectCCOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, AbstractVascularElement::BRANCHING_MODE branchingMode, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) {
+	return;
+}
