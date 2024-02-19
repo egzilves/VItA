@@ -50,7 +50,7 @@ double SproutingVolumetricCostEstimator::computeCost(AbstractObjectCCOTree* tree
 	double volCost = volumeFactor * (computeTreeCost(tree->getRoot()) - previousVolume);
 	double proteolysisCost = proteolyticFactor * parentRadius; // 500.0
 	double stimulusCost = diffusionFactor * (distToParent * distToParent);
-	cout << "Volumetric cost = " << volCost << ", Protease degradation cost = " << proteolysisCost << ", VEGF/FGF difussion cost = " << stimulusCost << endl;
+	// cout << "Volumetric cost = " << volCost << ", Protease degradation cost = " << proteolysisCost << ", VEGF/FGF difussion cost = " << stimulusCost << endl;
 	return volCost + proteolysisCost + stimulusCost ;
 }
 
