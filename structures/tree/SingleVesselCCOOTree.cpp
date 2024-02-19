@@ -2138,9 +2138,11 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 			if (domain->isSegmentInside(xNew, bif) && (pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING ||
 					((pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR ||  domain->isSegmentInside(pVessel->xProx, bif)) && domain->isSegmentInside(pVessel->xDist, bif)) ) ) {
 				/* v_new, v_s and v_p do not intersect neighbouring vessel */
+//				if(!isOverlapped(bif, xNew, pVessel, dLim))
 				if (!isIntersectingVessels(xNew, bif, pVessel, neighbors) &&
 						!isIntersectingVessels(pVessel->xProx, bif, pVessel, neighbors) &&
-						!isIntersectingVessels(pVessel->xDist, bif, pVessel, neighbors)) {
+						!isIntersectingVessels(pVessel->xDist, bif, pVessel, neighbors) && 
+						!isOverlapped(bif, xNew, pVessel, dLim)) {
 					// Is distal
 					if(pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
 						costs[i] = evaluate(xNew, pVessel, dLim);
@@ -2205,9 +2207,11 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 			if (domain->isSegmentInside(xNew, bif) && (pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING ||
 					((pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR ||  domain->isSegmentInside(pVessel->xProx, bif)) && domain->isSegmentInside(pVessel->xDist, bif)) ) ) {
 				/* v_new, v_s and v_p do not intersect neighbouring vessel */
+//				if(!isOverlapped(bif, xNew, pVessel, dLim))
 				if (!isIntersectingVessels(xNew, bif, pVessel, neighbors) &&
 						!isIntersectingVessels(pVessel->xProx, bif, pVessel, neighbors) &&
-						!isIntersectingVessels(pVessel->xDist, bif, pVessel, neighbors)) {
+						!isIntersectingVessels(pVessel->xDist, bif, pVessel, neighbors) && 
+						!isOverlapped(bif, xNew, pVessel, dLim)) {
 					// Is distal
 					if(pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
 						costs[i] = evaluate(xNew, pVessel, dLim, partVessels, termPart, qPart);
@@ -2652,6 +2656,55 @@ int SingleVesselCCOOTree::isIntersectingVessels(point p1, point p2, SingleVessel
 		}
 	}
 	return false;
+}
+
+int SingleVesselCCOOTree::isOverlapped(point xBif, point xNew, SingleVessel* parent, double dLim)	{
+
+	point midPoint = xBif + (xNew - xBif) * 0.5;
+
+	double box_halflength = sqrt(
+		(xNew.p[0]-xBif.p[0])*(xNew.p[0]-xBif.p[0]) + 
+		(xNew.p[1]-xBif.p[1])*(xNew.p[1]-xBif.p[1]) + 
+		(xNew.p[2]-xBif.p[2])*(xNew.p[2]-xBif.p[2]) ) * 0.5;
+
+	vtkSmartPointer<vtkIdList> idSegments = vtkSmartPointer<vtkIdList>::New();
+	double dLimScaled = dLim * instanceData->midPointDlimFactor;
+
+	double *localBox = new double[6];
+	localBox[0] = midPoint.p[0] - box_halflength;
+	localBox[1] = midPoint.p[0] + box_halflength;
+	localBox[2] = midPoint.p[1] - box_halflength;
+	localBox[3] = midPoint.p[1] + box_halflength;
+	localBox[4] = midPoint.p[2] - box_halflength;
+	localBox[5] = midPoint.p[2] + box_halflength;
+
+	vtkTreeLocator->FindCellsWithinBounds(localBox, idSegments);
+	delete[] localBox;
+
+	vector<vessel*> closerSegments;
+	int nElements = (int) idSegments->GetNumberOfIds();
+	for (int i = 0; i < nElements; ++i) {
+		SingleVessel* current = (SingleVessel*) elements[idSegments->GetId(i)];
+		// double *nearPoint1[3], *nearPoint2[3];
+		double nearPoint1[3], nearPoint2[3];
+		double t0, t1;
+		if(current->vtkSegmentId != parent->vtkSegmentId)
+			if(
+				// vtkLine::DistanceToLine(midPoint.p,current->xProx.p,current->xDist.p, t0,nearPoint1) < dLimScaled*dLimScaled
+				vtkLine::DistanceBetweenLineSegments(
+						xBif.p, xNew.p, current->xProx.p, current->xDist.p, nearPoint1, nearPoint2, t0, t1 ) < dLimScaled*dLimScaled &&
+					!(xBif==current->xProx) && // don't share same parent
+					!(xBif==current->xDist) && // is not the parent
+					(t0 > 0 && t0 < 1) && (t1 > 0 && t1 < 1)
+				)
+				// cout << "isoverlapped" << endl;
+				// printf("isoverlapped\n");
+				return 1;
+	}
+	// cout << "notoverlapped" << endl;
+	// printf("notoverlapped\n");
+	return 0;
+
 }
 
 SingleVesselCCOOTree* SingleVesselCCOOTree::clone() {

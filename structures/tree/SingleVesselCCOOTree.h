@@ -319,6 +319,16 @@ private:
 	 */
 	int isIntersectingVessels(point p1, point p2, SingleVessel *parent, vector<AbstractVascularElement *> neighbors);
 	/**
+	 * Determines if the segment xBif-xNew is closer than dLim to any other segment of the tree (without being its parent
+	 * vessel). Not used.
+	 * @param xBif	Proximal point for the new segment.
+	 * @param xNew	Distal point for the new segment.
+	 * @param parent	Parent vessel of the new segment.
+	 * @param dLim	Perfusion volume for each terminal at the current state of the tree.
+	 * @return	If the middle point of the segment is sufficiently distant from the tree.
+	 */
+	int isOverlapped(point xBif, point xNew, SingleVessel* parent, double dLim);
+	/**
 	 * Updates the tree beta values for the current vessel diameters.
 	 * @param root	Tree root.
 	 * @param parentRadius	1.0 if root is actually the tree root, or parent radius of root otherwise.
