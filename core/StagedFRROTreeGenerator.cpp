@@ -608,6 +608,7 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePoints(long long int s
 				fwrite(&(minParentSV->xDist.p[1]), sizeof(double), 1, fp);
 				fwrite(&(minParentSV->xDist.p[2]), sizeof(double), 1, fp);
 				fwrite(&(instanceData->vesselFunction), sizeof(int), 1, fp);
+				fwrite(&(this->stage), sizeof(int), 1, fp);
 				tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction, 
 								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);								
 				invalidTerminal = false;
