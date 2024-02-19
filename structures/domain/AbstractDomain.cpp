@@ -19,6 +19,11 @@ AbstractDomain::AbstractDomain(GeneratorData *instanceData) {
 	minAngle = M_PI * 1. / 18.;
 	minPlaneAngle = 0.0;
 	this->isBifPlaneContrained = false;
+	isDlimConstantByTerminalAmount = false;
+	isLocalNeighborhoodVaryByTerminalAmount = true;
+	characteristicLengthReducingFactor = 1.0;
+	dimensionsWhenGetDlimFactor = 3;
+	previousTerminalAmountBeforeStage = 0;
 }
 
 AbstractDomain::AbstractDomain(GeneratorData* instanceData, vector<int> growingStages){
@@ -30,6 +35,11 @@ AbstractDomain::AbstractDomain(GeneratorData* instanceData, vector<int> growingS
 	this->growingStages = growingStages;
 	minPlaneAngle = 0.0;
 	this->isBifPlaneContrained = false;
+	isDlimConstantByTerminalAmount = false;
+	isLocalNeighborhoodVaryByTerminalAmount = true;
+	characteristicLengthReducingFactor = 1.0;
+	dimensionsWhenGetDlimFactor = 3;
+	previousTerminalAmountBeforeStage = 0;
 }
 
 AbstractDomain::~AbstractDomain() {
@@ -74,6 +84,27 @@ double AbstractDomain::getMinBifurcationAngle(){
 
 void AbstractDomain::setMinBifurcationAngle(double minAngle){
 	this->minAngle = minAngle;
+}
+
+void AbstractDomain::setIsDlimConstantByTerminalAmount(bool isDlimConstantByTerminalAmount){
+	this->isDlimConstantByTerminalAmount = isDlimConstantByTerminalAmount;
+}
+
+void AbstractDomain::setIsLocalNeighborhoodVaryByTerminalAmount(bool isLocalNeighborhoodVaryByTerminalAmount){
+	this->isLocalNeighborhoodVaryByTerminalAmount = isLocalNeighborhoodVaryByTerminalAmount;
+}
+
+void AbstractDomain::setPreviousTerminalAmountBeforeStage(bool previousTerminalAmountBeforeStage){
+	this->previousTerminalAmountBeforeStage = previousTerminalAmountBeforeStage;
+}
+
+
+void AbstractDomain::setCharacteristicLengthReducingFactor(float characteristicLengthReducingFactor){
+	this->characteristicLengthReducingFactor = characteristicLengthReducingFactor;
+}
+
+void AbstractDomain::setDimensionsWhenDlimFactor(float dimensionsWhenGetDlimFactor){
+	this->dimensionsWhenGetDlimFactor = dimensionsWhenGetDlimFactor;
 }
 
 bool AbstractDomain::isIsBifPlaneContrained() const{

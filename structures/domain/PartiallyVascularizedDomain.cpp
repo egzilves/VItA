@@ -341,12 +341,21 @@ double PartiallyVascularizedDomain::getCharacteristicLength() {
 }
 
 double PartiallyVascularizedDomain::getDLim(long long int nVessels, double factor) {
-	return characteristicLength * cbrt(factor / nVessels);
+	if(this->isDlimConstantByTerminalAmount) return characteristicLength * factor;
+	// if(this->dimensionsWhenGetDlimFactor == 1) return characteristicLength * factor / nVessels;
+	// if(this->dimensionsWhenGetDlimFactor == 2) return characteristicLength * sqrt(factor / nVessels);
+	return characteristicLength * cbrt(factor / (nVessels - this->previousTerminalAmountBeforeStage));
+// return characteristicLength;
 }
 
 double* PartiallyVascularizedDomain::getLocalNeighborhood(point p, long long int nVessels) {
 	double *localBox = new double[6];
-	double size = instanceData->closeNeighborhoodFactor * getDLim(nVessels, instanceData->perfusionAreaFactor);
+	double size;
+	// double size = instanceData->closeNeighborhoodFactor * getDLim(nVessels, instanceData->perfusionAreaFactor);
+if(this->isLocalNeighborhoodVaryByTerminalAmount) 
+			size = instanceData->closeNeighborhoodFactor * characteristicLength * cbrt(instanceData->perfusionAreaFactor / (nVessels - this->previousTerminalAmountBeforeStage));
+	else 
+			size = instanceData->closeNeighborhoodFactor * characteristicLength * instanceData->perfusionAreaFactor;
 
 	localBox[0] = p.p[0] - size;
 	localBox[1] = p.p[0] + size;

@@ -48,6 +48,16 @@ protected:
 	bool isBifPlaneContrained;
 	/**	Minimum angle between the bifurcation plane and a new daughter vessel. */
 	double minPlaneAngle;
+	/** set constant DLIM instead of varying by number of terminals*/
+	bool isDlimConstantByTerminalAmount;
+	/** set varying LocalNeighborhood instead of fixed by number of terminals*/
+	bool isLocalNeighborhoodVaryByTerminalAmount;
+	/** set characteristic length reducing factor, the length is divided by this number */
+	float characteristicLengthReducingFactor;
+	/** set dimensions when calculating dlim */
+	int dimensionsWhenGetDlimFactor;
+	/** previous amount terminals before generation, if needed to subtract */
+	int previousTerminalAmountBeforeStage;
 
 public:
 	/**
@@ -80,6 +90,31 @@ public:
 	 * @return 1 if it is eligible.
 	 */
 	virtual int isValidElement(AbstractVascularElement *element);
+	/**
+	 * Sets the dlim constant or not by number of terminals
+	 * @param isDlimConstant does the Dlim vary by number of terminals?
+	 */
+	void setIsDlimConstantByTerminalAmount(bool isDlimConstantByTerminalAmount);
+	/** 
+	 * Sets if neighborhood boundingbox varies by number of terminals
+	 * @param isLocalNeighborhoodVaryByTerminalAmount does boundingbox vary size depending on number of terminals?
+	 */
+	void setIsLocalNeighborhoodVaryByTerminalAmount(bool isLocalNeighborhoodVaryByTerminalAmount);
+	/** 
+	 * Sets terminals in previous stage if needed
+	 * @param previousTerminalAmountBeforeStage terminals in previous stage
+	 */
+	void setPreviousTerminalAmountBeforeStage(bool previousTerminalAmountBeforeStage);
+	/** 
+	 * Sets reducing factor for characteristic length
+	 * @param characteristicLengthReducingFactor divides the length by this number
+	 */
+	void setCharacteristicLengthReducingFactor(float characteristicLengthReducingFactor);
+	/** 
+	 * set dimensions when dlim factor for cubic root, square root, no root, 0-th root (degenerated, so no computations)
+	 * @param dimensionsWhenDlimFactor sets the dimensions when calculating dlim factor,
+	 */
+	void setDimensionsWhenDlimFactor(float dimensionsWhenGetDlimFactor);
 	/**
 	 * Returns the maximum opening angle that the hosted tree can generate.
 	 * @return Maximum bifurcation angle for vessels generated inside this domain.
