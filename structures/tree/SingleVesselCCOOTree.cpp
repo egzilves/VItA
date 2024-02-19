@@ -2138,8 +2138,9 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 			((v_p is inside the domain OR parente vessel is perforator) AND
 			v_s is inside the domain))
 			*/
-			if (domain->isSegmentInside(xNew, bif) && (pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING ||
-					((pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR ||  domain->isSegmentInside(pVessel->xProx, bif)) && domain->isSegmentInside(pVessel->xDist, bif)) ) ) {
+			if ((domain->isSegmentInside(xNew, bif) && (pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING ||
+					((pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR ||  domain->isSegmentInside(pVessel->xProx, bif)) && domain->isSegmentInside(pVessel->xDist, bif)) ) ) ||
+					(pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::TRANSPORT)) {
 				/* v_new, v_s and v_p do not intersect neighbouring vessel */
 //				if(!isOverlapped(bif, xNew, pVessel, dLim))
 				if (!isIntersectingVessels(xNew, bif, pVessel, neighbors) &&
@@ -2207,8 +2208,9 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 			((v_p is inside the domain OR parente vessel is perforator) AND
 			v_s is inside the domain))
 			*/
-			if (domain->isSegmentInside(xNew, bif) && (pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING ||
-					((pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR ||  domain->isSegmentInside(pVessel->xProx, bif)) && domain->isSegmentInside(pVessel->xDist, bif)) ) ) {
+			if ((domain->isSegmentInside(xNew, bif) && (pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING ||
+					((pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR ||  domain->isSegmentInside(pVessel->xProx, bif)) && domain->isSegmentInside(pVessel->xDist, bif)) ) ) ||
+					(pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::TRANSPORT)) {
 				/* v_new, v_s and v_p do not intersect neighbouring vessel */
 //				if(!isOverlapped(bif, xNew, pVessel, dLim))
 				if (!isIntersectingVessels(xNew, bif, pVessel, neighbors) &&
