@@ -232,6 +232,11 @@ public:
 	void setIsGammaStage(bool isGammaStage);
 
 	/**
+	 * Bypass the vessel function when generating partitioned domains, allows bifurcating from partly-outside vessels
+	 */
+	bool bypassFunctionIfMidpointInside;
+
+	/**
 	 * Bypass the isValidOpeningAngle() function when the parent vessel is rigid
 	 * and the planeNormal is {0,0,0}, and openingAngle returns -nan(0x8000...) NaN
 	 */

@@ -47,6 +47,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(point xi, double rootRadius, double q
 	this->variationTolerance = resistanceVariationTolerance;
 	this->nCommonTerminals = 0;
 	this->isGammaStage = false;
+	this->bypassFunctionIfMidpointInside = false;
 	this->bypassRigidParentOpeningAnglePlaneNormal = false;
 }
 
@@ -161,7 +162,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 
 		//	Children parsing
 		cout << " - Children : ";
-		while (ss >> childId) {			
+		while (ss >> childId) {
 			cout << childId << " " ;
 			elements[vtkId]->addChild(elements[childId]);
 		}
@@ -180,6 +181,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 	this->gam = gam;
 	this->epsLim = epsLim;
 	this->isGammaStage = false;
+	this->bypassFunctionIfMidpointInside = false;
 	this->bypassRigidParentOpeningAnglePlaneNormal = false;
 
 	cout << "Tree successfully loaded" << endl;
@@ -410,7 +412,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData* in
 
 		//	Children parsing
 		cout << " - Children : ";
-		while (ss >> childId) {			
+		while (ss >> childId) {
 			cout << childId << " " ;
 			elements[vtkId]->addChild(elements[childId]);
 //			ss >> childId;
@@ -437,6 +439,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData* in
 	this->gam = gam;
 	this->epsLim = epsLim;
 	this->isGammaStage = false;
+	this->bypassFunctionIfMidpointInside = false;
 	this->bypassRigidParentOpeningAnglePlaneNormal = false;
 
 	cout << "Tree successfully loaded" << endl;
@@ -671,7 +674,7 @@ void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularE
 
 }
 
-void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
+void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction,
 				AbstractVascularElement::BRANCHING_MODE branchingMode) {
 
 	nTerms++;
@@ -1776,7 +1779,7 @@ void SingleVesselCCOOTree::addVesselMerge(point xProx, point xDist, AbstractVasc
 }
 
 void SingleVesselCCOOTree::addValitatedVessel(SingleVessel *newVessel, SingleVessel *originalVessel, unordered_map<SingleVessel *, SingleVessel *>& copiedTo) {
-	
+
 	(this->nTerms)++;
 	(this->nCommonTerminals++);
 
@@ -1827,7 +1830,7 @@ void SingleVesselCCOOTree::addValitatedVessel(SingleVessel *newVessel, SingleVes
 		this->vtkTreeLocator->SetDataSet(vtkTree);
 		this->vtkTreeLocator->BuildLocator();
 	}
-	//	Non-root case 
+	//	Non-root case
 	// Because the vessel is already validated, it will always be distal
 	else {
 
@@ -1877,11 +1880,11 @@ void SingleVesselCCOOTree::addValitatedVessel(SingleVessel *newVessel, SingleVes
 		//	Update tree locator
 		this->vtkTreeLocator->Update();
 
-	}	
+	}
 }
 
 void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, SingleVessel *originalVessel, unordered_map<SingleVessel *, SingleVessel *>& copiedTo) {
-	
+
 	(this->nTerms)++;
 	(this->nCommonTerminals++);
 
@@ -1909,7 +1912,7 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 		newVessel->vesselFunction = originalVessel->vesselFunction;
 		newVessel->qReservedFraction = originalVessel->qReservedFraction;
 		newVessel->terminalType = originalVessel->terminalType;
-		newVessel->branchingMode = newVessel->branchingMode;	
+		newVessel->branchingMode = newVessel->branchingMode;
 
 		//	Tree quantities
 		this->psiFactor = pow(newVessel->beta, 4) / newVessel->flow;	//	Not used
@@ -1935,7 +1938,7 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 		this->vtkTreeLocator->SetDataSet(vtkTree);
 		this->vtkTreeLocator->BuildLocator();
 	}
-	//	Non-root case 
+	//	Non-root case
 	// Because the vessel is already validated, it will always be distal
 	else {
 
@@ -1964,7 +1967,7 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 		newVessel->vesselFunction = originalVessel->vesselFunction;
 		newVessel->qReservedFraction = originalVessel->qReservedFraction;
 		newVessel->terminalType = originalVessel->terminalType;
-		newVessel->branchingMode = originalVessel->branchingMode;	
+		newVessel->branchingMode = originalVessel->branchingMode;
 
 		newVessel->parent->addChild(newVessel);
 
@@ -1984,7 +1987,7 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 		//	Update tree locator
 		this->vtkTreeLocator->Update();
 
-	}	
+	}
 }
 
 //void SingleVesselCCOOTree::addVessel(point xDist, AbstractVascularElement *parent, AbstractVascularElement::BRANCHING_MODE mode,
@@ -2145,7 +2148,7 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 //				if(!isOverlapped(bif, xNew, pVessel, dLim))
 				if (!isIntersectingVessels(xNew, bif, pVessel, neighbors) &&
 						!isIntersectingVessels(pVessel->xProx, bif, pVessel, neighbors) &&
-						!isIntersectingVessels(pVessel->xDist, bif, pVessel, neighbors) && 
+						!isIntersectingVessels(pVessel->xDist, bif, pVessel, neighbors) &&
 						!isOverlapped(bif, xNew, pVessel, dLim)) {
 					// Is distal
 					if(pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
@@ -2208,14 +2211,24 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 			((v_p is inside the domain OR parente vessel is perforator) AND
 			v_s is inside the domain))
 			*/
-			if ((domain->isSegmentInside(xNew, bif) && (pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING ||
-					((pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR ||  domain->isSegmentInside(pVessel->xProx, bif)) && domain->isSegmentInside(pVessel->xDist, bif)) ) ) ||
-					(pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::TRANSPORT)) {
+			// Check if uses the bypass condition instead uses the midpoint vessel
+			bool domainCondition = (this->bypassFunctionIfMidpointInside) ||
+				(pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR && domain->isSegmentInside(pVessel->xDist, bif) ) ||
+				(domain->isSegmentInside(pVessel->xProx, bif) && domain->isSegmentInside(pVessel->xDist, bif) ) ||  // Distribution
+				(pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING );
+			// check if the interval between 0%-100% of the vessel is inside the domain,
+			// point beforeMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*0.00);
+			// point afterMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*1.00);
+			point beforeMidpoint = pVessel->xProx; // 100% of vessel
+			point afterMidpoint = pVessel->xDist; // 100% of vessel
+			bool midpointCondition = domain->isSegmentInside(beforeMidpoint, afterMidpoint);
+			// uses the condition
+			if ((domain->isSegmentInside(xNew, bif) && midpointCondition && domainCondition) || (pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::TRANSPORT)) {
 				/* v_new, v_s and v_p do not intersect neighbouring vessel */
 //				if(!isOverlapped(bif, xNew, pVessel, dLim))
 				if (!isIntersectingVessels(xNew, bif, pVessel, neighbors) &&
 						!isIntersectingVessels(pVessel->xProx, bif, pVessel, neighbors) &&
-						!isIntersectingVessels(pVessel->xDist, bif, pVessel, neighbors) && 
+						!isIntersectingVessels(pVessel->xDist, bif, pVessel, neighbors) &&
 						!isOverlapped(bif, xNew, pVessel, dLim)) {
 					// Is distal
 					if(pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
@@ -2318,7 +2331,7 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 	double maxVariation = INFINITY;
 	while (maxVariation > variationTolerance) {
 		// printf("Max beta variation: %lf\n", maxVariation);
-		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);		
+		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);
 	}
 
 	//	Check the symmetry constraint only for the newest vessel.
@@ -2330,7 +2343,7 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 		return INFINITY;
 	}
 
-	if (!isValidAspectRatio(iNew) || !isValidAspectRatio(iCon) || !isValidAspectRatio(clonedParent) || 
+	if (!isValidAspectRatio(iNew) || !isValidAspectRatio(iCon) || !isValidAspectRatio(clonedParent) ||
 			!isValidLengthRatio(clonedParent, iCon)) {
 		delete localEstimator;
 		delete clonedTree;
@@ -2413,7 +2426,7 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 
 	//	Update post-order nLevel, flux, initial resistances and intial betas.
 	long long int termPartClone = (*termPart) + 1;
-	updateTree((SingleVessel *) clonedTree->root, clonedTree, partVessels, &termPartClone, qPart);	
+	updateTree((SingleVessel *) clonedTree->root, clonedTree, partVessels, &termPartClone, qPart);
 
 	size_t maxTries = 1000, noTries =0;
 	double maxVariation = INFINITY;
@@ -2437,7 +2450,7 @@ double SingleVesselCCOOTree::evaluate(point xNew, point xTest, SingleVessel *par
 		return INFINITY;
 	}
 
-	if (!isValidAspectRatio(iNew) || !isValidAspectRatio(iCon) || !isValidAspectRatio(clonedParent) || 
+	if (!isValidAspectRatio(iNew) || !isValidAspectRatio(iCon) || !isValidAspectRatio(clonedParent) ||
 			!isValidLengthRatio(clonedParent, iCon)) {
 		delete localEstimator;
 		delete clonedTree;
@@ -2504,7 +2517,7 @@ double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double d
 	updateTree((SingleVessel *) clonedTree->root, clonedTree);
 
 	double maxVariation = INFINITY;
-	while (maxVariation > variationTolerance) {		
+	while (maxVariation > variationTolerance) {
 		updateTreeViscositiesBeta((SingleVessel *) clonedTree->root, &maxVariation);
 	}
 
@@ -2592,7 +2605,7 @@ double SingleVesselCCOOTree::evaluate(point xNew, SingleVessel *parent, double d
 		delete iNew;
 		return INFINITY;
 	}
-	
+
 	//	FIXME Define symmetry law for N-ary bifurcations (Most different betas?)
 	//	Check the symmetry constraint only for the newest vessel.
 	if (!isSymmetricallyValid( ((SingleVessel *)clonedParent->getChildren()[0])->beta, iNew->beta, iNew->nLevel)) {
@@ -2668,8 +2681,8 @@ int SingleVesselCCOOTree::isOverlapped(point xBif, point xNew, SingleVessel* par
 	point midPoint = xBif + (xNew - xBif) * 0.5;
 
 	double box_halflength = sqrt(
-		(xNew.p[0]-xBif.p[0])*(xNew.p[0]-xBif.p[0]) + 
-		(xNew.p[1]-xBif.p[1])*(xNew.p[1]-xBif.p[1]) + 
+		(xNew.p[0]-xBif.p[0])*(xNew.p[0]-xBif.p[0]) +
+		(xNew.p[1]-xBif.p[1])*(xNew.p[1]-xBif.p[1]) +
 		(xNew.p[2]-xBif.p[2])*(xNew.p[2]-xBif.p[2]) ) * 0.5;
 
 	vtkSmartPointer<vtkIdList> idSegments = vtkSmartPointer<vtkIdList>::New();
@@ -2872,7 +2885,7 @@ void SingleVesselCCOOTree::updateTreeViscositiesBeta(SingleVessel* root, double*
 		root->radius = root->beta * ((SingleVessel*) root->parent)->radius;
 
 	} else {
-		root->radius = root->beta;		
+		root->radius = root->beta;
 	}
 
 	vector<AbstractVascularElement *> rootChildren = root->getChildren();
@@ -3110,8 +3123,8 @@ void SingleVesselCCOOTree::remove(SingleVessel* vessel) {
 	printf("vtkCellType = %d\n", vessel->vtkSegment->GetCellType());
 	printf("GetNumberOfPoints = %d\n", vessel->vtkSegment->GetNumberOfPoints());
 	vtkTree->DeletePoint(vessel->vtkSegment->GetPointId(1));
-	vtkTree->DeleteCell(vessel->vtkSegmentId);	
-	
+	vtkTree->DeleteCell(vessel->vtkSegmentId);
+
 	delete vessel;
 }
 
@@ -3181,7 +3194,7 @@ bool SingleVesselCCOOTree::isValidLengthRatio(SingleVessel *vessel1, SingleVesse
 void SingleVesselCCOOTree::updateAll() {
 	// Update tree
     this->updateTree(((SingleVessel *) this->getRoot()), this);
-	
+
 	double maxVariation = INFINITY;
 	while (maxVariation > this->variationTolerance) {
 			this->updateTreeViscositiesBeta(((SingleVessel *) this->getRoot()), &maxVariation);

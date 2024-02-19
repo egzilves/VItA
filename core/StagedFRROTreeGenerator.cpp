@@ -52,6 +52,7 @@ StagedFRROTreeGenerator::StagedFRROTreeGenerator(
 
 	this->dataMonitor = new GeneratorDataMonitor(domain);
 	this->monitor = new MemoryMonitor(MemoryMonitor::MEGABYTE);
+	this->bypassFunctionIfMidpointInside = false;
 }
 
 StagedFRROTreeGenerator::StagedFRROTreeGenerator(
@@ -85,6 +86,7 @@ StagedFRROTreeGenerator::StagedFRROTreeGenerator(
 	this->monitor = new MemoryMonitor(MemoryMonitor::MEGABYTE);
 
 	this->didAllocateTree = false;
+	this->bypassFunctionIfMidpointInside = false;
 }
 
 StagedFRROTreeGenerator::~StagedFRROTreeGenerator() {
@@ -657,6 +659,12 @@ static unordered_set<vtkIdType>* originalVessels(SingleVesselCCOOTree *tree, vtk
 }
 
 AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePointsMidPoint(long long int saveInterval, string tempDirectory, FILE *fp) {
+	// This function checks for vessels differently, instead of checking if parent is in domain/region/partition, it checks if
+	// its midpoint is inside the region, and then considers it as a candidate
+	// Does not discard parent vessel if parameter
+	/// @param bypassFunctionIfMidpointInside
+	// is set to true (default: false)
+
 	this->beginTime = time(nullptr);
 	this->dLimInitial = this->dLim;
 
@@ -706,6 +714,7 @@ AbstractObjectCCOTree *StagedFRROTreeGenerator::resumeSavePointsMidPoint(long lo
 			double minCost = INFINITY;
 			point minBif;
 			AbstractVascularElement *minParent = NULL;
+			((SingleVesselCCOOTree*) tree)->bypassFunctionIfMidpointInside = this->bypassFunctionIfMidpointInside;
 #pragma omp parallel for shared(minCost, minBif, minParent), schedule(dynamic,1), num_threads(omp_get_max_threads())
 			for (unsigned j = 0; j < neighborVessels.size(); ++j) {
 				point xBif;

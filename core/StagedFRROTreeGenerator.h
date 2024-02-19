@@ -202,6 +202,12 @@ public:
 
 	double getDLimLast();
 	
+	/**
+	 * Bypass vessel function when bifurcating, to allow bifurcation from vessels with midpoint in partitioned domain.
+	 * Used in the resume midpoint function.
+	 */
+	bool bypassFunctionIfMidpointInside;
+	
 protected:
 	/**	Configuration file stream. */
 	ofstream confFile;
