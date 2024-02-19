@@ -21,12 +21,24 @@ PowerCostEstimator::PowerCostEstimator(unsigned int lExp, unsigned int rExp): Ab
 	this->previousCost = 0.0;
     this->lExp = lExp;
     this->rExp = rExp;
+this->isSingleVesselPowerCost = false;
+}
+PowerCostEstimator::PowerCostEstimator(unsigned int lExp, unsigned int rExp, bool isSingleVesselPowerCost): AbstractCostEstimator(){
+	this->previousCost = 0.0;
+    this->lExp = lExp;
+    this->rExp = rExp;
+    this->isSingleVesselPowerCost = isSingleVesselPowerCost;
 }
 
 PowerCostEstimator::~PowerCostEstimator(){
 }
 
 void PowerCostEstimator::previousState(AbstractObjectCCOTree* tree, AbstractVascularElement* parent, point iNew, point iTest, double dLim){
+if(isSingleVesselPowerCost){
+        this->iNew = iNew;
+        this->iTest = iTest;
+        this->previousCost = 0.0;
+    } 
     this->previousCost = computeTreeCost(tree->getRoot());
 }
 
@@ -35,7 +47,13 @@ double PowerCostEstimator::computeCost(AbstractObjectCCOTree* tree){
 }
 
 double PowerCostEstimator::computeTreeCost(AbstractVascularElement* root) {
-	double currentCost = this->computeVesselCost(static_cast<SingleVessel *>(root));
+	double currentCost;
+    if(isSingleVesselPowerCost){
+        point distance = iNew - iTest;
+        currentCost = sqrt(distance ^ distance);
+        return currentCost;
+    }
+	currentCost = this->computeVesselCost(static_cast<SingleVessel *>(root));
 	vector<AbstractVascularElement *> children = root->getChildren();
 	for (std::vector<AbstractVascularElement *>::iterator it = children.begin(); it != children.end(); ++it) {
 		currentCost += computeTreeCost(*it);
@@ -55,4 +73,8 @@ void PowerCostEstimator::logCostEstimator(FILE *fp) {
     fprintf(fp, "This domain uses PowerCostEstimator.\n");
     fprintf(fp, "Lenght exponent = %u.\n", this->lExp);
     fprintf(fp, "Radius exponent = %u.\n", this->rExp);
+}
+
+void PowerCostEstimator::setIsSingleVesselPowerCost(bool isSingleVesselPowerCost){
+    this->isSingleVesselPowerCost = isSingleVesselPowerCost;
 }

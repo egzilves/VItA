@@ -12,11 +12,18 @@ class PowerCostEstimator: public AbstractCostEstimator {
 	/**	Volume at the previous step. */
     unsigned int lExp, rExp;
 	double previousCost;
+	bool isSingleVesselPowerCost;
+	point iNew;
+	point iTest;
 public:
 	/**
 	 * Common constructor.
 	 */
 	PowerCostEstimator(unsigned int lExp, unsigned int rExp);
+	/**
+	 * Alternate constructor
+	 */
+	PowerCostEstimator(unsigned int lExp, unsigned int rExp, bool isSingleVesselPowerCost);
 	/**
 	 * Common destructor.
 	 */
@@ -45,6 +52,8 @@ public:
 	double computeCost(AbstractObjectCCOTree *tree) override;
 
 	void logCostEstimator(FILE *fp) override;
+
+	void setIsSingleVesselPowerCost(bool isSingleVesselPowerCost);
 
 private:
 	/**
