@@ -47,6 +47,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(point xi, double rootRadius, double q
 	this->variationTolerance = resistanceVariationTolerance;
 	this->nCommonTerminals = 0;
 	this->isGammaStage = false;
+	this->bypassRigidParentOpeningAnglePlaneNormal = false;
 }
 
 SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *instanceData, AbstractConstraintFunction<double, int> *gam, AbstractConstraintFunction<double, int> *epsLim,
@@ -179,6 +180,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 	this->gam = gam;
 	this->epsLim = epsLim;
 	this->isGammaStage = false;
+	this->bypassRigidParentOpeningAnglePlaneNormal = false;
 
 	cout << "Tree successfully loaded" << endl;
 	cout << "Creating VTK structure..." << endl;
@@ -435,6 +437,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData* in
 	this->gam = gam;
 	this->epsLim = epsLim;
 	this->isGammaStage = false;
+	this->bypassRigidParentOpeningAnglePlaneNormal = false;
 
 	cout << "Tree successfully loaded" << endl;
 	cout << "Creating VTK structure..." << endl;
@@ -3135,6 +3138,11 @@ int SingleVesselCCOOTree::isValidOpeningAngle(point xBif, point xNew, SingleVess
 	planeNormal.p[0] = iBif.p[1] * iCon.p[2] - iBif.p[2] * iCon.p[1];
 	planeNormal.p[1] = iBif.p[2] * iCon.p[0] - iBif.p[0] * iCon.p[2];
 	planeNormal.p[2] = iBif.p[0] * iCon.p[1] - iBif.p[1] * iCon.p[0];
+
+	if((parent->branchingMode==AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT) && ((planeNormal^planeNormal) == 0) && bypassRigidParentOpeningAnglePlaneNormal){
+		// RigidParent has no plane angle (NaN), normal is {0,0,0}, check only for bifurcation angle.
+		return true;
+	}
 
 	//	acos return result in the interval of [0,pi]
 	//	We're using the abs of the inner product since we are not interested in the orientation of the normal vector.

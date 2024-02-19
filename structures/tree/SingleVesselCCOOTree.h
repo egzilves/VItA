@@ -231,6 +231,12 @@ public:
 	 */
 	void setIsGammaStage(bool isGammaStage);
 
+	/**
+	 * Bypass the isValidOpeningAngle() function when the parent vessel is rigid
+	 * and the planeNormal is {0,0,0}, and openingAngle returns -nan(0x8000...) NaN
+	 */
+	bool bypassRigidParentOpeningAnglePlaneNormal;
+
 protected:
 	/**
 	 * Returns a string with the tree atributes to create the .cco file.
