@@ -46,13 +46,15 @@ set(FILTERS_CPP
     filters/AbstractVesselFilter.cpp
     filters/VesselFilterByBranchingMode.cpp
     filters/VesselFilterByStage.cpp
-    filters/VesselFilterComposite.cpp)
+    filters/VesselFilterComposite.cpp
+    filters/VesselFilterByTerminal.cpp)
 
 set(FILTERS_HPP
     filters/AbstractVesselFilter.h
     filters/VesselFilterByBranchingMode.h
     filters/VesselFilterByStage.h
-    filters/VesselFilterComposite.h)
+    filters/VesselFilterComposite.h
+    filters/VesselFilterByTerminal.cpp)
 
 set(IO_CPP
     io/CSVWriter.cpp
