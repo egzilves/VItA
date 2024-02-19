@@ -39,22 +39,24 @@ void TreeMerger::createMapping(SingleVessel *vessel) {
 }
 
 TreeMerger::TreeMerger(SingleVesselCCOOTree *baseTree, vector<string>& derivedTreePoints) {
-        
+
         this->tree = baseTree;
-        
+
+        this->skipFailedMerges = false;
+
         this->vesselToMerge = new vector<vector<ReadData> *>;
-        
+
         for (auto it = derivedTreePoints.begin(); it != derivedTreePoints.end(); ++it) {
-            
+
             FILE *fp = fopen((*it).c_str(), "rb");
             if (!fp) {
                 fprintf(stderr, "Failed to open derived tree file!\n");
                 exit(EXIT_FAILURE);
             }
-           
+
             vector<ReadData> *toMerge = new vector<ReadData>;
             this->vesselToMerge->push_back(toMerge);
-            
+
             ReadData readLine;
             double tempPoints[12];
             int tempFunction;
@@ -133,14 +135,22 @@ SingleVesselCCOOTree* TreeMerger::mergeFast() {
                 (*itVessels).xPProx.p[0], (*itVessels).xPProx.p[1], (*itVessels).xPProx.p[2],
                 (*itVessels).xPDist.p[0], (*itVessels).xPDist.p[1], (*itVessels).xPDist.p[2]);
             // printf("key_accessed = %s\n", coordToString((*itVessels).xPProx, (*itVessels).xPDist).c_str());
-            SingleVessel *parentPointer = this->stringToPointer->at(coordToString((*itVessels).xPProx, (*itVessels).xPDist));
-            tree->addVesselMergeFast((*itVessels).xBif, (*itVessels).xNew, parentPointer, (*itVessels).function, (*itVessels).stage, this->stringToPointer);
+            try {
+                // A junção
+                SingleVessel *parentPointer = this->stringToPointer->at(coordToString((*itVessels).xPProx, (*itVessels).xPDist));
+                tree->addVesselMergeFast((*itVessels).xBif, (*itVessels).xNew, parentPointer, (*itVessels).function, (*itVessels).stage, this->stringToPointer);
+            }
+            catch(std::out_of_range const&) {
+                std::cout << "This merge failed!" << std::endl;        
+                if(this->skipFailedMerges) continue;        
+                throw; // default behaviour to throw the exception
+            }
         }
     }
 
     // Update tree
     this->tree->updateTree(((SingleVessel *) this->tree->getRoot()), this->tree);
-	
+
 	double maxVariation = INFINITY;
 	while (maxVariation > this->tree->variationTolerance) {
 			this->tree->updateTreeViscositiesBeta(((SingleVessel *) this->tree->getRoot()), &maxVariation);
@@ -152,7 +162,7 @@ SingleVesselCCOOTree* TreeMerger::mergeFast() {
 }
 
 typedef struct {
-    ReadData *readData;    
+    ReadData *readData;
     size_t noVessels;
     size_t cur;
     bool isDone;

@@ -24,6 +24,7 @@ class TreeMerger {
     ~TreeMerger();
     SingleVesselCCOOTree *mergeFast();
     SingleVesselCCOOTree *merge();
+    bool skipFailedMerges;
 
     private:
     void createMapping(SingleVessel *vessel);
