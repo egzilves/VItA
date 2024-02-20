@@ -163,6 +163,9 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	vector<SingleVessel *> treeVessels = this->tree->getVessels();
 	vector<SingleVessel *> terminalVessels = terminalFilters->apply(treeVessels);
 
+
+	vector<SingleVessel *> allTreeVessels = this->tree->getVessels();
+
 	// get the projection domain and the perfusion domain
 	// via CTOR
 	// Perfusion : StagedDomain
@@ -223,7 +226,16 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(); ++it) {
 		cout<<"\n-----\n"<<endl;
 
+		cout << "my vessel radiuses are: " << endl;
+		allTreeVessels = this->tree->getVessels();
+		for (vector<SingleVessel *>::iterator it = allTreeVessels.begin(); it != allTreeVessels.end(); ++it){
+			cout << "rad " << (*it)->radius << " beta " << (*it)->beta << endl;
+		}
+
+		dataMonitor->update();
+
 		point terminal = (*it)->xDist;
+		// terminal = ((*it)->xDist + (*it)->xProx)*0.5;
 
 		point projectionT, normalT;
 		vtkIdType closeCellIdT;
@@ -273,14 +285,21 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		point xNew2T = projectionT + (endpointT - projectionT)*penetrationFactor;
 
 
-		cout << "Added with a cost of " << "NoCost" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
+		cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
 		cout << "add descending 1st step" << endl;
 		tree->addVessel(xBifT, xNew1T, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+		cout << "added!." << endl;
+
+		// domain->update();
+		cout << "..." << endl;
+		dataMonitor->update();
+
 		cout << "add descending 2nd step" << endl;
 		SingleVessel * firstStepVessel = (SingleVessel *) parent->getChildren()[0];
 		tree->addVessel(xNew1T, xNew2T, firstStepVessel, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+		cout << "added!." << endl;
 
 		// SingleVesselCCOOTree * treeCCOO = (SingleVesselCCOOTree *)this->tree;
 		// (treeCCOO)->updateTree(((SingleVessel *) this->tree->getRoot()), treeCCOO);
@@ -289,8 +308,13 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		// 		this->tree->updateTreeViscositiesBeta(((SingleVessel *) this->tree->getRoot()), &maxVariation);
 		// }
 		
+		// domain->update();
 
-
+		cout << "my vessel radiuses are: " << endl;
+		allTreeVessels = this->tree->getVessels();
+		for (vector<SingleVessel *>::iterator it = allTreeVessels.begin(); it != allTreeVessels.end(); ++it){
+			cout << "rad " << (*it)->radius << " beta " << (*it)->beta << endl;
+		}
 		cout<<"\n-----\n"<<endl;
 	}
 
@@ -300,149 +324,186 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	printf("iterating all segments, bifurcating from midpoint (todo)\n");
 	cout << vesselsList.size() << endl;
 
-goto skipThisForLoop;
-	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(); ++it) {
 
-		// get the two points of bifurcation per segment
-
-		point terminal = (*it)->xDist;
-		// point midpoint = ((*it)->xDist + (*it)->xProx)*0.5;
-
-		cout << "terminal = " << terminal << endl;
-
-		point projectionT, normalT;
-		// point projectionM, normalM;
-		vtkIdType closeCellIdT;
-		// vtkIdType closeCellIdM;
-		int subIdT;
-		// int subIdM;
-		double distanceT;
-		// double distanceM;
-
-		// find closest cell from point of bifurcation
-
-		this->locatorProjection->FindClosestPoint(terminal.p, projectionT.p, closeCellIdT, subIdT, distanceT);
-		// this->locatorProjection->FindClosestPoint(midpoint.p, projectionM.p, closeCellIdM, subIdM, distanceM);
-		
-		// get normal of closest cells.
-		// get normal of the closest cell at closest point
-		// get the normal versor
-
-		vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometryProjection->GetCellData()->GetNormals();
-		cellNormalsRetrieved->GetTuple(closeCellIdT, normalT.p);
-		// cellNormalsRetrieved->GetTuple(closeCellIdM, normalM.p);
-
-		// define displacement versor for the offset (+-something%), get projection and add/subtract the displacement, always below surface.
-		// this displacement is NOT the normal, it is in the direction from terminal to projection
-		point displacementT = projectionT - terminal;
-		// point displacementM = projectionM - midpoint;
-		displacementT = displacementT / sqrt(displacementT^displacementT);
-		// displacementM = displacementM / sqrt(displacementM^displacementM);
-
-		// add if same direction, subtract if going outwards
-		if ((normalT^displacementT)<0)
-			projectionT = projectionT + displacementT * descendingOffset;
-		else
-			projectionT = projectionT - displacementT * descendingOffset;
-		// if ((normalM^displacementM)<0)
-			// projectionM = projectionM + displacementM * descendingOffset;
-		// else
-			// projectionM = projectionM - displacementM * descendingOffset;
-		
-		// define the new terminal point as the projection point
-
-		// the line below changes the terminal, we need to addVessel(...) instead.
-		// (*it)->xDist = projectionT; 
-
-		// the bifurcation points are the terminal and midpoint points
-		SingleVessel* parent = (*it);
-		point xBifT = terminal;
-		// point xBifM = midpoint;
-
-		// get intersection point from bifurcation to surface along versor
-
-		point xNew1T = projectionT;
-		// point xNew1M = projectionM;
-
-		// get final point of bifurcation per new segment
-
-		double xRayDisplacement = 100.0;
-		point xRayDisplacementT = (normalT*xRayDisplacement);
-		// point xRayDisplacementM = (normalM*xRayDisplacement);
-		point xRaycastT = projectionT + xRayDisplacementT;
-		// point xRaycastM = projectionM + xRayDisplacementM;
-
-		// find the endpoint for vessel
-
-		double intersectionTolerance = 1e-5;
-		double tParamT;
-		// double tParamM;
-		point hitpointT;
-		// point hitpointM;
-		point pcoordsT;
-		// point pcoordsM;
-		vtkIdType endCellIdT;
-		// vtkIdType endCellIdM;
-		int endSubIdT;
-		// int endSubIdM;
-		vtkGenericCell *endCellT;
-		// vtkGenericCell *endCellM;
-
-		this->locatorIntersect->IntersectWithLine(xNew1T.p, xRaycastT.p, intersectionTolerance, 
-			tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT, endCellT);
-		// this->locatorIntersect->IntersectWithLine(xNew1M.p, xRaycastM.p, intersectionTolerance, 
-		// 	tParamM, hitpointM.p, pcoordsM.p, endSubIdM, endCellIdM, endCellM);
-
-
-		point directionT = hitpointT - xNew1T;
-		// point directionM = hitpointM - xNew1M;
-		directionT = directionT / sqrt(directionT^directionT);
-		// directionM = directionM / sqrt(directionM^directionM);
-
-		point endpointT;
-		// point endpointM;
-
-		endpointT = hitpointT - directionT * endpointOffset;
-		// endpointM = hitpointM - directionM * endpointOffset;
-
-		bool generateHalf = false;
-
-		printf("endPoint xProx = (%.16e, %.16e, %.16e)\n",
-			endpointT.p[0], endpointT.p[1], endpointT.p[2]);
-
-
-		// test if cost is infinite
-
-		// int nNeighbors;
-		// vector<AbstractVascularElement *> neighborVessels = tree->getCloseSegments(xNew, domain, &nNeighbors);
-		// tree->testVessel(xNew, neighborVessels[j], domain,
-		// 	neighborVessels, dLim, &xBif, &cost); //	Inf cost stands for invalid solution
-
-
-		// add the two vessels per descending
-
-		// cout << "Added with a cost of " << minCost << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
-		// 	tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
-		// 					(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
-
-
-		// generate from tip and from midpoint of the parent vessel
-
-		// do random long + short da/pv
-
-		// intersectWithLine
-
-		// update tree
-
-		// this->tree->updateTree(((SingleVessel *) this->tree->getRoot()), this->tree);
-		// double maxVariation = INFINITY;
-		// while (maxVariation > this->tree->variationTolerance) {
-		// 		this->tree->updateTreeViscositiesBeta(((SingleVessel *) this->tree->getRoot()), &maxVariation);
-		// }
-
-		
+	cout << "my vessel radiuses are: " << endl;
+	allTreeVessels = this->tree->getVessels();
+	for (vector<SingleVessel *>::iterator it = allTreeVessels.begin(); it != allTreeVessels.end(); ++it){
+		cout << "rad " << (*it)->radius << " beta " << (*it)->beta << endl;
 	}
-skipThisForLoop:
+
+    // // Update tree
+    // ((SingleVesselCCOOTree *)tree)->updateTree(((SingleVessel *) tree->getRoot()), (SingleVesselCCOOTree *)tree);
+
+	// double maxVariation = INFINITY;
+	// while (maxVariation > ((SingleVesselCCOOTree *)tree)->variationTolerance) {
+	// 		((SingleVesselCCOOTree *)tree)->updateTreeViscositiesBeta(((SingleVessel *) this->tree->getRoot()), &maxVariation);
+	// }
+
+
+	tree->computePressure(tree->getRoot());
+	tree->setPointCounter(domain->getPointCounter());
+
+
+	this->endTime = time(nullptr);
+	this->dLimLast = this->dLim;
+
+	saveStatus(nTerminals-1);
+	markTimestampOnConfigurationFile("Final tree volume " + to_string(((SingleVessel *) tree->getRoot())->treeVolume));
+	markTimestampOnConfigurationFile("Tree successfully generated.");
+	closeConfigurationFile();
+
+
+	cout << "my vessel radiuses are: " << endl;
+	allTreeVessels = this->tree->getVessels();
+	for (vector<SingleVessel *>::iterator it = allTreeVessels.begin(); it != allTreeVessels.end(); ++it){
+		cout << "rad " << (*it)->radius << " beta " << (*it)->beta << endl;
+	}
+
+	return tree;
+
+// goto skipThisForLoop;
+// 	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(); ++it) {
+
+// 		// get the two points of bifurcation per segment
+
+// 		point terminal = (*it)->xDist;
+// 		// point midpoint = ((*it)->xDist + (*it)->xProx)*0.5;
+
+// 		cout << "terminal = " << terminal << endl;
+
+// 		point projectionT, normalT;
+// 		// point projectionM, normalM;
+// 		vtkIdType closeCellIdT;
+// 		// vtkIdType closeCellIdM;
+// 		int subIdT;
+// 		// int subIdM;
+// 		double distanceT;
+// 		// double distanceM;
+
+// 		// find closest cell from point of bifurcation
+
+// 		this->locatorProjection->FindClosestPoint(terminal.p, projectionT.p, closeCellIdT, subIdT, distanceT);
+// 		// this->locatorProjection->FindClosestPoint(midpoint.p, projectionM.p, closeCellIdM, subIdM, distanceM);
+		
+// 		// get normal of closest cells.
+// 		// get normal of the closest cell at closest point
+// 		// get the normal versor
+
+// 		vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometryProjection->GetCellData()->GetNormals();
+// 		cellNormalsRetrieved->GetTuple(closeCellIdT, normalT.p);
+// 		// cellNormalsRetrieved->GetTuple(closeCellIdM, normalM.p);
+
+// 		// define displacement versor for the offset (+-something%), get projection and add/subtract the displacement, always below surface.
+// 		// this displacement is NOT the normal, it is in the direction from terminal to projection
+// 		point displacementT = projectionT - terminal;
+// 		// point displacementM = projectionM - midpoint;
+// 		displacementT = displacementT / sqrt(displacementT^displacementT);
+// 		// displacementM = displacementM / sqrt(displacementM^displacementM);
+
+// 		// add if same direction, subtract if going outwards
+// 		if ((normalT^displacementT)<0)
+// 			projectionT = projectionT + displacementT * descendingOffset;
+// 		else
+// 			projectionT = projectionT - displacementT * descendingOffset;
+// 		// if ((normalM^displacementM)<0)
+// 			// projectionM = projectionM + displacementM * descendingOffset;
+// 		// else
+// 			// projectionM = projectionM - displacementM * descendingOffset;
+		
+// 		// define the new terminal point as the projection point
+
+// 		// the line below changes the terminal, we need to addVessel(...) instead.
+// 		// (*it)->xDist = projectionT; 
+
+// 		// the bifurcation points are the terminal and midpoint points
+// 		SingleVessel* parent = (*it);
+// 		point xBifT = terminal;
+// 		// point xBifM = midpoint;
+
+// 		// get intersection point from bifurcation to surface along versor
+
+// 		point xNew1T = projectionT;
+// 		// point xNew1M = projectionM;
+
+// 		// get final point of bifurcation per new segment
+
+// 		double xRayDisplacement = 100.0;
+// 		point xRayDisplacementT = (normalT*xRayDisplacement);
+// 		// point xRayDisplacementM = (normalM*xRayDisplacement);
+// 		point xRaycastT = projectionT + xRayDisplacementT;
+// 		// point xRaycastM = projectionM + xRayDisplacementM;
+
+// 		// find the endpoint for vessel
+
+// 		double intersectionTolerance = 1e-5;
+// 		double tParamT;
+// 		// double tParamM;
+// 		point hitpointT;
+// 		// point hitpointM;
+// 		point pcoordsT;
+// 		// point pcoordsM;
+// 		vtkIdType endCellIdT;
+// 		// vtkIdType endCellIdM;
+// 		int endSubIdT;
+// 		// int endSubIdM;
+// 		vtkGenericCell *endCellT;
+// 		// vtkGenericCell *endCellM;
+
+// 		this->locatorIntersect->IntersectWithLine(xNew1T.p, xRaycastT.p, intersectionTolerance, 
+// 			tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT, endCellT);
+// 		// this->locatorIntersect->IntersectWithLine(xNew1M.p, xRaycastM.p, intersectionTolerance, 
+// 		// 	tParamM, hitpointM.p, pcoordsM.p, endSubIdM, endCellIdM, endCellM);
+
+
+// 		point directionT = hitpointT - xNew1T;
+// 		// point directionM = hitpointM - xNew1M;
+// 		directionT = directionT / sqrt(directionT^directionT);
+// 		// directionM = directionM / sqrt(directionM^directionM);
+
+// 		point endpointT;
+// 		// point endpointM;
+
+// 		endpointT = hitpointT - directionT * endpointOffset;
+// 		// endpointM = hitpointM - directionM * endpointOffset;
+
+// 		bool generateHalf = false;
+
+// 		printf("endPoint xProx = (%.16e, %.16e, %.16e)\n",
+// 			endpointT.p[0], endpointT.p[1], endpointT.p[2]);
+
+
+// 		// test if cost is infinite
+
+// 		// int nNeighbors;
+// 		// vector<AbstractVascularElement *> neighborVessels = tree->getCloseSegments(xNew, domain, &nNeighbors);
+// 		// tree->testVessel(xNew, neighborVessels[j], domain,
+// 		// 	neighborVessels, dLim, &xBif, &cost); //	Inf cost stands for invalid solution
+
+
+// 		// add the two vessels per descending
+
+// 		// cout << "Added with a cost of " << minCost << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
+// 		// 	tree->addVessel(minBif, xNew, minParent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+// 		// 					(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+
+
+// 		// generate from tip and from midpoint of the parent vessel
+
+// 		// do random long + short da/pv
+
+// 		// intersectWithLine
+
+// 		// update tree
+
+// 		// this->tree->updateTree(((SingleVessel *) this->tree->getRoot()), this->tree);
+// 		// double maxVariation = INFINITY;
+// 		// while (maxVariation > this->tree->variationTolerance) {
+// 		// 		this->tree->updateTreeViscositiesBeta(((SingleVessel *) this->tree->getRoot()), &maxVariation);
+// 		// }
+
+		
+// 	}
+// skipThisForLoop:
 
 
 
@@ -541,24 +602,6 @@ skipThisForLoop:
 	// 	(*it)->xDist = projectionDist;	//	Need to update the VTK segment!
 	// 	(*it)->xProx = projectionProx;  //	Need to update the VTK segment!
 	// }
-
-
-
-
-
-
-	tree->computePressure(tree->getRoot());
-	tree->setPointCounter(domain->getPointCounter());
-
-	this->endTime = time(nullptr);
-	this->dLimLast = this->dLim;
-
-	saveStatus(nTerminals-1);
-	markTimestampOnConfigurationFile("Final tree volume " + to_string(((SingleVessel *) tree->getRoot())->treeVolume));
-	markTimestampOnConfigurationFile("Tree successfully generated.");
-	closeConfigurationFile();
-
-	return tree;
 
 }
 
