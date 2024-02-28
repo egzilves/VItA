@@ -320,11 +320,42 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		double penetrationFactor = 0.7;
 		double maxPenetrationLength = 1e4;
 		point xNew2T = projectionT + (endpointT - projectionT)*penetrationFactor;
+		point xNew2M = projectionM + (endpointM - projectionM)*penetrationFactor;
 
 
 		cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
 		cout << "add descending 1st step" << endl;
 		tree->addVessel(xBifT, xNew1T, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+		cout << "added!." << endl;
+
+		cout << "..." << endl;
+
+		cout << "add descending 2nd step" << endl;
+		// The following assumes parent vessel was a terminal and has a single child at the distal tip
+		SingleVessel * firstStepVesselT = (SingleVessel *) parent->getChildren()[0];
+		tree->addVessel(xNew1T, xNew2T, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+		cout << "added!." << endl;
+
+
+
+		// *****
+		// TODO change parent vessel DistalBranching to RigidParent bifurcation
+		// *****
+		cout << "parent mode was " << parent->branchingMode << endl;
+
+		if (parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING)
+			parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT;
+
+		cout << "now parent mode is " << parent->branchingMode << endl;
+
+
+		cout << "=== branching from midpoint ===" << endl;
+
+		cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
+		cout << "add descending 1st step" << endl;
+		tree->addVessel(xBifM, xNew1M, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 		cout << "added!." << endl;
 
@@ -336,8 +367,8 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 
 		cout << "add descending 2nd step" << endl;
 		// The following assumes parent vessel was a terminal and has a single child at the distal tip
-		SingleVessel * firstStepVessel = (SingleVessel *) parent->getChildren()[0];
-		tree->addVessel(xNew1T, xNew2T, firstStepVessel, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+		SingleVessel * firstStepVesselM = (SingleVessel *) parent->getChildren()[0];
+		tree->addVessel(xNew1M, xNew2M, firstStepVesselM, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 		cout << "added!." << endl;
 
