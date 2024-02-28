@@ -140,37 +140,18 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	string modelsFolder = "./";
 	string outputDir = "./";
 	string prefix = "output";
-	// int nTree = 1;
-	// double *qi = new double[nTree];
-	// qi[0] = 2;				//	in mm^3/s
-	// int terminals = 50;
 
 
-	// AbstractConstraintFunction<double, int> *gam = new ConstantConstraintFunction<double, int>(3);
-	// AbstractConstraintFunction<double, int> *epsLim = new ConstantPiecewiseConstraintFunction<double, int>( { 0.0, 0.0 }, { 0, 5 });
-	// AbstractConstraintFunction<double, int> *nu = new ConstantConstraintFunction<double, int>(3.6);/*cP, 0.036 P */
-
-
-
-	// arvore
-	// passa por ctor
-    // SingleVesselCCOOTree *treeBase = (SingleVesselCCOOTree *)this->tree;
-
-	// filtro
 	// filter the bifurcable vessels, stage, distalbranching, etc.
-
 	AbstractVesselFilter *terminalFilters = new VesselFilterComposite({new VesselFilterByTerminal()});
 	vector<SingleVessel *> treeVessels = this->tree->getVessels();
 	vector<SingleVessel *> terminalVessels = terminalFilters->apply(treeVessels);
 
-
 	vector<SingleVessel *> allTreeVessels = this->tree->getVessels();
 
-	// get the projection domain and the perfusion domain
-	// via CTOR
+	// get the projection domain and the perfusion domain via CTOR
 	// Perfusion : StagedDomain
 	// Projection : String
-
 
 	// get surface normals
 
@@ -204,18 +185,8 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	this->locatorIntersect->SetDataSet(vtkGeometryIntersect);
 	this->locatorIntersect->BuildLocator();
 
-	// this->offset = offset
-
-
 	// get list of bifurcable vessels
-
 	vector<SingleVessel *> vesselsList = terminalVessels;
-
-
-	// project vessels
-
-	// projector->projectTerminals(terminalVessels);
-
 
 
 	// iterate for all the vessels
@@ -245,6 +216,11 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		this->locatorProjection->FindClosestPoint(terminal.p, projectionT.p, closeCellIdT, subIdT, distanceT);
 		this->locatorProjection->FindClosestPoint(midpoint.p, projectionM.p, closeCellIdM, subIdM, distanceM);
 
+		// *****
+		// TODO check if the distance is under a maximum value, to verify if there is gray matter below it
+		// if not, then abort this vessel from bifurcating
+		// *****
+
 		// get normal of the closest cell at closest point and the normal versor
 		vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometryProjection->GetCellData()->GetNormals();
 		cellNormalsRetrieved->GetTuple(closeCellIdT, normalT.p);
@@ -258,16 +234,23 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		displacementM = displacementM / sqrt(displacementM^displacementM);
 
 		// add if same direction, subtract if going outwards
+		bool terminalIsInside = false;
+		bool midpointIsInside = false;
 		if ((normalT^displacementT)<0) {
 			projectionT = projectionT + displacementT * descendingOffset;
-		} else {
+		} else { // here the point is inside the domain
 			projectionT = projectionT - displacementT * descendingOffset;
+			terminalIsInside = true;
 		}
-		if ((normalM^displacementM)<0) {
+		if ((normalM^displacementM)<0) { 
 			projectionM = projectionM + displacementM * descendingOffset;
-		} else {
+		} else { // here the point is inside the domain
 			projectionM = projectionM - displacementM * descendingOffset;
+			midpointIsInside = true;
 		}
+		// *****
+		// TODO check if domain is inside and then change how the first step is added, to avoid weird zig-zag patterns.
+		// *****
 
 		// define the new terminal point as the projection point.
 		// we do not do (*it)->xDist = projectionT; because it changes the tree
@@ -320,6 +303,10 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		directionT = directionT / sqrt(directionT^directionT);
 		directionM = directionM / sqrt(directionM^directionM);
 
+		// *****
+		// TODO check if segment is too long, and clamp it to a maximum value
+		// *****
+
 		// point is always from inside the surface, we subtract to make the length shorter.
 		point endpointT;
 		point endpointM;
@@ -327,6 +314,8 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		endpointM = hitpointM - directionM * endpointOffset;
 
 		bool generateHalf = false;
+
+		// TODO pass penetrationFactor as parameter
 
 		double penetrationFactor = 0.7;
 		double maxPenetrationLength = 1e4;
@@ -341,7 +330,12 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 
 		cout << "..." << endl;
 
+		// *****
+		// TODO change parent vessel DistalBranching to RigidParent bifurcation
+		// *****
+
 		cout << "add descending 2nd step" << endl;
+		// The following assumes parent vessel was a terminal and has a single child at the distal tip
 		SingleVessel * firstStepVessel = (SingleVessel *) parent->getChildren()[0];
 		tree->addVessel(xNew1T, xNew2T, firstStepVessel, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
@@ -358,14 +352,9 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	cout << vesselsList.size() << endl;
 
 
-
-    // // Update tree
-    // ((SingleVesselCCOOTree *)tree)->updateTree(((SingleVessel *) tree->getRoot()), (SingleVesselCCOOTree *)tree);
-
-	// double maxVariation = INFINITY;
-	// while (maxVariation > ((SingleVesselCCOOTree *)tree)->variationTolerance) {
-	// 		((SingleVesselCCOOTree *)tree)->updateTreeViscositiesBeta(((SingleVessel *) this->tree->getRoot()), &maxVariation);
-	// }
+	// Do not run the SVCCOOT::updateTree function, it is called by the SingleVesselCCOOTree when adding the vessel with addVessel
+	// Do not forcefully update viscosities with SVCCOOT::updateTreeViscositiesBeta, it is called when adding the vessel with addVessel
+	// these are called when merging the tree because the steps are different
 
 
 	tree->computePressure(tree->getRoot());
@@ -383,103 +372,6 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 
 	return tree;
 
-
-
-
-	// // cout << "Generating penetrating vessels ..." << endl;
-	// // iterate for vessel project point
-	// for (std::vector<SingleVessel *>::iterator it = vesselslist.begin(); it != vesselslist.end(); ++it) {
-	// 	point terminal = (*it)->xDist;
-	// 	point projection,normal;
-	// 	vtkIdType closeCellId;
-	// 	int subId;
-	// 	double distance;
-	// 	locator->FindClosestPoint(terminal.p,projection.p,closeCellId,subId,distance);
-
-	// 	//	Get normal of the projected element - // TESTME
-	// 	vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometry->GetCellData()->GetNormals();
-	// 	cellNormalsRetrieved->GetTuple(closeCellId,normal.p);
-
-	// 	point displacement = projection-terminal;
-	// 	//	Displacement versor
-	// 	displacement = displacement / sqrt(displacement^displacement);
-	// 	//	Projection + offset - Inner product checks that the offset is applied towards the geometry interior.
-	// 	if((normal^displacement)<0)
-	// 		projection = projection + displacement * descendingOffset;
-	// 	else
-	// 		projection = projection - displacement * descendingOffset;
-	// 	(*it)->xDist = projection;	//	Need to update the VTK segment!
-	// }
-
-			// AbstractVascularElement *parent = NULL;
-
-
-	// cout << "Trying to generate the tree..." << endl;
-
-	// StagedFRROTreeGenerator * treeGenerator = new StagedFRROTreeGenerator(stagedDomain, tree,
-	// 		terminals, {gam}, {epsLim}, {nu});
-
-	//  treeGenerator->setSavingTasks({new VisualizationSavingTask(outputDir,prefix + "_vis_TERM" + to_string(terminals)+"_step"),
-	//  	new CheckpointSavingTask(outputDir,prefix + "_chk_TERM" + to_string(terminals)+"_step")});
-
-	// treeGenerator->enableConfigurationFile(
-	// 		outputDir + prefix + "_TERM" + to_string(terminals) + "TRIES" + to_string(instanceData->nTerminalTrial) + "FNEIGHBOR" + to_string(
-	// 				instanceData->closeNeighborhoodFactor) + "BIF_TR" + to_string(instanceData->nBifurcationTest) + ".cfg");
-	// tree = (SingleVesselCCOOTree *) treeGenerator->resume(20,outputDir);
-	// cout << "Constructor executed." << endl;
-
-	// cout << "Writing "
-	// 		<< outputDir + prefix + "_TERM" + to_string(terminals) + "TRIES" + to_string(instanceData->nTerminalTrial) + "FNEIGHBOR" + to_string(
-	// 				instanceData->closeNeighborhoodFactor) + "BIF_TR" + to_string(instanceData->nBifurcationTest) + ".vtp" << endl;
-
-	// VTKObjectTreeNodalWriter *nodalWriter = new VTKObjectTreeNodalWriter();
-	// nodalWriter->write(outputDir + prefix + "_nodal_TERM" +  to_string(terminals) + "TRIES" + to_string(instanceData->nTerminalTrial) + "FNEIGHBOR" + to_string(
-	// 		instanceData->closeNeighborhoodFactor) + "BIF_TR" + to_string(instanceData->nBifurcationTest) + ".vtp",tree);
-
-	// VTKObjectTreeSplinesNodalWriter *splinesWriter = new VTKObjectTreeSplinesNodalWriter();
-	// splinesWriter->write(outputDir + prefix + "_view_TERM" + to_string(terminals) + "TRIES" + to_string(instanceData->nTerminalTrial) + "FNEIGHBOR" + to_string(
-	// 		instanceData->closeNeighborhoodFactor) + "BIF_TR" + to_string(instanceData->nBifurcationTest) + ".vtp",tree);
-	// ((SingleVesselCCOOTree *)tree)->save(
-	// 		outputDir + prefix + "_TERM" + to_string(terminals) + "TRIES" + to_string(instanceData->nTerminalTrial) + "FNEIGHBOR" + to_string(
-	// 				instanceData->closeNeighborhoodFactor) + "BIF_TR" + to_string(instanceData->nBifurcationTest) + ".cco");
-	//	FIXME Potential bug, the program crash before writing vtk files.
-
-
-	// // iterate list project vessels
-	// for (std::vector<SingleVessel *>::iterator it = vesselslist.begin(); it != vesselslist.end(); ++it) {
-	// 	point distal = (*it)->xDist;
-	// 	point proximal = (*it)->xProx;
-	// 	point projectionProx, projectionDist, normalProx, normalDist,normal;
-	// 	vtkIdType closeCellIdProx;
-	// 	vtkIdType closeCellIdDist;
-	// 	int subId;
-	// 	double distance;
-	// 	locator->FindClosestPoint(distal.p,projectionProx.p,closeCellIdProx,subId,distance);
-	// 	locator->FindClosestPoint(distal.p,projectionDist.p,closeCellIdDist,subId,distance);
-
-	// 	//	Get normal of the projected element
-	// 	vtkSmartPointer<vtkDoubleArray> cellNormalsRetrieved = vtkDoubleArray::SafeDownCast(vtkGeometry->GetCellData()->GetNormals());
-	// 	cellNormalsRetrieved->GetTuple(closeCellIdProx,normalProx.p);
-	// 	cellNormalsRetrieved->GetTuple(closeCellIdDist,normalDist.p);
-	// 	normal = (normalProx + normalDist)/2;
-
-	// 	point displacementDist = projectionDist-distal;
-	// 	point displacementProx = projectionProx-proximal;
-	// 	point displacement = (displacementDist + displacementProx ) / 2;
-	// 	//	Displacement versor
-	// 	displacement = displacement / sqrt(displacement^displacement);
-	// 	//	Projection + offset - Inner product checks that the offset is applied towards the geometry interior.
-	// 	if((normal^displacement)<0){
-	// 		projectionDist = projectionDist + displacement * descendingOffset;
-	// 		projectionProx = projectionProx + displacement * descendingOffset;
-	// 	}
-	// 	else{
-	// 		projectionDist = projectionDist - displacement * descendingOffset;
-	// 		projectionProx = projectionProx - displacement * descendingOffset;
-	// 	}
-	// 	(*it)->xDist = projectionDist;	//	Need to update the VTK segment!
-	// 	(*it)->xProx = projectionProx;  //	Need to update the VTK segment!
-	// }
 
 }
 
