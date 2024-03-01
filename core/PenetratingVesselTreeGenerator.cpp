@@ -195,8 +195,8 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	printf("iterating all segments, bifurcating from terminals\n");
 	cout << vesselsList.size() << endl;
 	long long int vesselcount = 0;
-	// cout << "ATTENTION: LIMITING TO 10 VESSELS FOR PROFILING" << endl;
-	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(); ++it, ++vesselcount) {
+	cout << "ATTENTION: LIMITING TO 1_000 VESSELS FOR PROFILING" << endl;
+	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(), vesselcount<1000; ++it, ++vesselcount) {
 		// cout<<"\n-----\n"<<endl;
 
 		dataMonitor->update();
