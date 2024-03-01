@@ -193,11 +193,13 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 
 	printf("iterating all segments, bifurcating from terminals\n");
 	cout << vesselsList.size() << endl;
+	long long int vesselcount = 0;
 
-	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(); ++it) {
-		cout<<"\n-----\n"<<endl;
+	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(); ++it, ++vesselcount) {
+		// cout<<"\n-----\n"<<endl;
 
 		dataMonitor->update();
+		cout << "Adding: Vessel count " << vesselcount << "; vessel id " << (*it)->ID << "; vtksegmentid " << (*it)->vtkSegmentId << endl;
 
 		// get the two points of bifurcation per segment
 		point terminal = (*it)->xDist;
@@ -323,57 +325,67 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		point xNew2M = projectionM + (endpointM - projectionM)*penetrationFactor;
 
 
-		cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
-		cout << "add descending 1st step" << endl;
+		// cout << "parent mode was " << parent->branchingMode << "; ";
+
+		if (parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT)
+			parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING;
+
+		// cout << "now parent mode is " << parent->branchingMode << "\n";
+
+
+		// cout << "adding descending and penetrating segments" << "\n";
+		// cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
+		// cout << "add descending 1st step" << endl;
 		tree->addVessel(xBifT, xNew1T, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
-		cout << "added!." << endl;
+		// cout << "added!." << endl;
 
-		cout << "..." << endl;
+		// cout << "..." << endl;
 
-		cout << "add descending 2nd step" << endl;
+		// cout << "add descending 2nd step" << endl;
 		// The following assumes parent vessel was a terminal and has a single child at the distal tip
 		SingleVessel * firstStepVesselT = (SingleVessel *) parent->getChildren()[0];
 		tree->addVessel(xNew1T, xNew2T, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
-		cout << "added!." << endl;
+		// cout << "added!." << endl;
 
 
 
 		// *****
 		// TODO change parent vessel DistalBranching to RigidParent bifurcation
 		// *****
-		cout << "parent mode was " << parent->branchingMode << endl;
+		// cout << "parent mode was " << parent->branchingMode << "; ";
 
 		if (parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING)
 			parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT;
 
-		cout << "now parent mode is " << parent->branchingMode << endl;
+		// cout << "now parent mode is " << parent->branchingMode << "\n";
 
 
-		cout << "=== branching from midpoint ===" << endl;
+		// cout << "=== branching from midpoint ===" << endl;
+		// cout << "adding descending and penetrating segments midpoint" << "\n";
 
-		cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
-		cout << "add descending 1st step" << endl;
+		// cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
+		// cout << "add descending 1st step" << endl;
 		tree->addVessel(xBifM, xNew1M, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
-		cout << "added!." << endl;
+		// cout << "added!." << endl;
 
-		cout << "..." << endl;
+		// cout << "..." << endl;
 
 		// *****
 		// TODO change parent vessel DistalBranching to RigidParent bifurcation
 		// *****
 
-		cout << "add descending 2nd step" << endl;
+		// cout << "add descending 2nd step" << endl;
 		// The following assumes parent vessel was a terminal and has a single child at the distal tip
 		SingleVessel * firstStepVesselM = (SingleVessel *) parent->getChildren()[0];
 		tree->addVessel(xNew1M, xNew2M, firstStepVesselM, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
-		cout << "added!." << endl;
+		// cout << "added!." << endl;
 
 
-		cout<<"\n-----\n"<<endl;
+		// cout<<"\n-----\n"<<endl;
 	}
 
 	cout << "iterated through all vessels" << endl;
