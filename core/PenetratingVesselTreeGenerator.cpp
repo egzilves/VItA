@@ -195,8 +195,8 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	printf("iterating all segments, bifurcating from terminals\n");
 	cout << vesselsList.size() << endl;
 	long long int vesselcount = 0;
-	cout << "ATTENTION: LIMITING TO 10 VESSELS FOR PROFILING" << endl;
-	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end() && vesselcount<10; ++it, ++vesselcount) {
+	// cout << "ATTENTION: LIMITING TO 10 VESSELS FOR PROFILING" << endl;
+	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(); ++it, ++vesselcount) {
 		// cout<<"\n-----\n"<<endl;
 
 		dataMonitor->update();
@@ -337,7 +337,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		// cout << "adding descending and penetrating segments" << "\n";
 		// cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
 		// cout << "add descending 1st step" << endl;
-		tree->addVessel(xBifT, xNew1T, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifT, xNew1T, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 		// cout << "added!." << endl;
 
@@ -346,7 +346,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		// cout << "add descending 2nd step" << endl;
 		// The following assumes parent vessel was a terminal and has a single child at the distal tip
 		SingleVessel * firstStepVesselT = (SingleVessel *) parent->getChildren()[0];
-		tree->addVessel(xNew1T, xNew2T, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1T, xNew2T, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 		// cout << "added!." << endl;
 
@@ -368,7 +368,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 
 		// cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
 		// cout << "add descending 1st step" << endl;
-		tree->addVessel(xBifM, xNew1M, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifM, xNew1M, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 		// cout << "added!." << endl;
 
@@ -381,7 +381,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		// cout << "add descending 2nd step" << endl;
 		// The following assumes parent vessel was a terminal and has a single child at the distal tip
 		SingleVessel * firstStepVesselM = (SingleVessel *) parent->getChildren()[0];
-		tree->addVessel(xNew1M, xNew2M, firstStepVesselM, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1M, xNew2M, firstStepVesselM, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 		// cout << "added!." << endl;
 
@@ -400,6 +400,16 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	// Do not forcefully update viscosities with SVCCOOT::updateTreeViscositiesBeta, it is called when adding the vessel with addVessel
 	// these are called when merging the tree because the steps are different
 
+	// yes run it because we dont want to update everything after EVERY vessel.
+
+    // Update tree
+	cout << "updating the tree" << endl;
+	((SingleVesselCCOOTree*) tree)->updateMassiveTree();
+	cout << "tree updated" << endl;
+
+    this->tree->computePressure(this->tree->getRoot());
+
+
 
 	tree->computePressure(tree->getRoot());
 	tree->setPointCounter(domain->getPointCounter());
@@ -412,7 +422,6 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	markTimestampOnConfigurationFile("Final tree volume " + to_string(((SingleVessel *) tree->getRoot())->treeVolume));
 	markTimestampOnConfigurationFile("Tree successfully generated.");
 	closeConfigurationFile();
-
 
 	return tree;
 

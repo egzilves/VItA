@@ -40,6 +40,7 @@ class SingleVesselCCOOTree: public AbstractObjectCCOTree {
 	friend class BreadthFirstPruning;
 	friend class TreeMerger;
 	friend class StagedFRROTreeGeneratorLogger;
+	// friend class PenetratingVesselTreeGenerator;
 public:
 	/**
 	 * Common tree creator.
@@ -123,7 +124,7 @@ public:
 
 	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) override;
 
-/**
+	/**
 	 * Adds a new vessel to the CCO tree. @param xProx and @param xDist are the proximal and distal nodes of the new
 	 * vessel and @param parent is the attachment parent vessel.
 	 * @param xProx	Proximal point of the new vessel.
@@ -136,6 +137,26 @@ public:
 					AbstractVascularElement::BRANCHING_MODE branchingMode);
 	void addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
 					AbstractVascularElement::BRANCHING_MODE branchingMode, unordered_set<vtkIdType>* partVessels, long long int *termPart, const vector<double> qPart) override;
+
+	/**
+	 * Adds a new vessel to the CCO tree without updating viscosities and radii. 
+	 * This is useful for fast generating steps e.g. merging the tree or generating penetrating vessels.
+	 * Must call updateMassiveTree afterwards to generate a tree with valid vessels.
+	 * @param xProx and @param xDist are the proximal and distal nodes of the new
+	 * vessel and @param parent is the attachment parent vessel.
+	 * @param xProx	Proximal point of the new vessel.
+	 * @param xDist Distal point of the new vessel.
+	 * @param parent	Parent to the new vessel.
+	 * @param vesselFunction Vessel function of the added vessel.
+	 * @param branchingMode Branching mode of the added vessel.
+	 */
+	void addVesselNoUpdate(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
+					AbstractVascularElement::BRANCHING_MODE branchingMode);
+
+	/**
+	 * Runs the updateTree and updateViscosities functions manually after the addVesselNoUpdate.
+	 */
+	void updateMassiveTree();
 
 	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int stage, unordered_map<string, SingleVessel *>* stringToPointer);
 
