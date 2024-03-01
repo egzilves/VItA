@@ -140,6 +140,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	string modelsFolder = "./";
 	string outputDir = "./";
 	string prefix = "output";
+	// int stage = 99
 
 
 	// filter the bifurcable vessels, stage, distalbranching, etc.
@@ -194,8 +195,8 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	printf("iterating all segments, bifurcating from terminals\n");
 	cout << vesselsList.size() << endl;
 	long long int vesselcount = 0;
-
-	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(); ++it, ++vesselcount) {
+	cout << "ATTENTION: LIMITING TO 10 VESSELS FOR PROFILING" << endl;
+	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end() && vesselcount<10; ++it, ++vesselcount) {
 		// cout<<"\n-----\n"<<endl;
 
 		dataMonitor->update();
