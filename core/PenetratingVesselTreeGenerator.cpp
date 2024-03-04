@@ -134,8 +134,14 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 
 	// parametros
 
+	// TODO pass penetrationFactor as parameter
 	this->descendingOffset = max<double>(descendingOffset, 1.0E-4);
 	this->endpointOffset = max<double>(endpointOffset, 1.0E-4);
+	this->maxDistanceToClosestPoint = 0.4; // cm
+	this->maxPenetratingVesselLength = 2.5; //cm
+	double penetrationFactor = 1.0;
+	// double maxPenetrationLength = 1e4;
+
 
 	string modelsFolder = "./";
 	string outputDir = "./";
@@ -205,6 +211,8 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		// get the two points of bifurcation per segment
 		point terminal = (*it)->xDist;
 		point midpoint = ((*it)->xDist + (*it)->xProx)*0.5;
+		bool generateFromTerminal=true;
+		bool generateFromMidpoint=true;
 
 		point projectionT, normalT;
 		point projectionM, normalM;
@@ -212,17 +220,23 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		vtkIdType closeCellIdM;
 		int subIdT;
 		int subIdM;
-		double distanceT;
-		double distanceM;
+		double distance2T;
+		double distance2M;
 
 		// find closest cell from point of bifurcation
-		this->locatorProjection->FindClosestPoint(terminal.p, projectionT.p, closeCellIdT, subIdT, distanceT);
-		this->locatorProjection->FindClosestPoint(midpoint.p, projectionM.p, closeCellIdM, subIdM, distanceM);
+		this->locatorProjection->FindClosestPoint(terminal.p, projectionT.p, closeCellIdT, subIdT, distance2T); // the distance is squared!
+		this->locatorProjection->FindClosestPoint(midpoint.p, projectionM.p, closeCellIdM, subIdM, distance2M);
 
-		// *****
-		// TODO check if the distance is under a maximum value, to verify if there is gray matter below it
-		// if not, then abort this vessel from bifurcating
-		// *****
+		// check if the distance is under a maximum value, to verify if there is gray matter below it
+		// if not, then abort this vessel/point from bifurcating
+		if (distance2T > pow(maxDistanceToClosestPoint, 2)) {
+			cout << "Terminal aborted, closest point beyond maximum distance." << endl;
+			generateFromTerminal = false;
+		}
+		if (distance2M > pow(maxDistanceToClosestPoint, 2)) {
+			cout << "Midpoint aborted, closest point beyond maximum distance." << endl;
+			generateFromMidpoint = false;
+		}
 
 		// get normal of the closest cell at closest point and the normal versor
 		vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometryProjection->GetCellData()->GetNormals();
@@ -237,23 +251,24 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		displacementM = displacementM / sqrt(displacementM^displacementM);
 
 		// add if same direction, subtract if going outwards
+		// however, start from terminal if point is inside, to avoid zig-zag pattern
+		// it checks if point is inside domain and then change how the first step is added, to avoid weird zig-zag patterns.
 		bool terminalIsInside = false;
 		bool midpointIsInside = false;
 		if ((normalT^displacementT)<0) {
 			projectionT = projectionT + displacementT * descendingOffset;
 		} else { // here the point is inside the domain
-			projectionT = projectionT - displacementT * descendingOffset;
+			// projectionT = projectionT - displacementT * descendingOffset;
+			projectionT = terminal - displacementT * descendingOffset;
 			terminalIsInside = true;
 		}
-		if ((normalM^displacementM)<0) { 
+		if ((normalM^displacementM)<0) {
 			projectionM = projectionM + displacementM * descendingOffset;
 		} else { // here the point is inside the domain
-			projectionM = projectionM - displacementM * descendingOffset;
+			// projectionM = projectionM - displacementM * descendingOffset;
+			projectionM = midpoint - displacementM * descendingOffset;
 			midpointIsInside = true;
 		}
-		// *****
-		// TODO check if domain is inside and then change how the first step is added, to avoid weird zig-zag patterns.
-		// *****
 
 		// define the new terminal point as the projection point.
 		// we do not do (*it)->xDist = projectionT; because it changes the tree
@@ -290,12 +305,12 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		int endSubIdM = 0;
 
 		int ret2T, ret2M;
-		ret2T = this->locatorIntersect->IntersectWithLine(xNew1T.p, xRaycastT.p, intersectionTolerance, 
+		ret2T = this->locatorIntersect->IntersectWithLine(xNew1T.p, xRaycastT.p, intersectionTolerance,
 			tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT);
 		if (!ret2T){
 			cout << "Error: no intersection found!" << endl;
 		}
-		ret2M = this->locatorIntersect->IntersectWithLine(xNew1M.p, xRaycastM.p, intersectionTolerance, 
+		ret2M = this->locatorIntersect->IntersectWithLine(xNew1M.p, xRaycastM.p, intersectionTolerance,
 			tParamM, hitpointM.p, pcoordsM.p, endSubIdM, endCellIdM);
 		if (!ret2M){
 			cout << "Error: no intersection found!" << endl;
@@ -306,9 +321,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		directionT = directionT / sqrt(directionT^directionT);
 		directionM = directionM / sqrt(directionM^directionM);
 
-		// *****
-		// TODO check if segment is too long, and clamp it to a maximum value
-		// *****
+		// Check if segment is too long, and clamp it to a maximum value
 
 		// point is always from inside the surface, we subtract to make the length shorter.
 		point endpointT;
@@ -316,15 +329,37 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		endpointT = hitpointT - directionT * endpointOffset;
 		endpointM = hitpointM - directionM * endpointOffset;
 
-		bool generateHalf = false;
+		point penetratingT = endpointT - xNew1T;
+		point penetratingM = endpointM - xNew1M;
+		double lengthT = sqrt(penetratingT^penetratingT);
+		double lengthM = sqrt(penetratingM^penetratingM);
 
-		// TODO pass penetrationFactor as parameter
+		if (lengthT > maxPenetratingVesselLength){
+			cout << "Terminal shortened, length beyond maximum distance." << "\n";
+			lengthT = maxPenetratingVesselLength;
+		}
+		if (lengthM > maxPenetratingVesselLength){
+			cout << "Midpoint shortened, length beyond maximum distance." << "\n";
+			lengthM = maxPenetratingVesselLength;
+		}
 
-		double penetrationFactor = 0.7;
-		double maxPenetrationLength = 1e4;
-		point xNew2T = projectionT + (endpointT - projectionT)*penetrationFactor;
-		point xNew2M = projectionM + (endpointM - projectionM)*penetrationFactor;
+		// bool generateHalf = false;
 
+		point xNew2T = xNew1T + (penetratingT/sqrt(penetratingT^penetratingT))*lengthT*penetrationFactor;
+		point xNew2M = xNew1M + (penetratingM/sqrt(penetratingM^penetratingM))*lengthM*penetrationFactor;
+
+		// check if the displaced new point/segment is indeed inside domain.
+		bool isPenetratingInsideT, isPenetratingInsideM;
+		isPenetratingInsideT = domain->isSegmentInside(xNew1T, xNew2T);
+		isPenetratingInsideM = domain->isSegmentInside(xNew1M, xNew2M);
+		if (!isPenetratingInsideT) {
+			cout << "ERROR: Terminal penetrating step 2 outside domain. Aborting this vessel. Is the domain thick enough?" << "\n";
+			generateFromTerminal = false;
+		}
+		if (!isPenetratingInsideM) {
+			cout << "ERROR: Midpoint penetrating step 2 outside domain. Aborting this vessel. Is the domain thick enough?" << "\n";
+			generateFromMidpoint = false;
+		}
 
 		// cout << "parent mode was " << parent->branchingMode << "; ";
 
@@ -334,27 +369,25 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		// cout << "now parent mode is " << parent->branchingMode << "\n";
 
 
-		// cout << "adding descending and penetrating segments" << "\n";
-		// cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
-		// cout << "add descending 1st step" << endl;
-		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifT, xNew1T, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
-							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
-		// cout << "added!." << endl;
+		if (generateFromTerminal) {
+			// cout << "adding descending and penetrating segments" << "\n";
+			// cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
+			// cout << "add descending 1st step" << endl;
+			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifT, xNew1T, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+			// cout << "added!." << endl;
 
-		// cout << "..." << endl;
+			// cout << "..." << endl;
 
-		// cout << "add descending 2nd step" << endl;
-		// The following assumes parent vessel was a terminal and has a single child at the distal tip
-		SingleVessel * firstStepVesselT = (SingleVessel *) parent->getChildren()[0];
-		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1T, xNew2T, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
-							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
-		// cout << "added!." << endl;
+			// cout << "add descending 2nd step" << endl;
+			// The following assumes parent vessel was a terminal and has a single child at the distal tip
+			SingleVessel * firstStepVesselT = (SingleVessel *) parent->getChildren()[0];
+			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1T, xNew2T, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+			// cout << "added!." << endl;
+		}
 
-
-
-		// *****
-		// TODO change parent vessel DistalBranching to RigidParent bifurcation
-		// *****
+		// Change parent vessel DistalBranching to RigidParent bifurcation
 		// cout << "parent mode was " << parent->branchingMode << "; ";
 
 		if (parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING)
@@ -362,29 +395,25 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 
 		// cout << "now parent mode is " << parent->branchingMode << "\n";
 
+		if (generateFromMidpoint) {
+			// cout << "=== branching from midpoint ===" << endl;
+			// cout << "adding descending and penetrating segments midpoint" << "\n";
 
-		// cout << "=== branching from midpoint ===" << endl;
-		// cout << "adding descending and penetrating segments midpoint" << "\n";
+			// cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
+			// cout << "add descending 1st step" << endl;
+			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifM, xNew1M, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+			// cout << "added!." << endl;
 
-		// cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
-		// cout << "add descending 1st step" << endl;
-		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifM, xNew1M, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
-							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
-		// cout << "added!." << endl;
+			// cout << "..." << endl;
 
-		// cout << "..." << endl;
-
-		// *****
-		// TODO change parent vessel DistalBranching to RigidParent bifurcation
-		// *****
-
-		// cout << "add descending 2nd step" << endl;
-		// The following assumes parent vessel was a terminal and has a single child at the distal tip
-		SingleVessel * firstStepVesselM = (SingleVessel *) parent->getChildren()[0];
-		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1M, xNew2M, firstStepVesselM, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
-							(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
-		// cout << "added!." << endl;
-
+			// cout << "add descending 2nd step" << endl;
+			// The following assumes parent vessel was a terminal and has a single child at the distal tip
+			SingleVessel * firstStepVesselM = (SingleVessel *) parent->getChildren()[0];
+			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1M, xNew2M, firstStepVesselM, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+			// cout << "added!." << endl;
+		}
 
 		// cout<<"\n-----\n"<<endl;
 	}

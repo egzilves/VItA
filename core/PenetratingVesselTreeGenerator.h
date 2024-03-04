@@ -114,6 +114,10 @@ class PenetratingVesselTreeGenerator : public IDomainObserver  {
 	double descendingOffset;
 	/**	Penetration offset for projected points */
 	double endpointOffset;
+	/** Maximum distance between terminal and closest point/cell on projection surface to allow generating a vessel. */
+	double maxDistanceToClosestPoint;
+	/** Maximum segment length inside domain. */
+	double maxPenetratingVesselLength;
 
     // SingleVesselCCOOTree *treee;
     // vector<vector<ReadData>*> *vesselToMerge;
