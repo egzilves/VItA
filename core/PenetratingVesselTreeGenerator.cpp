@@ -138,7 +138,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	this->descendingOffset = max<double>(descendingOffset, 1.0E-4);
 	this->endpointOffset = max<double>(endpointOffset, 1.0E-4);
 	this->maxDistanceToClosestPoint = 0.4; // cm
-	this->maxPenetratingVesselLength = 2.5; //cm
+	this->maxPenetratingVesselLength = 0.25; //cm
 	double penetrationFactor = 1.0;
 	// double maxPenetrationLength = 1e4;
 
