@@ -141,7 +141,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	this->maxPenetratingVesselLength = 0.25; //cm
 	double penetrationFactor = 1.0;
 	// double maxPenetrationLength = 1e4;
-	long long int maxGenerateLimit = 100000; 
+	long long int maxGenerateLimit = 1000000; 
 
 
 	string modelsFolder = "./";
@@ -196,6 +196,8 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	// get list of bifurcable vessels
 	vector<SingleVessel *> vesselsList = terminalVessels;
 
+	// prepare the normal geometries
+	vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometryProjection->GetCellData()->GetNormals();
 
 	// iterate for all the vessels
 
@@ -231,16 +233,15 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		// check if the distance is under a maximum value, to verify if there is gray matter below it
 		// if not, then abort this vessel/point from bifurcating
 		if (distance2T > pow(maxDistanceToClosestPoint, 2)) {
-			cout << "Terminal aborted, closest point beyond maximum distance." << endl;
+			cout << "WARNING: Terminal aborted, closest point beyond maximum distance." << endl;
 			generateFromTerminal = false;
 		}
 		if (distance2M > pow(maxDistanceToClosestPoint, 2)) {
-			cout << "Midpoint aborted, closest point beyond maximum distance." << endl;
+			cout << "WARNING: Midpoint aborted, closest point beyond maximum distance." << endl;
 			generateFromMidpoint = false;
 		}
 
 		// get normal of the closest cell at closest point and the normal versor
-		vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometryProjection->GetCellData()->GetNormals();
 		cellNormalsRetrieved->GetTuple(closeCellIdT, normalT.p);
 		cellNormalsRetrieved->GetTuple(closeCellIdM, normalM.p);
 
@@ -309,13 +310,13 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		ret2T = this->locatorIntersect->IntersectWithLine(xNew1T.p, xRaycastT.p, intersectionTolerance,
 			tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT);
 		if (!ret2T){
-			cout << "Error: no intersection found!" << endl;
+			cout << "WARNING: no intersection found!" << endl;
 			generateFromTerminal = false;
 		}
 		ret2M = this->locatorIntersect->IntersectWithLine(xNew1M.p, xRaycastM.p, intersectionTolerance,
 			tParamM, hitpointM.p, pcoordsM.p, endSubIdM, endCellIdM);
 		if (!ret2M){
-			cout << "Error: no intersection found!" << endl;
+			cout << "WARNING: no intersection found!" << endl;
 			generateFromMidpoint = false;
 		}
 
@@ -338,11 +339,11 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		double lengthM = sqrt(penetratingM^penetratingM);
 
 		if (lengthT > maxPenetratingVesselLength){
-			cout << "Terminal shortened, length beyond maximum distance." << "\n";
+			cout << "NOTE: Terminal shortened, length beyond maximum distance." << "\n";
 			lengthT = maxPenetratingVesselLength;
 		}
 		if (lengthM > maxPenetratingVesselLength){
-			cout << "Midpoint shortened, length beyond maximum distance." << "\n";
+			cout << "NOTE: Midpoint shortened, length beyond maximum distance." << "\n";
 			lengthM = maxPenetratingVesselLength;
 		}
 
