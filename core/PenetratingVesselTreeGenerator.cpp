@@ -141,6 +141,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	this->maxPenetratingVesselLength = 0.25; //cm
 	double penetrationFactor = 1.0;
 	// double maxPenetrationLength = 1e4;
+	long long int maxGenerateLimit = 100000; 
 
 
 	string modelsFolder = "./";
@@ -201,8 +202,8 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	printf("iterating all segments, bifurcating from terminals\n");
 	cout << vesselsList.size() << endl;
 	long long int vesselcount = 0;
-	cout << "ATTENTION: LIMITING TO 1_000 VESSELS FOR PROFILING" << endl;
-	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(), vesselcount<1000; ++it, ++vesselcount) {
+	cout << "ATTENTION: LIMITING TO "<<maxGenerateLimit<<" VESSELS" << endl;
+	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end(), vesselcount<maxGenerateLimit; ++it, ++vesselcount) {
 		// cout<<"\n-----\n"<<endl;
 
 		dataMonitor->update();
@@ -309,11 +310,13 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 			tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT);
 		if (!ret2T){
 			cout << "Error: no intersection found!" << endl;
+			generateFromTerminal = false;
 		}
 		ret2M = this->locatorIntersect->IntersectWithLine(xNew1M.p, xRaycastM.p, intersectionTolerance,
 			tParamM, hitpointM.p, pcoordsM.p, endSubIdM, endCellIdM);
 		if (!ret2M){
 			cout << "Error: no intersection found!" << endl;
+			generateFromMidpoint = false;
 		}
 
 		point directionT = hitpointT - xNew1T;
