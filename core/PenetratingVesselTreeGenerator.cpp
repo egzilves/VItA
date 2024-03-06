@@ -310,13 +310,13 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		ret2T = this->locatorIntersect->IntersectWithLine(xNew1T.p, xRaycastT.p, intersectionTolerance,
 			tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT);
 		if (!ret2T){
-			cout << "WARNING: no intersection found!" << endl;
+			cout << "WARNING: no intersection found! Terminal aborted." << endl;
 			generateFromTerminal = false;
 		}
 		ret2M = this->locatorIntersect->IntersectWithLine(xNew1M.p, xRaycastM.p, intersectionTolerance,
 			tParamM, hitpointM.p, pcoordsM.p, endSubIdM, endCellIdM);
 		if (!ret2M){
-			cout << "WARNING: no intersection found!" << endl;
+			cout << "WARNING: no intersection found! Midpoint aborted." << endl;
 			generateFromMidpoint = false;
 		}
 
@@ -357,11 +357,11 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		isPenetratingInsideT = domain->isSegmentInside(xNew1T, xNew2T);
 		isPenetratingInsideM = domain->isSegmentInside(xNew1M, xNew2M);
 		if (!isPenetratingInsideT) {
-			cout << "ERROR: Terminal penetrating step 2 outside domain. Aborting this vessel. Is the domain thick enough?" << "\n";
+			cout << "WARNING: Terminal penetrating step 2 outside domain. Aborted this vessel. Is the domain thick enough?" << "\n";
 			generateFromTerminal = false;
 		}
 		if (!isPenetratingInsideM) {
-			cout << "ERROR: Midpoint penetrating step 2 outside domain. Aborting this vessel. Is the domain thick enough?" << "\n";
+			cout << "WARNING: Midpoint penetrating step 2 outside domain. Aborted this vessel. Is the domain thick enough?" << "\n";
 			generateFromMidpoint = false;
 		}
 
