@@ -18,7 +18,8 @@ set(CORE_CPP
     # core/StagedFixedPerfusionRadiusTreeGenerator.cpp
     core/StagedFRROTreeGenerator.cpp 
     core/StagedFRRSTreeGenerator.cpp
-    core/TreeMerger.cpp)
+    core/TreeMerger.cpp
+    core/PenetratingVesselTreeGenerator.cpp )
 
 set(CORE_HPP
     # core/FixedPerfusionRadiusTreeGenerator.h
@@ -28,7 +29,8 @@ set(CORE_HPP
     # core/StagedFixedPerfusionRadiusTreeGenerator.h
     core/StagedFRROTreeGenerator.h
     core/StagedFRRSTreeGenerator.h
-    core/TreeMerger.h)
+    core/TreeMerger.h
+    core/PenetratingVesselTreeGenerator.h )
 
 set(CREATORS_CPP
     creators/AbstractCreator.cpp
@@ -46,13 +48,15 @@ set(FILTERS_CPP
     filters/AbstractVesselFilter.cpp
     filters/VesselFilterByBranchingMode.cpp
     filters/VesselFilterByStage.cpp
-    filters/VesselFilterComposite.cpp)
+    filters/VesselFilterComposite.cpp
+    filters/VesselFilterByTerminal.cpp)
 
 set(FILTERS_HPP
     filters/AbstractVesselFilter.h
     filters/VesselFilterByBranchingMode.h
     filters/VesselFilterByStage.h
-    filters/VesselFilterComposite.h)
+    filters/VesselFilterComposite.h
+    filters/VesselFilterByTerminal.cpp)
 
 set(IO_CPP
     io/CSVWriter.cpp
