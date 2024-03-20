@@ -180,7 +180,9 @@ public:
 	void addValitatedVesselFast(SingleVessel *newVessel, SingleVessel *originalVessel, unordered_map<SingleVessel *, SingleVessel *>& copiedTo);
 
 	/**
-	 * Adds a new subtree as a replacement to a terminal vessel, or as is appended to its parent.
+	 * Adds a new pregenerated subtree as a replacement to a terminal vessel, or as is appended to its parent.
+	 * TODO: rename this to replaceSubtree and create new addSubtree without terminal.
+	 * TODO: adapt this to replace entire subtrees.
 	 * The terminal vessel is passed as a SingleVessel(AbstractVascularElement) where the replacing will occur.
 	 * TODO: If terminal is null, tree is appended to parent with no scaling.
 	 * The subtree is passed as another SingleVesselCCOOTree object with the correct point coordinates mapped *BEFORE* this step.
@@ -190,8 +192,9 @@ public:
 	 * @param subtree The Subtree to be appended to the tree, replacing the terminal vessel.
 	 * @param terminalVessel The terminal vessel to be replaced in the operation.
 	 * @param parent The parent vessel to the new subtree.
+	 * @param nNewTerms Number of new terminals to add
 	 */
-	void addSubtree(AbstractObjectCCOTree *subtree, AbstractVascularElement *terminalVessel, AbstractVascularElement *parent);
+	void addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *oldTerminalVessel, AbstractVascularElement *parent, int nNewTerms);
 
 //	/**
 //	 * Adds a new vessel to the CCO tree as continuation of the pre-existent vessel @p parent. @param xDist is the distal nodes of the new

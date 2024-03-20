@@ -2186,92 +2186,49 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 	}
 }
 
-void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *subtree, AbstractVascularElement *terminalVessel, AbstractVascularElement *parent){
-	return;
-}
+void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *oldTerminalVessel, AbstractVascularElement *parent, int nNewTerms){
 
-// REMOVEME
-void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction,
-				AbstractVascularElement::BRANCHING_MODE branchingMode) {
+	// TODO: update xDist and xProx in the Subtree before this
+	cout << "WARNING: nTerms was not updated, was passed" << endl;
+	// TODO: update nTerms, nCommonTerminals in a smarter way.
+	// Subtract the terminal to be replaced
+	nTerms--;
+	nCommonTerminals--;
+	nTerms += nNewTerms;
+	nCommonTerminals += nCommonTerminals;
+	// we don't allocate SingleVessel in this method.
 
-	nTerms++;
-	nCommonTerminals++;
 
-	//	Root
-	if (!parent) {
-
-		SingleVessel * newRoot = new SingleVessel();
-
-		//	Nodal quantities
-		newRoot->xDist = xDist;
-		newRoot->xProx = this->xPerf;
-		point dist = newRoot->xDist - newRoot->xProx;
-		newRoot->nLevel = 0;
-		newRoot->beta = rootRadius;
-		newRoot->radius = rootRadius;
-		newRoot->length = sqrt(dist ^ dist);
-		newRoot->viscosity = nu->getValue(newRoot->nLevel);
-		newRoot->resistance = (8 * newRoot->viscosity / M_PI) * newRoot->length;
-		newRoot->flow = qProx;
-		newRoot->treeVolume = M_PI * newRoot->length * rootRadius * rootRadius;
-		newRoot->parent = NULL;
-		newRoot->ID = nTerms;
-		newRoot->stage = currentStage;
-		newRoot->pressure = newRoot->resistance * newRoot->flow + refPressure;
-		newRoot->vesselFunction = vesselFunction;
-		newRoot->branchingMode = branchingMode;
-
-		//	Tree quantities
-		psiFactor = pow(newRoot->beta, 4) / newRoot->flow;	//	Not used
-		dp = newRoot->resistance / psiFactor;
-
-		//	Update tree geometry
-		vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
-		vtkIdType idProx = pts->InsertNextPoint(newRoot->xProx.p);
-		vtkIdType idDist = pts->InsertNextPoint(newRoot->xDist.p);
-		vtkTree->SetPoints(pts);
-
-		newRoot->vtkSegment = vtkSmartPointer<vtkLine>::New();
-		newRoot->vtkSegment->GetPointIds()->SetId(0, idProx); // the second 0 is the index of xProx
-		newRoot->vtkSegment->GetPointIds()->SetId(1, idDist); // the second 1 is the index of xDist
-		vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-		newRoot->vtkSegmentId = lines->InsertNextCell(newRoot->vtkSegment);
-		vtkTree->SetLines(lines);
-		elements[newRoot->vtkSegmentId] = newRoot;
-
-		root = newRoot;
-
-		//	Update tree locator
-		vtkTreeLocator->SetDataSet(vtkTree);
-		vtkTreeLocator->BuildLocator();
+	if (!parent){
+		// no sense in concatening empty and tree: 0 + Tree = Tree, use the subtree.
+		cout << "ERROR: Invalid parent, nowhere to append" << endl;
+		return;
 	}
-	//	Non-root case & distal branching
-	else if(parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
 
-		if(parent->getChildren().empty()){
-			nTerms--;
-			nCommonTerminals--;
-		}
+	// There is no difference between this case and the else (normal branching)
+	// The terminal descends from DISTAL_BRANCHING
+	// The midpoint descends from RIGID_PARENT
+	// But the penetrating vessel segment is the exact same case for both situations
+	if(parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
 
-		//	Add segment iNew, iCon and iBif in the cloned tree updating nLevel and lengths
-		point dNew = xDist - xProx;
+		// DO NOTHING, skip to next 
 
-		SingleVessel *iNew = new SingleVessel();
-		iNew->xProx = xProx;
-		iNew->xDist = xDist;
+		// update subtree levels, viscosity, resistance
 		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
-		iNew->length = sqrt(dNew ^ dNew);
-		iNew->viscosity = nu->getValue(iNew->nLevel);
-		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
+
+		// UPDATE PARENT
 		iNew->parent = parent;
+		// UPDATE ID
 		iNew->ID = nTerms;
+		// UPDATE STAGE
 		iNew->stage = currentStage;
-		iNew->vesselFunction = vesselFunction;
-		iNew->branchingMode = branchingMode;
+		// UPDATE (TEMP) RADIUS
 		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
 
+		// ADD CHILD
 		parent->addChild(iNew);
 
+		// UPDATE VTK tree geometry
 		//	Update tree geometry
 		vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
 
@@ -2288,42 +2245,32 @@ void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractV
 		//	Update tree locator
 		vtkTreeLocator->Update();
 
+		return;
 	}
-	//	Non-root case & not distal branching
-	else{
 
-		//	Add segment iNew, iCon and iBif in the cloned tree updating nLevel and lengths
-		point dNew = xDist - xProx;
-		point dCon = ((SingleVessel *) parent)->xDist - xProx;
-		point dBif = xProx - ((SingleVessel *) parent)->xProx;
+	// TODO: update xProx and xDist before passing the subtree.
+	if (true) {
+		// general case, if it doesn't return from other cases
 
-		SingleVessel *iNew = new SingleVessel();
-		iNew->xProx = xProx;
-		iNew->xDist = xDist;
+		// update level
 		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
-		iNew->length = sqrt(dNew ^ dNew);
+		// update properties
 		iNew->viscosity = nu->getValue(iNew->nLevel);
 		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
 		iNew->parent = parent;
 		iNew->ID = nTerms;
 		iNew->stage = currentStage;
-		iNew->vesselFunction = vesselFunction;
-		iNew->branchingMode = branchingMode;
+		// temp radius
 		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
-
-		SingleVessel *iCon = new SingleVessel();
-		iCon->xProx = xProx;
-		iCon->xDist = ((SingleVessel *) parent)->xDist;
+		// update properties
 		iCon->nLevel = ((SingleVessel *) parent)->nLevel + 1;
-		iCon->length = sqrt(dCon ^ dCon);
 		iCon->viscosity = nu->getValue(iCon->nLevel);
 		iCon->parent = parent;
 		iCon->ID = ((SingleVessel *) parent)->ID;
-		iCon->branchingMode = parent->branchingMode;
 		iCon->stage = ((SingleVessel *) parent)->stage;
-		iCon->vesselFunction = ((SingleVessel *) parent)->vesselFunction;
 		iCon->radius = static_cast<SingleVessel *>(parent)->radius;
 
+		// Swap parents for each other children <<== this is what i want, but for only 1 child vessel
 		vector<AbstractVascularElement *> prevChildrenParent = parent->getChildren();
 		if (prevChildrenParent.empty()) {
 			iCon->resistance = 8 * iCon->viscosity / M_PI * iCon->length;
@@ -2334,11 +2281,12 @@ void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractV
 			}
 			parent->removeChildren();
 		}
+
+		// ADD CHILD
 		parent->addChild(iNew);
 		parent->addChild(iCon);
 
-		((SingleVessel *) parent)->xDist = xProx;
-		((SingleVessel *) parent)->length = sqrt(dBif ^ dBif);
+		// update the VTK properties
 
 		//	Update tree geometry
 		vtkIdType idProx = vtkTree->GetPoints()->InsertNextPoint(xProx.p);
@@ -2371,8 +2319,11 @@ void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractV
 
 		//	Update tree locator
 		vtkTreeLocator->Update();
-	}
 
+		return;
+	}
+	
+	return;
 }
 
 
