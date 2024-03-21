@@ -157,6 +157,11 @@ public:
 	 * Runs the updateTree and updateViscosities functions manually after the addVesselNoUpdate.
 	 */
 	void updateMassiveTree();
+	/**
+	 * Runs the updateTree and updateViscosities functions for a subtree given a rood vessel.
+	 * @param subtreeRoot The root vessel of the subtree.
+	 */
+	void updateSubtree(SingleVessel* subtreeRoot);
 
 	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int stage, unordered_map<string, SingleVessel *>* stringToPointer);
 

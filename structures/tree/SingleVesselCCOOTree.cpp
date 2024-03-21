@@ -1071,6 +1071,16 @@ void SingleVesselCCOOTree::updateMassiveTree(){
 			updateTreeViscositiesBeta(((SingleVessel *) root), &maxVariation);
 		}
 }
+void SingleVesselCCOOTree::updateSubtree(SingleVessel *subtreeRoot){
+		//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
+		updateTree(subtreeRoot, this);
+		
+		//	Update resistance, pressure and betas
+		double maxVariation = INFINITY;
+		while (maxVariation > variationTolerance) {
+			updateTreeViscositiesBeta(subtreeRoot, &maxVariation);
+		}
+}
 
 void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType> * partVessels, long long int *termPart, const vector<double> qPart) {
 
