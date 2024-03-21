@@ -38,6 +38,7 @@
 #include "../filters/VesselFilterComposite.h"
 #include "../filters/VesselFilterByBranchingMode.h"
 #include "../filters/VesselFilterByTerminal.h"
+#include "../filters/VesselFilterByVesselFunction.h"
 
 #include "GeneratorData.h"
 
@@ -106,11 +107,11 @@ SubtreeReplacer::SubtreeReplacer(
 
 	this->didAllocateTree = false;
 
-	this->descendingOffset = 0;
-	this->endpointOffset = 0;
+	// this->descendingOffset = 0;
+	// this->endpointOffset = 0;
 
-	this->projectionDomainFile = projectionDomainFile;
-	this->domainFile = projectionDomainFile;
+	// this->projectionDomainFile = projectionDomainFile;
+	// this->domainFile = projectionDomainFile;
 
 
 
@@ -133,12 +134,38 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 	int generatedVessels = 0;
 
 	// pass parameters, longTreeList.cco, shortTreeList.cco, percentages
+	vector<vector<string>> populations; // each element is a population, contains a list of cco files
+	vector<double> accumulatedPercentages; // the ACCUMULATED distributions for each population
 
-	// TODO: Filter vessels by type
+	// Filter vessels by type
+	// filter the penetrating vessels, distalbranching, etc.
+	// terminal && function=penetrating && mode=distal
+	AbstractVascularElement::VESSEL_FUNCTION vesselfunction = AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR; //penetrating
+	AbstractVascularElement::BRANCHING_MODE branchingmode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING; //penetrating
+	AbstractVesselFilter *replacedFilters = new VesselFilterComposite({
+		new VesselFilterByTerminal(), 
+		new VesselFilterByVesselFunction(vesselfunction), 
+		new VesselFilterByBranchingMode(branchingmode)
+		});
+	vector<SingleVessel *> treeVessels = this->tree->getVessels();
+	vector<SingleVessel *> replacedVessels = replacedFilters->apply(treeVessels);
 
 	// TODO: for each (SingleVessel *) vessel
+	int maxIterations = 1000;
+	int itCount = 0;
+	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
+		SingleVessel* oldVessel = (*it);
+		// TODO: get properties, get distal (coordinates), get radius, length
+		point vesselProx = oldVessel->xProx;
+		point vesselDist = oldVessel->xDist;
 
-	// TODO: get properties, get distal (coordinates), get radius, length
+		point displacement = vesselDist-vesselProx;
+		double vesselLength = oldVessel->length;
+		
+
+	}
+	
+
 	// TODO: sort type of tree
 
 	// TODO: map geometry of subtree
@@ -157,7 +184,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 	// transfer ownership, use addChild, removeChildren, setParent, 
 
 	// update the tree, terms, VTK_ID, etc.
-	
+
 
 
 	point oldTerminalProx;
@@ -183,54 +210,45 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 	// int stage = 99
 
 
-	// filter the bifurcable vessels, stage, distalbranching, etc.
-	AbstractVesselFilter *terminalFilters = new VesselFilterComposite({new VesselFilterByTerminal()});
-	vector<SingleVessel *> treeVessels = this->tree->getVessels();
-	vector<SingleVessel *> terminalVessels = terminalFilters->apply(treeVessels);
-
-	vector<SingleVessel *> allTreeVessels = this->tree->getVessels();
-
 	// get the projection domain and the perfusion domain via CTOR
 	// Perfusion : StagedDomain
 	// Projection : String
 
 	// get surface normals
 
-	//	Read all the data from the file
-	vtkSmartPointer<vtkPolyDataReader> projectionReader = vtkSmartPointer<vtkPolyDataReader>::New();
-	projectionReader->SetFileName(this->projectionDomainFile.c_str());
-	projectionReader->Update();
-	this->vtkGeometryProjection = projectionReader->GetOutput();
-	//	Generate normals for the geometry
-	vtkSmartPointer<vtkPolyDataNormals> normalGenerator = vtkSmartPointer<vtkPolyDataNormals>::New();
-	normalGenerator->SetInputData(vtkGeometryProjection);
-	normalGenerator->ComputePointNormalsOff();
-	normalGenerator->ComputeCellNormalsOn();
-	normalGenerator->Update();
-	this->vtkGeometryProjection = normalGenerator->GetOutput();
-	//	Create the tree locator
-	this->locatorProjection = vtkSmartPointer<vtkCellLocator>::New();
-	this->locatorProjection->SetDataSet(vtkGeometryProjection);
-	this->locatorProjection->BuildLocator();
+	// //	Read all the data from the file
+	// vtkSmartPointer<vtkPolyDataReader> projectionReader = vtkSmartPointer<vtkPolyDataReader>::New();
+	// projectionReader->SetFileName(this->projectionDomainFile.c_str());
+	// projectionReader->Update();
+	// this->vtkGeometryProjection = projectionReader->GetOutput();
+	// //	Generate normals for the geometry
+	// vtkSmartPointer<vtkPolyDataNormals> normalGenerator = vtkSmartPointer<vtkPolyDataNormals>::New();
+	// normalGenerator->SetInputData(vtkGeometryProjection);
+	// normalGenerator->ComputePointNormalsOff();
+	// normalGenerator->ComputeCellNormalsOn();
+	// normalGenerator->Update();
+	// this->vtkGeometryProjection = normalGenerator->GetOutput();
+	// //	Create the tree locator
+	// this->locatorProjection = vtkSmartPointer<vtkCellLocator>::New();
+	// this->locatorProjection->SetDataSet(vtkGeometryProjection);
+	// this->locatorProjection->BuildLocator();
 
 
 	// get domain endpoints
 
-	//	Read all the data from the file
-	vtkSmartPointer<vtkPolyDataReader> readerIntersect = vtkSmartPointer<vtkPolyDataReader>::New();
-	readerIntersect->SetFileName(this->domainFile.c_str());
-	readerIntersect->Update();
-	this->vtkGeometryIntersect = readerIntersect->GetOutput();
-	//	Create the tree locator
-	this->locatorIntersect = vtkSmartPointer<vtkCellLocator>::New();
-	this->locatorIntersect->SetDataSet(vtkGeometryIntersect);
-	this->locatorIntersect->BuildLocator();
+	// //	Read all the data from the file
+	// vtkSmartPointer<vtkPolyDataReader> readerIntersect = vtkSmartPointer<vtkPolyDataReader>::New();
+	// readerIntersect->SetFileName(this->domainFile.c_str());
+	// readerIntersect->Update();
+	// this->vtkGeometryIntersect = readerIntersect->GetOutput();
+	// //	Create the tree locator
+	// this->locatorIntersect = vtkSmartPointer<vtkCellLocator>::New();
+	// this->locatorIntersect->SetDataSet(vtkGeometryIntersect);
+	// this->locatorIntersect->BuildLocator();
 
-	// get list of bifurcable vessels
-	vector<SingleVessel *> vesselsList = terminalVessels;
 
 	// prepare the normal geometries
-	vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometryProjection->GetCellData()->GetNormals();
+	// vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometryProjection->GetCellData()->GetNormals();
 
 	// iterate for all the vessels
 

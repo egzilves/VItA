@@ -77,8 +77,8 @@ class SubtreeReplacer : public IDomainObserver  {
 	StagedDomain *domain;
 
 	/** Generated trees. */
-	AbstractObjectCCOTree *tree;
-	// SingleVesselCCOOTree *tree;
+	// AbstractObjectCCOTree *tree;
+	SingleVesselCCOOTree *tree;
 
 	vector<AbstractConstraintFunction<double,int> *> gams;
 	vector<AbstractConstraintFunction<double,int> *> epsLims;
@@ -98,30 +98,30 @@ class SubtreeReplacer : public IDomainObserver  {
 	 */
 	// bool bypassFunctionIfMidpointInside;
 
-	/** Domain. */
-	string domainFile;
-	/** Projection domain. */
-	string projectionDomainFile;
-	/** vtkPolydata description of the domain. */
-	vtkSmartPointer<vtkPolyData> vtkGeometryIntersect;
-	/** vtkPolydata description of the projection domain. */
-	vtkSmartPointer<vtkPolyData> vtkGeometryProjection;
-	/** Cell locator responsible to determine if a segment is inside the domain. */
-	vtkSmartPointer<vtkCellLocator> locatorIntersect;
-	/** Cell locator responsible to determine if a segment is inside the domain, check closest cell to project. */
-	vtkSmartPointer<vtkCellLocator> locatorProjection;
-	/**	Descending offset for projected points */
-	double descendingOffset;
-	/**	Penetration offset for projected points */
-	double endpointOffset;
-	/** Maximum distance between terminal and closest point/cell on projection surface to allow generating a vessel. */
-	double maxDistanceToClosestPoint;
-	/** Maximum segment length inside domain. */
-	double maxPenetratingVesselLength;
+	// /** Domain. */
+	// string domainFile;
+	// /** Projection domain. */
+	// string projectionDomainFile;
+	// /** vtkPolydata description of the domain. */
+	// vtkSmartPointer<vtkPolyData> vtkGeometryIntersect;
+	// /** vtkPolydata description of the projection domain. */
+	// vtkSmartPointer<vtkPolyData> vtkGeometryProjection;
+	// /** Cell locator responsible to determine if a segment is inside the domain. */
+	// vtkSmartPointer<vtkCellLocator> locatorIntersect;
+	// /** Cell locator responsible to determine if a segment is inside the domain, check closest cell to project. */
+	// vtkSmartPointer<vtkCellLocator> locatorProjection;
+	// /**	Descending offset for projected points */
+	// double descendingOffset;
+	// /**	Penetration offset for projected points */
+	// double endpointOffset;
+	// /** Maximum distance between terminal and closest point/cell on projection surface to allow generating a vessel. */
+	// double maxDistanceToClosestPoint;
+	// /** Maximum segment length inside domain. */
+	// double maxPenetratingVesselLength;
 
     // SingleVesselCCOOTree *treee;
     // vector<vector<ReadData>*> *vesselToMerge;
-    unordered_map<string, SingleVessel *> *stringToPointer;
+    // unordered_map<string, SingleVessel *> *stringToPointer;
 
 public:
 	/**
