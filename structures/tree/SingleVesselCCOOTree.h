@@ -188,7 +188,7 @@ public:
 	 * The subtree is passed as another SingleVesselCCOOTree object with the correct point coordinates mapped *BEFORE* this step.
 	 * This ensures no resource wasted with allocation.
 	 * The CCO tree diameters are not updated, must use the Update Massive Tree method to validate the vessels.
-	 * FUTURE: if extend this function, use this signature as a wrapper for extended method.
+	 * TODO: if extend this function, use this signature as a wrapper for extended method.
 	 * @param subtree The Subtree to be appended to the tree, replacing the terminal vessel.
 	 * @param terminalVessel The terminal vessel to be replaced in the operation.
 	 * @param parent The parent vessel to the new subtree.
