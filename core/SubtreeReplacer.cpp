@@ -72,7 +72,7 @@
 #include "../constrains/ConstantPiecewiseConstraintFunction.h"
 
 
-PenetratingVesselTreeGenerator::PenetratingVesselTreeGenerator(
+SubtreeReplacer::SubtreeReplacer(
 		StagedDomain* domain, string projectionDomainFile, AbstractObjectCCOTree* tree, long long nTerm,
 		vector<AbstractConstraintFunction<double,int> *>gam,
 		vector<AbstractConstraintFunction<double,int> *>epsLim,
@@ -117,7 +117,7 @@ PenetratingVesselTreeGenerator::PenetratingVesselTreeGenerator(
 
 }
 
-PenetratingVesselTreeGenerator::~PenetratingVesselTreeGenerator() {
+SubtreeReplacer::~SubtreeReplacer() {
 	delete this->dataMonitor;
 	delete this->monitor;
 	if (this->didAllocateTree) {
@@ -126,11 +126,44 @@ PenetratingVesselTreeGenerator::~PenetratingVesselTreeGenerator() {
 }
 
 
-AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long long int saveInterval, string tempDirectory){
+AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterval, string tempDirectory){
 	this->beginTime = time(nullptr);
 	generatesConfigurationFile(ios::out);
 
 	int generatedVessels = 0;
+
+	// pass parameters, longTreeList.cco, shortTreeList.cco, percentages
+
+	// TODO: Filter vessels by type
+
+	// TODO: for each (SingleVessel *) vessel
+
+	// TODO: get properties, get distal (coordinates), get radius, length
+	// TODO: sort type of tree
+
+	// TODO: map geometry of subtree
+	// map: 0,0,0 -> proximal, map 0,0,h -> distal with h=0.25cm
+	// map xyz-translation, map xy-rotation, map z-scale
+	// keep xy-scale (or use z-scale)
+	// random z-rotation
+
+	
+	// TODO: make subtree and append
+	// Read CCO, map root, and childs recursively
+	// map proximal and distal of subtrees, recursively for every child.
+	// update radius, update tree
+
+	// append tree, use SVCCOOT::addSubtree() method.
+	// transfer ownership, use addChild, removeChildren, setParent, 
+
+	// update the tree, terms, VTK_ID, etc.
+	
+
+
+	point oldTerminalProx;
+	point oldTerminalDist;
+
+
 
 	// parametros
 
@@ -463,7 +496,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 
 }
 
-int PenetratingVesselTreeGenerator::isValidSegment(point xNew, int iTry) {
+int SubtreeReplacer::isValidSegment(point xNew, int iTry) {
 
 	if (iTry % instanceData->nTerminalTrial == 0) {
 		dLim *= instanceData->dLimReductionFactor;
@@ -477,23 +510,23 @@ int PenetratingVesselTreeGenerator::isValidSegment(point xNew, int iTry) {
 	return dist > dLim;
 }
 
-StagedDomain * PenetratingVesselTreeGenerator::getDomain() {
+StagedDomain * SubtreeReplacer::getDomain() {
 	return domain;
 }
 
-vector<AbstractObjectCCOTree *> PenetratingVesselTreeGenerator::getTrees() {
+vector<AbstractObjectCCOTree *> SubtreeReplacer::getTrees() {
 	vector<AbstractObjectCCOTree *> trees;
 	trees.push_back(tree);
 	return trees;
 }
 
-void PenetratingVesselTreeGenerator::enableConfigurationFile(
+void SubtreeReplacer::enableConfigurationFile(
 		string filename) {
 	this->isGeneratingConfFile = 1;
 	this->confFilename = filename;
 }
 
-void PenetratingVesselTreeGenerator::generatesConfigurationFile(ios::openmode mode) {
+void SubtreeReplacer::generatesConfigurationFile(ios::openmode mode) {
 
 	if (isGeneratingConfFile) {
 		confFile.open(confFilename.c_str(), mode);
@@ -523,7 +556,7 @@ void PenetratingVesselTreeGenerator::generatesConfigurationFile(ios::openmode mo
 	}
 }
 
-void PenetratingVesselTreeGenerator::markTimestampOnConfigurationFile(
+void SubtreeReplacer::markTimestampOnConfigurationFile(
 		string label) {
 	if (isGeneratingConfFile) {
 		confFile << (chrono::duration_cast<chrono::microseconds>(
@@ -532,7 +565,7 @@ void PenetratingVesselTreeGenerator::markTimestampOnConfigurationFile(
 	}
 }
 
-void PenetratingVesselTreeGenerator::closeConfigurationFile() {
+void SubtreeReplacer::closeConfigurationFile() {
 
 	confFile << endl << "DOMAIN_POINTS_GENERATED " << this->domain->getPointCounter() << endl;
 	if (isGeneratingConfFile) {
@@ -541,15 +574,15 @@ void PenetratingVesselTreeGenerator::closeConfigurationFile() {
 	}
 }
 
-AbstractObjectCCOTree*& PenetratingVesselTreeGenerator::getTree() {
+AbstractObjectCCOTree*& SubtreeReplacer::getTree() {
 	return tree;
 }
 
-void PenetratingVesselTreeGenerator::setSavingTasks(const vector<AbstractSavingTask*>& savingTasks){
+void SubtreeReplacer::setSavingTasks(const vector<AbstractSavingTask*>& savingTasks){
 	this->savingTasks = savingTasks;
 }
 
-void PenetratingVesselTreeGenerator::saveStatus(long long int terminals){
+void SubtreeReplacer::saveStatus(long long int terminals){
 	tree->setPointCounter(domain->getPointCounter());
 	for (std::vector<AbstractSavingTask *>::iterator it = savingTasks.begin(); it != savingTasks.end(); ++it) {
 		(*it)->execute(terminals,tree);
@@ -559,7 +592,7 @@ void PenetratingVesselTreeGenerator::saveStatus(long long int terminals){
 	markTimestampOnConfigurationFile("Total RAM consumption: " + to_string(monitor->getProcessMemoryConsumption()) + " MB.");
 }
 
-void PenetratingVesselTreeGenerator::observableModified(IDomainObservable* observableInstance) {
+void SubtreeReplacer::observableModified(IDomainObservable* observableInstance) {
 	cout << "Changing instance parameters from " << endl << instanceData;
 	instanceData = ((AbstractDomain *) observableInstance)->getInstanceData();
 	cout << "To " << endl << instanceData << endl;
@@ -576,41 +609,41 @@ void PenetratingVesselTreeGenerator::observableModified(IDomainObservable* obser
 	this->dataMonitor->reset();
 }
 
-vector<AbstractConstraintFunction<double, int> *>* PenetratingVesselTreeGenerator::getGams()
+vector<AbstractConstraintFunction<double, int> *>* SubtreeReplacer::getGams()
 {
 	return &(this->gams);
 }
 
-vector<AbstractConstraintFunction<double, int> *>* PenetratingVesselTreeGenerator::getEpsLims()
+vector<AbstractConstraintFunction<double, int> *>* SubtreeReplacer::getEpsLims()
 {
 	return &(this->epsLims);
 }
-vector<AbstractConstraintFunction<double, int> *>* PenetratingVesselTreeGenerator::getNus()
+vector<AbstractConstraintFunction<double, int> *>* SubtreeReplacer::getNus()
 {
 	return &(this->nus);
 }
 
-double PenetratingVesselTreeGenerator::getDLim() {
+double SubtreeReplacer::getDLim() {
 	return this->dLim;
 }
 
-void PenetratingVesselTreeGenerator::setDLim(double newDLim) {
+void SubtreeReplacer::setDLim(double newDLim) {
 	this->dLim = newDLim;
 }
 
-double PenetratingVesselTreeGenerator::getDLimInitial() {
+double SubtreeReplacer::getDLimInitial() {
 	return this->dLimInitial;
 }
 
-double PenetratingVesselTreeGenerator::getDLimLast() {
+double SubtreeReplacer::getDLimLast() {
 	return this->dLimLast;
 }
 
-time_t PenetratingVesselTreeGenerator::getBeginTime() {
+time_t SubtreeReplacer::getBeginTime() {
 	return this->beginTime;
 }
 
-time_t PenetratingVesselTreeGenerator::getEndTime() {
+time_t SubtreeReplacer::getEndTime() {
 	return this->endTime;
 }
 

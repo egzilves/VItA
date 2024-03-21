@@ -50,7 +50,7 @@ using namespace std;
  * Generates a segment from terminals into the projectiondomain, and continues inside the domain
  * with the same normal versor.
  */
-class PenetratingVesselTreeGenerator : public IDomainObserver  {
+class SubtreeReplacer : public IDomainObserver  {
 
 	/** Time of the beggining of the tree generation process*/
 	time_t beginTime;
@@ -133,31 +133,37 @@ public:
 	 * @param epsLim	Symmetry constraint function.
 	 * @param nu		Viscosity function.
 	 */
-	PenetratingVesselTreeGenerator(StagedDomain *domain, string projectionDomainFile, AbstractObjectCCOTree *tree, long long int nTerm, 
+	SubtreeReplacer(StagedDomain *domain, string projectionDomainFile, AbstractObjectCCOTree *tree, long long int nTerm, 
 		vector<AbstractConstraintFunction<double,int> *>gam, vector<AbstractConstraintFunction<double,int> *>epsLim, 
 		vector<AbstractConstraintFunction<double,int> *>nu);
 	/**
 	 * Common destructor.
 	 */
-	~PenetratingVesselTreeGenerator();
+	~SubtreeReplacer();
+
+	/**
+	 * Replace the segment with a subtree given the probability of picking
+	 */
+	AbstractObjectCCOTree *replaceSegments(long long int saveInterval, string tempDirectory);
+	
+	// // /**
+	// //  * Resumes the tree generation.
+	// //  * @param saveInterval Number of iterations performed between saved steps.
+	// //  * @param tempDirectory Directory where intermediate solutions are saved.
+	// //  * @return	Perfusion tree.
+	// //  */
+	// // AbstractObjectCCOTree *resume(long long int saveInterval, string tempDirectory);
+	// // /**
+	// //  * Resumes the tree generation process and saves the optimal xNew and xBif in @param fp.
+	// //  */
+	// // AbstractObjectCCOTree *resumeSavePointsMidPoint(long long int saveInterval, string tempDirectory, FILE *fp);
 	// /**
-	//  * Resumes the tree generation.
+	//  * Generates the tree penetration into domain.
 	//  * @param saveInterval Number of iterations performed between saved steps.
 	//  * @param tempDirectory Directory where intermediate solutions are saved.
 	//  * @return	Perfusion tree.
 	//  */
-	// AbstractObjectCCOTree *resume(long long int saveInterval, string tempDirectory);
-	// /**
-	//  * Resumes the tree generation process and saves the optimal xNew and xBif in @param fp.
-	//  */
-	// AbstractObjectCCOTree *resumeSavePointsMidPoint(long long int saveInterval, string tempDirectory, FILE *fp);
-	/**
-	 * Generates the tree penetration into domain.
-	 * @param saveInterval Number of iterations performed between saved steps.
-	 * @param tempDirectory Directory where intermediate solutions are saved.
-	 * @return	Perfusion tree.
-	 */
-	AbstractObjectCCOTree *generatePenetrating(long long int saveInterval, string tempDirectory);
+	// AbstractObjectCCOTree *generatePenetrating(long long int saveInterval, string tempDirectory);
 	
 	/**
 	 * Returns the perfusion domain.
