@@ -160,11 +160,12 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		point vesselDist = oldVessel->xDist;
 
 		// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
-		point originSubtree;
-		originSubtree.p[0] = 0;
-		originSubtree.p[1] = 0;
-		originSubtree.p[2] = 0;
+		point originSubtree = {0,0,0};
 		double heightSubtree = 2.5; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
+		point terminalSubtree = {0,0,heightSubtree};
+		point displacementSubtree = terminalSubtree-originSubtree;
+		double lengthSubtree = sqrt(displacementSubtree^displacementSubtree);
+		point unitSubtree = displacementSubtree/lengthSubtree;
 
 		point displacement = vesselDist-vesselProx; 
 		double length = sqrt(displacement^displacement);
@@ -172,15 +173,42 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 
 		// SCALING
 		double scaleFactor = length / heightSubtree;
-		// scale the tree
+		// scale the tree, for each terminal
 
 		// ROTATION
+		// Rodrigues formula, ref: https://gist.github.com/aormorningstar/3e5dda91f155d7919ef6256cb057ceee
+		vector<double> u {unitSubtree.p[0], unitSubtree.p[1], unitSubtree.p[2]};
+		vector<double> Ru = {unitDirection.p[0], unitDirection.p[1], unitDirection.p[2]};
+		vector<vector<double>> Identity = {{1,0,0},{0,1,0},{0,0,1}};
+		vector<vector<double>> Rotation;
+		vector<vector<double>> Krotation;
+		double smallValue = 1e-5;
+		bool calculateRotation = true;
+		
+		double cosineAngle = u[0]*Ru[0] + u[1]*Ru[1] + u[2]*Ru[2];
+		if (abs(cosineAngle-1) < smallValue){
+			Rotation = Identity;
+			calculateRotation = false;
+		}
+		if (abs(cosineAngle+1) < smallValue){
+			Rotation = -Identity;
+			calculateRotation = false;
+		}
 
+		if (calculateRotation){
+			double Krotation[3][3] = {
+				{0,                     Ru[0]*u[1]-u[0]*Ru[1], Ru[0]*u[2]-u[0]*Ru[2]},
+				{Ru[1]*u[0]-u[1]*Ru[0], 0,                     Ru[1]*u[2]-u[1]*Ru[2]},
+				{Ru[2]*u[0]-u[2]*Ru[0], Ru[2]*u[1]-u[2]*Ru[1], 0                    }
+			};
+			Rotation = Identity + Krotation + (Krotation @ Krotation)/(1+c);
+		}
 
+		// Rotate the points for each terminal
 
 		// TRANSLATION
-		point translationVector;
-		
+		point translationVector = vesselProx - originSubtree;
+		// translate for each point
 
 		
 		
