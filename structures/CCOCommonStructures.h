@@ -55,6 +55,76 @@ struct point {
 	inline int operator==(point a) {
 		return (a.p[0] == p[0] && a.p[1] == p[1] && a.p[2] == p[2]);
 	}
+	/**	Outter product */
+	inline matrix operator|(point a) {
+		return {
+				p[0]*a.p[0], p[0]*a.p[1], p[0]*a.p[2], 
+				p[1]*a.p[0], p[1]*a.p[1], p[1]*a.p[2], 
+				p[2]*a.p[0], p[2]*a.p[1], p[2]*a.p[2]
+			};
+	}
+};
+
+/**
+ * Matrix structure endowed with basic linear algebra operations.
+ */
+struct matrix {
+	double e[3][3];
+
+	/**	Element to element addition.*/
+	inline matrix operator+(matrix a) {
+		return {
+			e[0][0] + a.e[0][0], e[0][1] + a.e[0][1], e[0][2] + a.e[0][2],
+			e[1][0] + a.e[1][0], e[1][1] + a.e[1][1], e[1][2] + a.e[1][2],
+			e[2][0] + a.e[2][0], e[2][1] + a.e[2][1], e[2][2] + a.e[2][2]
+		};
+	}
+	/**	Element to element subtraction.*/
+	inline matrix operator-(matrix a) {
+		return {
+			e[0][0] - a.e[0][0], e[0][1] - a.e[0][1], e[0][2] - a.e[0][2],
+			e[1][0] - a.e[1][0], e[1][1] - a.e[1][1], e[1][2] - a.e[1][2],
+			e[2][0] - a.e[2][0], e[2][1] - a.e[2][1], e[2][2] - a.e[2][2]
+		};
+	}
+	/**	Scalar to element product.*/
+	inline matrix operator*(double alpha) {
+		return {
+			alpha*e[0][0], alpha*e[0][1], alpha*e[0][2],
+			alpha*e[1][0], alpha*e[1][1], alpha*e[1][2],
+			alpha*e[2][0], alpha*e[2][1], alpha*e[2][2]
+		};
+	}
+	/**	Scalar to element division.*/
+	inline matrix operator/(double alpha) {
+		return {
+			e[0][0]/alpha, e[0][1]/alpha, e[0][2]/alpha,
+			e[1][0]/alpha, e[1][1]/alpha, e[1][2]/alpha,
+			e[2][0]/alpha, e[2][1]/alpha, e[2][2]/alpha
+		};
+	}
+	/** Matrix multiplication.*/
+	inline matrix operator*(matrix a){
+		return{
+			e[0][0]*a.e[0][0] + e[0][1]*a.e[1][0] + e[0][2]*a.e[2][0], e[0][0]*a.e[0][1] + e[0][1]*a.e[1][1] + e[0][2]*a.e[2][1], e[0][0]*a.e[0][2] + e[0][1]*a.e[1][2] + e[0][2]*a.e[2][2], 
+			e[1][0]*a.e[0][0] + e[1][1]*a.e[1][0] + e[1][2]*a.e[2][0], e[1][0]*a.e[0][1] + e[1][1]*a.e[1][1] + e[1][2]*a.e[2][1], e[1][0]*a.e[0][2] + e[1][1]*a.e[1][2] + e[1][2]*a.e[2][2], 
+			e[2][0]*a.e[0][0] + e[2][1]*a.e[1][0] + e[2][2]*a.e[2][0], e[2][0]*a.e[0][1] + e[2][1]*a.e[1][1] + e[2][2]*a.e[2][1], e[2][0]*a.e[0][2] + e[2][1]*a.e[1][2] + e[2][2]*a.e[2][2]
+		};
+	}
+	/** Matrix-vector multiplication.*/
+	inline matrix operator*(point a){
+		return{
+			e[0][0]*a.p[0] + e[0][1]*a.p[1] + e[0][2]*a.p[2],
+			e[1][0]*a.p[0] + e[1][1]*a.p[1] + e[1][2]*a.p[2],
+			e[2][0]*a.p[0] + e[2][1]*a.p[1] + e[2][2]*a.p[2]
+		};
+	}
+	/**	Inner product */
+	inline double operator^(matrix a) {
+		return {a.e[0][0] * e[0][0] + a.e[0][1] * e[0][1] + a.e[0][2] * e[0][2] + 
+			a.e[1][0] * e[1][0] + a.e[1][1] * e[1][1] + a.e[1][2] * e[1][2] + 
+			a.e[2][0] * e[2][0] + a.e[2][1] * e[2][1] + a.e[2][2] * e[2][2]};
+	}
 };
 
 /**
