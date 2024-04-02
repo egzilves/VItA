@@ -159,8 +159,30 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		point vesselProx = oldVessel->xProx;
 		point vesselDist = oldVessel->xDist;
 
-		point displacement = vesselDist-vesselProx;
-		double vesselLength = oldVessel->length;
+		// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
+		point originSubtree;
+		originSubtree.p[0] = 0;
+		originSubtree.p[1] = 0;
+		originSubtree.p[2] = 0;
+		double heightSubtree = 2.5; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
+
+		point displacement = vesselDist-vesselProx; 
+		double length = sqrt(displacement^displacement);
+		point unitDirection = displacement/length;
+
+		// SCALING
+		double scaleFactor = length / heightSubtree;
+		// scale the tree
+
+		// ROTATION
+
+
+
+		// TRANSLATION
+		point translationVector;
+		
+
+		
 		
 
 	}
