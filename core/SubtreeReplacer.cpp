@@ -177,11 +177,11 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 
 		// ROTATION
 		// Rodrigues formula, ref: https://gist.github.com/aormorningstar/3e5dda91f155d7919ef6256cb057ceee
-		vector<double> u {unitSubtree.p[0], unitSubtree.p[1], unitSubtree.p[2]};
-		vector<double> Ru = {unitDirection.p[0], unitDirection.p[1], unitDirection.p[2]};
-		vector<vector<double>> Identity = {{1,0,0},{0,1,0},{0,0,1}};
-		vector<vector<double>> Rotation;
-		vector<vector<double>> Krotation;
+		point u {unitSubtree.p[0], unitSubtree.p[1], unitSubtree.p[2]};
+		point Ru = {unitDirection.p[0], unitDirection.p[1], unitDirection.p[2]};
+		matrix Identity = {{1,0,0, 0,1,0, 0,0,1}};
+		matrix Rotation;
+		matrix Krotation;
 		double smallValue = 1e-5;
 		bool calculateRotation = true;
 		
