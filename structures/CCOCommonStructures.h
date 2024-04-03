@@ -55,16 +55,15 @@ struct point {
 	inline int operator==(point a) {
 		return (a.p[0] == p[0] && a.p[1] == p[1] && a.p[2] == p[2]);
 	}
-	/**	Outter product */
-	inline matrix operator|(point a) {
-		return {
-				p[0]*a.p[0], p[0]*a.p[1], p[0]*a.p[2], 
-				p[1]*a.p[0], p[1]*a.p[1], p[1]*a.p[2], 
-				p[2]*a.p[0], p[2]*a.p[1], p[2]*a.p[2]
-			};
-	}
+	// /**	Outter product */
+	// inline struct matrix operator%(point a) {
+	// 	return {
+	// 			p[0]*a.p[0], p[0]*a.p[1], p[0]*a.p[2], 
+	// 			p[1]*a.p[0], p[1]*a.p[1], p[1]*a.p[2], 
+	// 			p[2]*a.p[0], p[2]*a.p[1], p[2]*a.p[2]
+	// 		};
+	// }
 };
-
 /**
  * Matrix structure endowed with basic linear algebra operations.
  */
@@ -126,6 +125,13 @@ struct matrix {
 			a.e[2][0] * e[2][0] + a.e[2][1] * e[2][1] + a.e[2][2] * e[2][2]};
 	}
 };
+inline matrix outer(point a, point b){
+	return matrix {
+		a.p[0]*b.p[0], a.p[0]*b.p[1], a.p[0]*b.p[2], 
+		a.p[1]*b.p[0], a.p[1]*b.p[1], a.p[1]*b.p[2], 
+		a.p[2]*b.p[0], a.p[2]*b.p[1], a.p[2]*b.p[2]
+	};
+}
 
 /**
  * Overload operator to print point @p p in a stream object.

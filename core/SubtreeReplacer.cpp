@@ -196,7 +196,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		}
 
 		if (calculateRotation){
-			matrix Krotation = (Ru|u) - (u|Ru);
+			matrix Krotation = outer(Ru,u) - outer(u,Ru);
 			Rotation = Identity + Krotation + (Krotation*Krotation)/(1+cosineAngle);
 		}
 
