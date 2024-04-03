@@ -2221,7 +2221,7 @@ void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, Abstrac
 	nCommonTerminals += nCommonTerminals;
 	// we don't allocate SingleVessel in this method.
 
-
+/*
 	if (!parent){
 		// no sense in concatening empty and tree: 0 + Tree = Tree, use the subtree.
 		cout << "ERROR: Invalid parent, nowhere to append" << endl;
@@ -2345,7 +2345,7 @@ void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, Abstrac
 
 	return;
 	
-	
+*/
 	return;
 }
 
