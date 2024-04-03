@@ -158,10 +158,16 @@ public:
 	 */
 	void updateMassiveTree();
 	/**
-	 * Runs the updateTree and updateViscosities functions for a subtree given a rood vessel.
+	 * Runs the updateTree and updateViscosities functions for a subtree given a root vessel.
 	 * @param subtreeRoot The root vessel of the subtree.
 	 */
 	void updateSubtree(SingleVessel* subtreeRoot);
+	/**
+	 * Runs the updateTree and updateViscosities functions for a subtree given a root vessel.
+	 * @param subtreeRoot The root vessel of the subtree. Can be "this->root".
+	 * @param tolerance Viscosity tolerance for convergence.
+	 */
+	void updateSubtree(SingleVessel* subtreeRoot, double tolerance);
 
 	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int stage, unordered_map<string, SingleVessel *>* stringToPointer);
 

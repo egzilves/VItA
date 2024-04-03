@@ -1062,24 +1062,37 @@ void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractV
 }
 
 void SingleVesselCCOOTree::updateMassiveTree(){
-		//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
-		updateTree(((SingleVessel *) root), this);
-		
-		//	Update resistance, pressure and betas
-		double maxVariation = INFINITY;
-		while (maxVariation > variationTolerance) {
-			updateTreeViscositiesBeta(((SingleVessel *) root), &maxVariation);
-		}
+	//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
+	updateTree(((SingleVessel *) this->root), this);
+	
+	//	Update resistance, pressure and betas
+	double maxVariation = INFINITY;
+	while (maxVariation > variationTolerance) {
+		updateTreeViscositiesBeta(((SingleVessel *) this->root), &maxVariation);
+	}
+	this->computePressure(this->root);
 }
 void SingleVesselCCOOTree::updateSubtree(SingleVessel *subtreeRoot){
-		//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
-		updateTree(subtreeRoot, this);
-		
-		//	Update resistance, pressure and betas
-		double maxVariation = INFINITY;
-		while (maxVariation > variationTolerance) {
-			updateTreeViscositiesBeta(subtreeRoot, &maxVariation);
-		}
+	//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
+	updateTree(subtreeRoot, this);
+	
+	//	Update resistance, pressure and betas
+	double maxVariation = INFINITY;
+	while (maxVariation > variationTolerance) {
+		updateTreeViscositiesBeta(subtreeRoot, &maxVariation);
+	}
+	this->computePressure(subtreeRoot);
+}
+void SingleVesselCCOOTree::updateSubtree(SingleVessel *subtreeRoot, double tolerance){
+	//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
+	updateTree(subtreeRoot, this);
+	
+	//	Update resistance, pressure and betas
+	double maxVariation = INFINITY;
+	while (maxVariation > tolerance) {
+		updateTreeViscositiesBeta(subtreeRoot, &maxVariation);
+	}
+	this->computePressure(subtreeRoot);
 }
 
 void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType> * partVessels, long long int *termPart, const vector<double> qPart) {
