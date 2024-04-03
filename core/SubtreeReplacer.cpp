@@ -153,11 +153,20 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 	// TODO: for each (SingleVessel *) vessel
 	int maxIterations = 1000;
 	int itCount = 0;
+    GeneratorData *gen_data_0 {new GeneratorData(16000, 2000, 0.95,
+        1.0, 1.0, 0.25, 7, 0, false, new VolumetricCostEstimator())};
+    AbstractConstraintFunction<double,int> *gam_0 {new ConstantConstraintFunction<double, int>(3.0)};
+    AbstractConstraintFunction<double, int> *eps_lim_1 {new ConstantPiecewiseConstraintFunction<double, int>({0.0, 0.0},{0, 2})};
+    AbstractConstraintFunction<double,int> *nu {new ConstantConstraintFunction<double, int>(3.6)}; //cP
 	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
 		SingleVessel* oldVessel = (*it);
 		// TODO: get properties, get distal (coordinates), get radius, length
 		point vesselProx = oldVessel->xProx;
 		point vesselDist = oldVessel->xDist;
+
+		// Instantiate a new subtree
+		string treefilename;
+		SingleVesselCCOOTree *newSubtree {new SingleVesselCCOOTree(treefilename, gen_data_0, gam_0, eps_lim_1, nu)};
 
 		// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
 		point originSubtree = {0,0,0};
@@ -173,10 +182,11 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 
 		// SCALING
 		double scaleFactor = length / heightSubtree;
+
 		// scale the tree, for each terminal
 
 		// ROTATION
-		// Rodrigues formula, ref: https://gist.github.com/aormorningstar/3e5dda91f155d7919ef6256cb057ceee
+		// Rodrigues formula.
 		point u {unitSubtree};
 		point Ru = {unitDirection};
 		matrix Identity = {{1,0,0, 0,1,0, 0,0,1}};
