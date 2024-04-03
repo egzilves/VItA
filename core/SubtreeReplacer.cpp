@@ -84,7 +84,7 @@ SubtreeReplacer::SubtreeReplacer(
 	this->instanceData = domain->getInstanceData();
 	SingleVessel::bifurcationTests = instanceData->nBifurcationTest;
 	this->nTerminals = nTerm;
-	this->tree = tree;
+	this->tree = (SingleVesselCCOOTree*) tree;
 	//	Stage can be loaded from file
 	this->stage = domain->getCurrentStage();
 	this->tree->setCurrentStage(domain->getCurrentStage());
@@ -177,34 +177,30 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 
 		// ROTATION
 		// Rodrigues formula, ref: https://gist.github.com/aormorningstar/3e5dda91f155d7919ef6256cb057ceee
-		point u {unitSubtree.p[0], unitSubtree.p[1], unitSubtree.p[2]};
-		point Ru = {unitDirection.p[0], unitDirection.p[1], unitDirection.p[2]};
+		point u {unitSubtree};
+		point Ru = {unitDirection};
 		matrix Identity = {{1,0,0, 0,1,0, 0,0,1}};
 		matrix Rotation;
 		matrix Krotation;
 		double smallValue = 1e-5;
 		bool calculateRotation = true;
 		
-		double cosineAngle = u[0]*Ru[0] + u[1]*Ru[1] + u[2]*Ru[2];
+		double cosineAngle = u^Ru;
 		if (abs(cosineAngle-1) < smallValue){
 			Rotation = Identity;
 			calculateRotation = false;
 		}
 		if (abs(cosineAngle+1) < smallValue){
-			Rotation = -Identity;
+			Rotation = Identity*(-1);
 			calculateRotation = false;
 		}
 
 		if (calculateRotation){
-			double Krotation[3][3] = {
-				{0,                     Ru[0]*u[1]-u[0]*Ru[1], Ru[0]*u[2]-u[0]*Ru[2]},
-				{Ru[1]*u[0]-u[1]*Ru[0], 0,                     Ru[1]*u[2]-u[1]*Ru[2]},
-				{Ru[2]*u[0]-u[2]*Ru[0], Ru[2]*u[1]-u[2]*Ru[1], 0                    }
-			};
-			Rotation = Identity + Krotation + (Krotation @ Krotation)/(1+c);
+			matrix Krotation = (Ru|u) - (u|Ru);
+			Rotation = Identity + Krotation + (Krotation*Krotation)/(1+cosineAngle);
 		}
 
-		// Rotate the points for each terminal
+		// Rotate the points for each terminal, multiply R*v for every point v
 
 		// TRANSLATION
 		point translationVector = vesselProx - originSubtree;
@@ -245,10 +241,10 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 	// parametros
 
 	// TODO pass penetrationFactor as parameter
-	this->descendingOffset = max<double>(descendingOffset, 1.0E-4);
-	this->endpointOffset = max<double>(endpointOffset, 1.0E-4);
-	this->maxDistanceToClosestPoint = 0.4; // cm
-	this->maxPenetratingVesselLength = 0.25; //cm
+	// this->descendingOffset = max<double>(descendingOffset, 1.0E-4);
+	// this->endpointOffset = max<double>(endpointOffset, 1.0E-4);
+	// this->maxDistanceToClosestPoint = 0.4; // cm
+	// this->maxPenetratingVesselLength = 0.25; //cm
 	double penetrationFactor = 1.0;
 	// double maxPenetrationLength = 1e4;
 	long long int maxGenerateLimit = 1000000; 
@@ -302,6 +298,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 
 	// iterate for all the vessels
 
+	/*
 	printf("iterating all segments, bifurcating from terminals\n");
 	cout << vesselsList.size() << endl;
 	long long int vesselcount = 0;
@@ -561,6 +558,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 
 	return tree;
 
+	*/
 
 }
 
@@ -642,8 +640,8 @@ void SubtreeReplacer::closeConfigurationFile() {
 	}
 }
 
-AbstractObjectCCOTree*& SubtreeReplacer::getTree() {
-	return tree;
+SingleVesselCCOOTree*& SubtreeReplacer::getTree() {
+	return this->tree;
 }
 
 void SubtreeReplacer::setSavingTasks(const vector<AbstractSavingTask*>& savingTasks){

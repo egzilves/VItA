@@ -189,7 +189,7 @@ public:
 	 * Return the currently generated @p tree
 	 * @return Generated tree.
 	 */
-	AbstractObjectCCOTree*& getTree();
+	SingleVesselCCOOTree*& getTree();
 	/**
 	 * Saves the current generation status using the @p savingTasks and the memory monitor.
 	 * @param terminals	Current iteration number.
