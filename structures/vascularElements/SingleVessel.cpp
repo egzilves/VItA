@@ -178,3 +178,8 @@ string SingleVessel::coordToString() {
     free(coordCString);
     return coordString;
 }
+
+void SingleVessel::scaleVessel(double scaleFactor){
+	this->radius = this->radius*scaleFactor;
+	return;
+}

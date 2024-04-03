@@ -1094,6 +1094,19 @@ void SingleVesselCCOOTree::updateSubtree(SingleVessel *subtreeRoot, double toler
 	}
 	this->computePressure(subtreeRoot);
 }
+void SingleVesselCCOOTree::scaleTreeRoot(double scaleFactor){
+	this->rootRadius = (this->rootRadius)*scaleFactor;
+	((SingleVessel *)this->getRoot())->radius = (((SingleVessel *)this->getRoot())->radius)*scaleFactor;
+	return;
+}
+void SingleVesselCCOOTree::scaleTree(double scaleFactor){
+	this->rootRadius = (this->rootRadius)*scaleFactor;
+	vector<SingleVessel *> allVessels = this->getVessels();
+	for (vector<SingleVessel *>::iterator it = allVessels.begin(); it != allVessels.end(); ++it) {
+		(*it)->scaleVessel(scaleFactor);
+	}
+	return;
+}
 
 void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType> * partVessels, long long int *termPart, const vector<double> qPart) {
 
