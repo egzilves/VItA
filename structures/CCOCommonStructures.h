@@ -111,7 +111,7 @@ struct matrix {
 		};
 	}
 	/** Matrix-vector multiplication.*/
-	inline matrix operator*(point a){
+	inline point operator*(point a){
 		return{
 			e[0][0]*a.p[0] + e[0][1]*a.p[1] + e[0][2]*a.p[2],
 			e[1][0]*a.p[0] + e[1][1]*a.p[1] + e[1][2]*a.p[2],

@@ -158,6 +158,8 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
     AbstractConstraintFunction<double,int> *gam_0 {new ConstantConstraintFunction<double, int>(3.0)};
     AbstractConstraintFunction<double, int> *eps_lim_1 {new ConstantPiecewiseConstraintFunction<double, int>({0.0, 0.0},{0, 2})};
     AbstractConstraintFunction<double,int> *nu {new ConstantConstraintFunction<double, int>(3.6)}; //cP
+
+	// TODO: sort type of tree
 	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
 		SingleVessel* oldVessel = (*it);
 		// TODO: get properties, get distal (coordinates), get radius, length
@@ -165,8 +167,16 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		point vesselDist = oldVessel->xDist;
 
 		// Instantiate a new subtree
-		string treefilename;
-		SingleVesselCCOOTree *newSubtree {new SingleVesselCCOOTree(treefilename, gen_data_0, gam_0, eps_lim_1, nu)};
+		string subtreeFilename;
+		SingleVesselCCOOTree *newSubtree {new SingleVesselCCOOTree(subtreeFilename, gen_data_0, gam_0, eps_lim_1, nu)};
+		vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
+
+
+		// Map geometry of subtree
+		// map: 0,0,0 -> proximal, map 0,0,h -> distal with h=0.25cm
+		// map xyz-translation, map xy-rotation, map z-scale
+		// keep xy-scale (or use z-scale)
+		// TODO: random z-rotation
 
 		// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
 		point originSubtree = {0,0,0};
@@ -182,8 +192,11 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 
 		// SCALING
 		double scaleFactor = length / heightSubtree;
-
-		// scale the tree, for each terminal
+		// scale the tree, for each terminal scale distal/proximal points
+		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); it != subtreeVessels.end(); ++it) {
+			(*itVessel)->xProx = (*itVessel)->xProx*scaleFactor;
+			(*itVessel)->xDist = (*itVessel)->xDist*scaleFactor;
+		}
 
 		// ROTATION
 		// Rodrigues formula.
@@ -194,7 +207,6 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		matrix Krotation;
 		double smallValue = 1e-5;
 		bool calculateRotation = true;
-		
 		double cosineAngle = u^Ru;
 		if (abs(cosineAngle-1) < smallValue){
 			Rotation = Identity;
@@ -204,109 +216,50 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 			Rotation = Identity*(-1);
 			calculateRotation = false;
 		}
-
 		if (calculateRotation){
 			matrix Krotation = outer(Ru,u) - outer(u,Ru);
 			Rotation = Identity + Krotation + (Krotation*Krotation)/(1+cosineAngle);
 		}
-
+		// TODO: add random rotation, add matrix to rotate in xy plane, z axis, random angle.
 		// Rotate the points for each terminal, multiply R*v for every point v
+		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); it != subtreeVessels.end(); ++it) {
+			(*itVessel)->xProx = Rotation*(*itVessel)->xProx;
+			(*itVessel)->xDist = Rotation*(*itVessel)->xDist;
+		}
 
 		// TRANSLATION
 		point translationVector = vesselProx - originSubtree;
 		// translate for each point
+		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); it != subtreeVessels.end(); ++it) {
+			(*itVessel)->xProx = (*itVessel)->xProx + translationVector;
+			(*itVessel)->xDist = (*itVessel)->xDist + translationVector;
+		}
+
+		// Now the subtree is geometrically located in the correct point. Time to replace the subtree.
 
 		
+		// TODO: make subtree and append
+		// Read CCO, map root, and childs recursively
+		// map proximal and distal of subtrees, recursively for every child.
+		// update radius, update tree
+
 		
+		// append tree, use SVCCOOT::addSubtree() method.
+		// transfer ownership, use addChild, removeChildren, setParent, 
+
+		// update the tree, terms, VTK_ID, etc.
+
 
 	}
 	
-
-	// TODO: sort type of tree
-
-	// TODO: map geometry of subtree
-	// map: 0,0,0 -> proximal, map 0,0,h -> distal with h=0.25cm
-	// map xyz-translation, map xy-rotation, map z-scale
-	// keep xy-scale (or use z-scale)
-	// random z-rotation
-
-	
-	// TODO: make subtree and append
-	// Read CCO, map root, and childs recursively
-	// map proximal and distal of subtrees, recursively for every child.
-	// update radius, update tree
-
-	// append tree, use SVCCOOT::addSubtree() method.
-	// transfer ownership, use addChild, removeChildren, setParent, 
-
-	// update the tree, terms, VTK_ID, etc.
-
-
-
-	point oldTerminalProx;
-	point oldTerminalDist;
-
-
-
-	// parametros
-
-	// TODO pass penetrationFactor as parameter
-	// this->descendingOffset = max<double>(descendingOffset, 1.0E-4);
-	// this->endpointOffset = max<double>(endpointOffset, 1.0E-4);
-	// this->maxDistanceToClosestPoint = 0.4; // cm
-	// this->maxPenetratingVesselLength = 0.25; //cm
-	double penetrationFactor = 1.0;
-	// double maxPenetrationLength = 1e4;
-	long long int maxGenerateLimit = 1000000; 
 
 
 	string modelsFolder = "./";
 	string outputDir = "./";
 	string prefix = "output";
-	// int stage = 99
 
 
-	// get the projection domain and the perfusion domain via CTOR
-	// Perfusion : StagedDomain
-	// Projection : String
 
-	// get surface normals
-
-	// //	Read all the data from the file
-	// vtkSmartPointer<vtkPolyDataReader> projectionReader = vtkSmartPointer<vtkPolyDataReader>::New();
-	// projectionReader->SetFileName(this->projectionDomainFile.c_str());
-	// projectionReader->Update();
-	// this->vtkGeometryProjection = projectionReader->GetOutput();
-	// //	Generate normals for the geometry
-	// vtkSmartPointer<vtkPolyDataNormals> normalGenerator = vtkSmartPointer<vtkPolyDataNormals>::New();
-	// normalGenerator->SetInputData(vtkGeometryProjection);
-	// normalGenerator->ComputePointNormalsOff();
-	// normalGenerator->ComputeCellNormalsOn();
-	// normalGenerator->Update();
-	// this->vtkGeometryProjection = normalGenerator->GetOutput();
-	// //	Create the tree locator
-	// this->locatorProjection = vtkSmartPointer<vtkCellLocator>::New();
-	// this->locatorProjection->SetDataSet(vtkGeometryProjection);
-	// this->locatorProjection->BuildLocator();
-
-
-	// get domain endpoints
-
-	// //	Read all the data from the file
-	// vtkSmartPointer<vtkPolyDataReader> readerIntersect = vtkSmartPointer<vtkPolyDataReader>::New();
-	// readerIntersect->SetFileName(this->domainFile.c_str());
-	// readerIntersect->Update();
-	// this->vtkGeometryIntersect = readerIntersect->GetOutput();
-	// //	Create the tree locator
-	// this->locatorIntersect = vtkSmartPointer<vtkCellLocator>::New();
-	// this->locatorIntersect->SetDataSet(vtkGeometryIntersect);
-	// this->locatorIntersect->BuildLocator();
-
-
-	// prepare the normal geometries
-	// vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometryProjection->GetCellData()->GetNormals();
-
-	// iterate for all the vessels
 
 	/*
 	printf("iterating all segments, bifurcating from terminals\n");
