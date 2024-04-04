@@ -1094,16 +1094,16 @@ void SingleVesselCCOOTree::updateSubtree(SingleVessel *subtreeRoot, double toler
 	}
 	this->computePressure(subtreeRoot);
 }
-void SingleVesselCCOOTree::scaleTreeRoot(double scaleFactor){
+void SingleVesselCCOOTree::scaleTreeRootRadius(double scaleFactor){
 	this->rootRadius = (this->rootRadius)*scaleFactor;
 	((SingleVessel *)this->getRoot())->radius = (((SingleVessel *)this->getRoot())->radius)*scaleFactor;
 	return;
 }
-void SingleVesselCCOOTree::scaleTree(double scaleFactor){
+void SingleVesselCCOOTree::scaleTreeRadius(double scaleFactor){
 	this->rootRadius = (this->rootRadius)*scaleFactor;
 	vector<SingleVessel *> allVessels = this->getVessels();
 	for (vector<SingleVessel *>::iterator it = allVessels.begin(); it != allVessels.end(); ++it) {
-		(*it)->scaleVessel(scaleFactor);
+		(*it)->scaleVesselRadius(scaleFactor);
 	}
 	return;
 }

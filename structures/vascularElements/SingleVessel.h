@@ -149,7 +149,7 @@ public:
 	 * Scale the vessel radius by a factor
 	 * @param scaleFactor Factor to scale the vessel diameter.
 	 */
-	void scaleVessel(double scaleFactor);
+	void scaleVesselRadius(double scaleFactor);
 
 };
 

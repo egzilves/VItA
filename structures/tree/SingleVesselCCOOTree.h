@@ -172,12 +172,12 @@ public:
 	 * Scale the tree root radius by a factor.
 	 * @param scaleFactor Factor to scale the diameters. (1.0 to not scale)
 	 */
-	void scaleTreeRoot(double scaleFactor);
+	void scaleTreeRootRadius(double scaleFactor);
 	/**
 	 * Scale the entire tree radii by a factor. Do not use with the scaleTreeRoot.
 	 * @param scaleFactor Factor to scale the diameters. (1.0 to not scale)
 	 */
-	void scaleTree(double scaleFactor);
+	void scaleTreeRadius(double scaleFactor);
 
 	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int stage, unordered_map<string, SingleVessel *>* stringToPointer);
 
