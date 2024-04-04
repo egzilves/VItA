@@ -1097,10 +1097,12 @@ void SingleVesselCCOOTree::updateSubtree(SingleVessel *subtreeRoot, double toler
 void SingleVesselCCOOTree::scaleTreeRootRadius(double scaleFactor){
 	this->rootRadius = (this->rootRadius)*scaleFactor;
 	((SingleVessel *)this->getRoot())->radius = (((SingleVessel *)this->getRoot())->radius)*scaleFactor;
+	((SingleVessel *)this->getRoot())->beta = (((SingleVessel *)this->getRoot())->radius);
 	return;
 }
 void SingleVesselCCOOTree::scaleTreeRadius(double scaleFactor){
 	this->rootRadius = (this->rootRadius)*scaleFactor;
+	((SingleVessel *)this->getRoot())->beta = this->rootRadius;
 	vector<SingleVessel *> allVessels = this->getVessels();
 	for (vector<SingleVessel *>::iterator it = allVessels.begin(); it != allVessels.end(); ++it) {
 		(*it)->scaleVesselRadius(scaleFactor);
