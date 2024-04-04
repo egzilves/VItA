@@ -98,7 +98,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 		SingleVessel *v = new SingleVessel();
 		v->qReservedFraction = 0.0;
 		treeFile >> v->vtkSegmentId;
-		cout << v->vtkSegmentId << endl;
+		// cout << v->vtkSegmentId << endl;
 		treeFile >> v->xProx.p[0];
 		treeFile >> v->xProx.p[1];
 		treeFile >> v->xProx.p[2];
@@ -148,11 +148,11 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 		int vtkId, parentId, childId;
 
 		ss >> vtkId;
-		cout << "Vessel ID = " << vtkId;
+		// cout << "Vessel ID = " << vtkId;
 
 		//	Parent parsing
 		ss >> parentId;
-		cout << " - P = " << parentId;
+		// cout << " - P = " << parentId;
 		if (parentId == -1) {
 			elements[vtkId]->parent = NULL;
 			rootIndex = vtkId;
@@ -161,12 +161,12 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 		}
 
 		//	Children parsing
-		cout << " - Children : ";
+		// cout << " - Children : ";
 		while (ss >> childId) {
-			cout << childId << " " ;
+			// cout << childId << " " ;
 			elements[vtkId]->addChild(elements[childId]);
 		}
-		cout << endl;
+		// cout << endl;
 	}
 
 	cout << "Assembling tree..." << endl;
