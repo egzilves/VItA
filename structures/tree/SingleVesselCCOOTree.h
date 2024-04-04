@@ -212,10 +212,10 @@ public:
 	 * TODO: if extend this function, use this signature as a wrapper for extended method.
 	 * @param subtree The Subtree to be appended to the tree, replacing the terminal vessel.
 	 * @param terminalVessel The terminal vessel to be replaced in the operation.
-	 * @param parent The parent vessel to the new subtree.
+	 * -@param parent The parent vessel to the new subtree. // get parent inside with vessel->getParent()
 	 * @param nNewTerms Number of new terminals to add
 	 */
-	void addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *oldTerminalVessel, AbstractVascularElement *parent, int nNewTerms);
+	void addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *oldTerminalVessel, int nNewTerms);
 
 //	/**
 //	 * Adds a new vessel to the CCO tree as continuation of the pre-existent vessel @p parent. @param xDist is the distal nodes of the new
@@ -289,6 +289,11 @@ public:
 	 * Set if the tree updates gamma using stage or level.
 	 */
 	void setIsGammaStage(bool isGammaStage);
+
+	/**
+	 * Set the root vessel
+	 */
+	void setRoot(SingleVessel* newRoot);
 
 	/**
 	 * Bypass the vessel function when generating partitioned domains, allows bifurcating from partly-outside vessels

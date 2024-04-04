@@ -2224,7 +2224,7 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 	}
 }
 
-void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *oldTerminalVessel, AbstractVascularElement *parent, int nNewTerms){
+void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *oldTerminalVessel, int nNewTerms){
 
 	// TODO: update xDist and xProx in the Subtree before this
 	cout << "WARNING: nTerms was not updated, was passed" << endl;
@@ -2236,8 +2236,12 @@ void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, Abstrac
 	nCommonTerminals += nCommonTerminals;
 	// we don't allocate SingleVessel in this method.
 
-/*
-	if (!parent){
+	// referencing the vessels that are to be connected
+	SingleVessel *targetParent = (SingleVessel *)oldTerminalVessel->getParent();
+	SingleVessel *subtreeRoot = (SingleVessel *)newSubtree->getRoot();
+
+
+	if (!targetParent){
 		// no sense in concatening empty and tree: 0 + Tree = Tree, use the subtree.
 		cout << "ERROR: Invalid parent, nowhere to append" << endl;
 		return;
@@ -2247,68 +2251,77 @@ void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, Abstrac
 	// The terminal descends from DISTAL_BRANCHING
 	// The midpoint descends from RIGID_PARENT
 	// But the penetrating vessel segment is the exact same case for both situations
-	if(false && parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
-		cout << "WARNING: this std::cout should be unreachable" << endl;
-		// DO NOTHING, skip to next 
-		cout << "ERROR: function returned abnormally." << endl;
-		return;
-	}
 
-	// TODO: update xProx and xDist before passing the subtree.
-	if (true) {
-		//pass
-	}
+	// TODO: update xProx and xDist before passing the subtree. DONE!
+
 	// general case, if it doesn't return from other cases
 
+	// update parent for root vessel
+	subtreeRoot->parent = targetParent;
+	oldTerminalVessel->parent = NULL;
+
+	//update ID recursively
+	// vessel->ID = ID + nTerms;
+
+	// update stages recursively
+	// vessel->stage = (int)currentStage
+
+	// update levels recursively
+	// vessel->nlevel = parent->nLevel + vessel->nLevel + 1
+
+	// update radius, root or recursively, it will be updated later.
+	// vessel->radius = static_cast<SingleVessel *>(parent)->radius;
+
+
+	// clear parent's children and append (DO THIS AFTER ALL UPDATES)
+	targetParent->removeChildren();
+	targetParent->addChild(subtreeRoot);
+
+	// update properties
+	// vessel->viscosity = nu->getValue(vessel->nLevel)
+	// vessel->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
+	
+
 	// update subtree levels, viscosity, resistance
-	// update level
-	iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
-	// UPDATE PARENT
-	iNew->parent = parent;
-	// UPDATE ID
-	iNew->ID = nTerms; // FIX THIS!!! ID + nTerms
-	// UPDATE STAGE
-	iNew->stage = currentStage;
-	// UPDATE (TEMP) RADIUS
-	iNew->radius = static_cast<SingleVessel *>(parent)->radius;
-	// ADD CHILD
-	parent->addChild(iNew);
-	// update properties
-	iNew->viscosity = nu->getValue(iNew->nLevel);
-	iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
-	iNew->parent = parent;
-	iNew->ID = nTerms;
-	iNew->stage = currentStage;
+	
 
-	// temp radius
-	iNew->radius = static_cast<SingleVessel *>(parent)->radius;
 	// update properties
-	iCon->nLevel = ((SingleVessel *) parent)->nLevel + 1;
-	iCon->viscosity = nu->getValue(iCon->nLevel);
-	iCon->parent = parent;
-	iCon->ID = ((SingleVessel *) parent)->ID;
-	iCon->stage = ((SingleVessel *) parent)->stage;
-	iCon->radius = static_cast<SingleVessel *>(parent)->radius;
-
-	// Swap parents for each other children <<== this is what i want, but for only 1 child vessel
-	vector<AbstractVascularElement *> prevChildrenParent = parent->getChildren();
-	if (prevChildrenParent.empty()) {
-		iCon->resistance = 8 * iCon->viscosity / M_PI * iCon->length;
+	
+	// Swap parents
+	vector<AbstractVascularElement *> previousChildren = targetParent->getChildren();
+	if (previousChildren.empty()) {
+		// update this resistance
 	} else {
-		for (vector<AbstractVascularElement *>::iterator it = prevChildrenParent.begin(); it != prevChildrenParent.end(); ++it) {
-			iCon->addChild(*it);
-			(*it)->parent = iCon;
+		for (vector<AbstractVascularElement *>::iterator it = previousChildren.begin(); it != previousChildren.end(); ++it) {
+			// iCon->addChild(*it);
+			// (*it)->parent = icon;
 		}
-		parent->removeChildren();
+		targetParent->removeChildren();
 	}
+	
+	targetParent->addChild(subtreeRoot);
+	((SingleVesselCCOOTree*)newSubtree)->setRoot((SingleVessel*)oldTerminalVessel);
 
-	// ADD CHILD
-	parent->addChild(iNew);
-	parent->addChild(iCon);
+
+	// // Swap parents for each other children <<== this is what i want, but for only 1 child vessel
+	// // vector<AbstractVascularElement *> prevChildrenParent = parent->getChildren();
+	// if (prevChildrenParent.empty()) {
+	// 	iCon->resistance = 8 * iCon->viscosity / M_PI * iCon->length;
+	// } else {
+	// 	for (vector<AbstractVascularElement *>::iterator it = prevChildrenParent.begin(); it != prevChildrenParent.end(); ++it) {
+	// 		iCon->addChild(*it);
+	// 		(*it)->parent = iCon;
+	// 	}
+	// 	parent->removeChildren();
+	// }
+
+	// // ADD CHILD
+	// parent->addChild(iNew);
+	// parent->addChild(iCon);
 
 	// update the VTK properties
 
-	// UPDATE VTK tree geometry
+	// UPDATE VTK tree geometry recursively, and remove the other vessel
 	//	Update tree geometry
 	vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
 
@@ -2360,7 +2373,7 @@ void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, Abstrac
 
 	return;
 	
-*/
+
 	return;
 }
 
@@ -3579,6 +3592,10 @@ void SingleVesselCCOOTree::updateAll() {
 
 void SingleVesselCCOOTree::setIsGammaStage(bool isGammaStage) {
 	this->isGammaStage = isGammaStage;
+}
+
+void SingleVesselCCOOTree::setRoot(SingleVessel *newRoot) {
+	this->root = newRoot;
 }
 
 double SingleVesselCCOOTree::getGamma(SingleVessel *vessel) {

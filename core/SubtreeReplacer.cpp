@@ -247,7 +247,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		// map proximal and distal of subtrees, recursively for every child.
 		// update radius, update tree
 		int newTerms = 51;
-		tree->addSubtree(newSubtree, oldVessel, oldVessel->parent, newTerms);
+		tree->addSubtree(newSubtree, oldVessel, newTerms);
 
 		
 		// append tree, use SVCCOOT::addSubtree() method.
