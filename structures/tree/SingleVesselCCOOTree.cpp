@@ -2274,8 +2274,17 @@ void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, Abstrac
 	((SingleVesselCCOOTree*)newSubtree)->setRoot((SingleVessel*)oldTerminalVessel);
 	oldTerminalVessel->parent = NULL;
 
-
 	// update the VTK properties
+	// the same object subtreeVessels refers to new vessels
+	for (vector<SingleVessel *>::iterator vessel = subtreeVessels.begin(); vessel != subtreeVessels.end(); ++vessel) {
+		// for the root vessel, we don't "InsertNextPoint", we SetPoint to not keep the ghost point/segment
+		if ((*vessel)->vtkSegmentId == subtreeRoot->vtkSegmentId) {
+			vtkIdType idDistRoot = ((SingleVessel*)oldTerminalVessel)->vtkSegmentId; // get the ID to be replaced
+			vtkTree-> /// use the GetPoints()->SetPoint or other stuff, check documentation
+		} else { // for all the other segments
+			vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint((*vessel)->xDist.p);
+		}
+	}
 
 	// UPDATE VTK tree geometry recursively, and remove the other vessel
 	//	Update tree geometry
