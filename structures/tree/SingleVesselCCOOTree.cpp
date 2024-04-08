@@ -2276,68 +2276,53 @@ void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, Abstrac
 
 	// update the VTK properties
 	// the same object subtreeVessels refers to new vessels
+	// we must add nterms to every vtkIdType so we don't have two with the same number
+	int idOffset = nTerms;
 	for (vector<SingleVessel *>::iterator vessel = subtreeVessels.begin(); vessel != subtreeVessels.end(); ++vessel) {
 		// for the root vessel, we don't "InsertNextPoint", we SetPoint to not keep the ghost point/segment
 		if ((*vessel)->vtkSegmentId == subtreeRoot->vtkSegmentId) {
-			vtkIdType idDistRoot = ((SingleVessel*)oldTerminalVessel)->vtkSegmentId; // get the ID to be replaced
-			vtkTree-> /// use the GetPoints()->SetPoint or other stuff, check documentation
+
+			vtkIdType idDist = ((SingleVessel*)oldTerminalVessel)->vtkSegmentId; // get the ID to be replaced
+			vtkTree->GetPoints()->SetPoint(idDist,(*vessel)->xDist.p); /// use the GetPoints()->SetPoint(...) to replace the root distal point with new root distal point.
+
+			(*vessel)->vtkSegment = ((SingleVessel *)oldTerminalVessel)->vtkSegment;
+			((SingleVessel *)oldTerminalVessel)->vtkSegment = nullptr;
+			(*vessel)->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *)(*vessel)->parent)->vtkSegment->GetPointId(1));
+			(*vessel)->vtkSegment->GetPointIds()->SetId(1, idDist);
+
+			// I opted to re-include this, and use the remove ghost cells after.
+			(*vessel)->vtkSegmentId = vtkTree->GetLines()->InsertNextCell((*vessel)->vtkSegment);
+			elements[(*vessel)->vtkSegmentId] = (*vessel);
+			//// NOTE: I hope the old terminal vessel is removed, because i replace in the hash_map, but if not, remove the item below:
+			// elements[((SingleVessel*)oldTerminalVessel)->vtkSegmentId]
+
 		} else { // for all the other segments
+
+			// Update tree geometry
 			vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint((*vessel)->xDist.p);
+
+			// I will assume the iterator loops through the vessel list in a parent-first children-after order
+			/// WARNING: this will possibly induce in errors, but i haven't found a more elegant way to solve this by now.
+			/// TODO: pass this a recursive function will possibly solve this issue. (Todo later).
+			(*vessel)->vtkSegment = vtkSmartPointer<vtkLine>::New();
+			(*vessel)->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *)(*vessel)->parent)->vtkSegment->GetPointId(1));
+			(*vessel)->vtkSegment->GetPointIds()->SetId(1, idDist);
+			
+			(*vessel)->vtkSegmentId = vtkTree->GetLines()->InsertNextCell((*vessel)->vtkSegment);
+			elements[(*vessel)->vtkSegmentId] = (*vessel);
+
 		}
 	}
+	// if i want to replace the point ids of a cell, i could use the line below:
+	// vtkTree->ReplaceCellPoint(((SingleVessel *) parent)->vtkSegmentId, ((SingleVessel *) parent)->vtkSegment->GetPointId(1), idProx);
+	// ((SingleVessel *) parent)->vtkSegment->GetPointIds()->SetId(1, idProx);
 
-	// UPDATE VTK tree geometry recursively, and remove the other vessel
-	//	Update tree geometry
-	vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
+	vtkTree->RemoveGhostCells();
 
-	iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
-	iNew->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second index is the global index of the mesh point
-	iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
-
-	iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
-	elements[iNew->vtkSegmentId] = iNew;
 
 	vtkTree->BuildCells();
 	vtkTree->Modified();
-
-	//	Update tree locator
-	vtkTreeLocator->Update();
-
-
-	//	Update tree geometry
-	vtkIdType idProx = vtkTree->GetPoints()->InsertNextPoint(xProx.p);
-	vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
-
-	iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
-	iNew->vtkSegment->GetPointIds()->SetId(0, idProx); // the second index is the global index of the mesh point
-	iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
-
-	iCon->vtkSegment = vtkSmartPointer<vtkLine>::New();
-	iCon->vtkSegment->GetPointIds()->SetId(0, idProx); // the second 0 is the index of xProx
-	iCon->vtkSegment->GetPointIds()->SetId(1, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second 1 is the index of xDist
-
-	iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
-	iCon->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iCon->vtkSegment);
-
-	elements[iNew->vtkSegmentId] = iNew;
-	elements[iCon->vtkSegmentId] = iCon;
-
-//		cout << "Parent VTK Cell ids : " << vtkTree->GetCell(parent->vtkSegmentId)->GetPointIds()->GetNumberOfIds() << endl;
-//		cout << "Intented modified id " << parent->vtkSegment->GetPointId(1) << endl;
-	vtkTree->ReplaceCellPoint(((SingleVessel *) parent)->vtkSegmentId, ((SingleVessel *) parent)->vtkSegment->GetPointId(1), idProx);
-	((SingleVessel *) parent)->vtkSegment->GetPointIds()->SetId(1, idProx);
-
-	vtkTree->BuildCells();
-	vtkTree->Modified();
-
-//		cout << "Points = " << vtkTree->GetNumberOfPoints() << endl;
-//		cout << "Vessels = " << vtkTree->GetNumberOfLines() << endl;
-
-	//	Update tree locator
-	vtkTreeLocator->Update();
-
-	return;
-	
+	vtkTreeLocator->Update(); // Update tree locator
 
 	return;
 }
