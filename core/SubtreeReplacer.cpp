@@ -183,7 +183,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		// map xyz-translation, map xy-rotation, map z-scale
 		// keep xy-scale (or use z-scale)
 		// TODO: random z-rotation
-
+		cout << "tree imported, calculating basing characteristics" << endl;
 		// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
 		point originSubtree = {0,0,0};
 		double heightSubtree = 2.5; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
@@ -196,14 +196,19 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		double length = sqrt(displacement^displacement);
 		point unitDirection = displacement/length;
 
+		cout << "linear mapping the tree..." << endl;
 		// SCALING
 		double scaleFactor = length / heightSubtree;
 		// scale the tree, for each terminal scale distal/proximal points
 		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); it != subtreeVessels.end(); ++it) {
-			(*itVessel)->xProx = (*itVessel)->xProx*scaleFactor;
-			(*itVessel)->xDist = (*itVessel)->xDist*scaleFactor;
+			(*itVessel)->xProx.p[0] = (*itVessel)->xProx.p[0]*scaleFactor;
+			(*itVessel)->xDist.p[0] = (*itVessel)->xDist.p[0]*scaleFactor;
+			(*itVessel)->xProx.p[1] = (*itVessel)->xProx.p[1]*scaleFactor;
+			(*itVessel)->xDist.p[1] = (*itVessel)->xDist.p[1]*scaleFactor;
+			(*itVessel)->xProx.p[2] = (*itVessel)->xProx.p[2]*scaleFactor;
+			(*itVessel)->xDist.p[2] = (*itVessel)->xDist.p[2]*scaleFactor;
 		}
-
+		cout << "scaled, now rotating" << endl;
 		// ROTATION
 		// Rodrigues formula.
 		point u {unitSubtree};
@@ -232,7 +237,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 			(*itVessel)->xProx = Rotation*(*itVessel)->xProx;
 			(*itVessel)->xDist = Rotation*(*itVessel)->xDist;
 		}
-
+		cout << "rotated, now translating" << endl;
 		// TRANSLATION
 		point translationVector = vesselProx - originSubtree;
 		// translate for each point
@@ -240,14 +245,14 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 			(*itVessel)->xProx = (*itVessel)->xProx + translationVector;
 			(*itVessel)->xDist = (*itVessel)->xDist + translationVector;
 		}
-
+		cout << "subtree ready for replacement" << endl;
 		// Now the subtree is geometrically located in the correct point. Time to replace the subtree.
 
 		// TODO: make subtree and append
 		// Read CCO, map root, and childs recursively
 		// map proximal and distal of subtrees, recursively for every child.
 		// update radius, update tree
-		int newTerms = 51;
+		int newTerms = 101;
 		cout << "WARNING: hardcode for " << newTerms << " new terms in subtree" << endl;
 		tree->addSubtree(newSubtree, oldVessel, newTerms);
 
@@ -257,7 +262,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 
 		// update the tree, terms, VTK_ID, etc.
 
-
+		delete newSubtree;
 	}
 	
 
