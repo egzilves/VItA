@@ -144,7 +144,7 @@ public:
 	/**
 	 * Replace the segment with a subtree given the probability of picking
 	 */
-	AbstractObjectCCOTree *replaceSegments(long long int saveInterval, string tempDirectory);
+	AbstractObjectCCOTree *replaceSegments(long long int saveInterval, string tempDirectory, string subtreeFilename);
 	
 	// // /**
 	// //  * Resumes the tree generation.

@@ -127,7 +127,7 @@ SubtreeReplacer::~SubtreeReplacer() {
 }
 
 
-AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterval, string tempDirectory){
+AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterval, string tempDirectory, string subtreeFilename){
 	this->beginTime = time(nullptr);
 	generatesConfigurationFile(ios::out);
 
@@ -155,7 +155,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 	vector<SingleVessel *> treeVessels = this->tree->getVessels();
 	vector<SingleVessel *> replacedVessels = replacedFilters->apply(treeVessels);
 
-	// TODO: for each (SingleVessel *) vessel
+	/// TODO: for each (SingleVessel *) vessel
 	int maxIterations = 1000;
 	int itCount = 0;
     GeneratorData *gen_data_0 {new GeneratorData(16000, 2000, 0.95,
@@ -164,7 +164,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
     AbstractConstraintFunction<double, int> *eps_lim_1 {new ConstantPiecewiseConstraintFunction<double, int>({0.0, 0.0},{0, 2})};
     AbstractConstraintFunction<double,int> *nu {new ConstantConstraintFunction<double, int>(3.6)}; //cP
 
-	// TODO: sort type of tree
+	/// TODO: sort type of tree
 	cout << "WARNING: limiting max iterations to " << maxIterations << endl;
 	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
 		SingleVessel* oldVessel = (*it);
@@ -173,7 +173,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		point vesselDist = oldVessel->xDist;
 
 		// Instantiate a new subtree
-		string subtreeFilename;
+		// string subtreeFilename = subtreeFilename;
 		SingleVesselCCOOTree *newSubtree {new SingleVesselCCOOTree(subtreeFilename, gen_data_0, gam_0, eps_lim_1, nu)};
 		vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
 
