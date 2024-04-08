@@ -259,7 +259,7 @@ public:
     // void TreeMerger(SingleVesselCCOOTree *baseTree, vector<string>& derivedTreePoints);
     // void /*~*/dTreeMerger();
     // SingleVesselCCOOTree *mergeFast();
-
+	bool allowThisClass = false;
 
 protected:
 	/**	Configuration file stream. */

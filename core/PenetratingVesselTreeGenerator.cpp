@@ -127,6 +127,10 @@ PenetratingVesselTreeGenerator::~PenetratingVesselTreeGenerator() {
 
 
 AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long long int saveInterval, string tempDirectory){
+	if (!allowThisClass) {
+		cout << "FATAL: experimental class, set bool 'allowThisClass' to true to use this" << endl;
+		exit(1);
+	}
 	this->beginTime = time(nullptr);
 	generatesConfigurationFile(ios::out);
 

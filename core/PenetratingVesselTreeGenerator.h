@@ -123,6 +123,8 @@ class PenetratingVesselTreeGenerator : public IDomainObserver  {
     // vector<vector<ReadData>*> *vesselToMerge;
     unordered_map<string, SingleVessel *> *stringToPointer;
 
+	bool allowThisClass = false;
+
 public:
 	/**
 	 * Constructor to resume from a pre-existent tree.
