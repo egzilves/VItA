@@ -165,6 +165,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
     AbstractConstraintFunction<double,int> *nu {new ConstantConstraintFunction<double, int>(3.6)}; //cP
 
 	// TODO: sort type of tree
+	cout << "WARNING: limiting max iterations to " << maxIterations << endl;
 	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
 		SingleVessel* oldVessel = (*it);
 		// TODO: get properties, get distal (coordinates), get radius, length
@@ -260,12 +261,7 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 	
 
 
-
-
-
 	cout << "iterated through all vessels" << endl;
-
-
 
 
 	// yes run it because we dont want to update everything after EVERY vessel.
