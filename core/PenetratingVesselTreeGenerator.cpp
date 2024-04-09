@@ -208,7 +208,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	printf("iterating all segments, bifurcating from terminals\n");
 	cout << vesselsList.size() << endl;
 	long long int vesselcount = 0;
-	cout << "ATTENTION: LIMITING TO "<<maxGenerateLimit<<" VESSELS" << endl;
+	cout << "INFO: Limiting to " << maxGenerateLimit << " vessels." << endl;
 	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end() && vesselcount<maxGenerateLimit; ++it, ++vesselcount) {
 		// cout<<"\n-----\n"<<endl;
 
