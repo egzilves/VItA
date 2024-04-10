@@ -110,6 +110,8 @@ class PenetratingVesselTreeGenerator : public IDomainObserver  {
 	vtkSmartPointer<vtkCellLocator> locatorIntersect;
 	/** Cell locator responsible to determine if a segment is inside the domain, check closest cell to project. */
 	vtkSmartPointer<vtkCellLocator> locatorProjection;
+	/** Normal geometry for the cells */
+	vtkSmartPointer<vtkDataArray> cellNormalsRetrieved;
 	/**	Descending offset for projected points */
 	double descendingOffset;
 	/**	Penetration offset for projected points */
@@ -118,11 +120,20 @@ class PenetratingVesselTreeGenerator : public IDomainObserver  {
 	double maxDistanceToClosestPoint;
 	/** Maximum segment length inside domain. */
 	double maxPenetratingVesselLength;
+	/** Penetration length factor of generated penetrating vessels, 1.0 for full length up to max length */
+	double penetrationFactor;
+	/** Maximum generation limit for quantity of descending/penetrating vessels, for test purposes. If running, keep high value */
+	long long int maxGenerateLimit;
+	/** Raycast displacement for calculating intersecting cells */
+	double xRayDisplacement;
+	/** endpoint tolerance for intersecting cells */
+	double intersectionTolerance;
 
     // SingleVesselCCOOTree *treee;
     // vector<vector<ReadData>*> *vesselToMerge;
     unordered_map<string, SingleVessel *> *stringToPointer;
 
+	/** Failsafe to avoid usage of incomplete class.*/
 	bool allowThisClass = false;
 
 public:
@@ -153,14 +164,59 @@ public:
 	//  * Resumes the tree generation process and saves the optimal xNew and xBif in @param fp.
 	//  */
 	// AbstractObjectCCOTree *resumeSavePointsMidPoint(long long int saveInterval, string tempDirectory, FILE *fp);
+
 	/**
-	 * Generates the tree penetration into domain.
+	 * Generates the tree descending into domain, the first step.
+	 * @param saveInterval Number of iterations performed between saved steps.
+	 * @param tempDirectory Directory where intermediate solutions are saved.
+	 * @return	Perfusion tree.
+	 */
+	AbstractObjectCCOTree *generateDescending(long long int saveInterval, string tempDirectory);
+	/**
+	 * Generates the tree penetration into domain, the second step.
 	 * @param saveInterval Number of iterations performed between saved steps.
 	 * @param tempDirectory Directory where intermediate solutions are saved.
 	 * @return	Perfusion tree.
 	 */
 	AbstractObjectCCOTree *generatePenetrating(long long int saveInterval, string tempDirectory);
 	
+	/** 
+	 * Failsafe to avoid usage of incomplete class.
+	 */
+	inline void failsafeCheck();
+	/** 
+	 * Filter for terminal vessels and return the vector of singlevessels.
+	 */
+	vector<SingleVessel *> filterTerminalVessels();
+	/**
+	 * Build normal and locator structures for calculations
+	 */
+	void buildNormalLocator();
+	/**
+	 * Build intersection locator for other side
+	 */
+	void buildIntersectionLocator();
+	/**
+	 * Find the distal point for the first step descending vessel
+	 * @param terminal The point from where descending will occur.
+	 * @param distance2 Squared length of descending vessel.
+	 */
+	point findDistalDescending(point terminal, point& normal, double& distance2);
+	/**
+	 * Checks if descending vessel is valid.
+	 * @param distance2T Distance squared of the descending vessel.
+	 */
+	bool isDescendingValid(double distance2T);
+	/**
+	 * Find the distal point for the second step penetrating vessel
+	 * @param terminal The point from where penetration will occur.
+	 */
+	point findDistalPenetrating(point terminal);
+	/**
+	 * Checks if penetrating vessel is valid.
+	 */
+	bool isPenetratingValid(int foundRaycast);
+
 	/**
 	 * Returns the perfusion domain.
 	 * @return Perfusion domain.
