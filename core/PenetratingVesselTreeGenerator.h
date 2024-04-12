@@ -199,7 +199,8 @@ public:
 	/**
 	 * Find the distal point for the first step descending vessel
 	 * @param terminal The point from where descending will occur.
-	 * @param distance2 Squared length of descending vessel.
+	 * @param normal Returned normal of the surface at that point.
+	 * @param distance2 Returned squared length of descending vessel.
 	 */
 	point findDistalDescending(point terminal, point& normal, double& distance2);
 	/**
@@ -210,12 +211,23 @@ public:
 	/**
 	 * Find the distal point for the second step penetrating vessel
 	 * @param terminal The point from where penetration will occur.
+	 * @param normal Normal of the surface at the terminal.
+	 * @param foundRaycast Returned value if intersection is found.
 	 */
-	point findDistalPenetrating(point terminal);
+	point findDistalPenetrating(point terminal, point normal, int& foundRaycast);
+	/**
+	 * Adjust the penetrating length to the maximum value
+	 * @param length Length of the penetrating vessel.
+	 */
+	double adjustMaxPenetratingLength(double length);
 	/**
 	 * Checks if penetrating vessel is valid.
 	 */
 	bool isPenetratingValid(int foundRaycast);
+	/**
+	 * Checks if generated penetrating segment is fully inside the geometry.
+	 */
+	bool isPenetratingInside(point xProx, point xDist);
 
 	/**
 	 * Returns the perfusion domain.

@@ -231,8 +231,46 @@ bool PenetratingVesselTreeGenerator::isDescendingValid(double distance2T) {
 	return outputCheck;
 }
 
-point PenetratingVesselTreeGenerator::findDistalPenetrating(point terminal) {
-	return point{0,0,0};
+point PenetratingVesselTreeGenerator::findDistalPenetrating(point terminal, point normal, int& foundRaycast) {
+	/// NOTE: @param terminal is the xNew1/distal of the descending, the xBif/proximal of the penetrating.
+	// get final point of bifurcation per new segment. this technique uses a ray-cast and
+	// finds the first intersection to a surface, and considers it as the end of domain.
+	point xRayDisplacementT = (normal*xRayDisplacement)*(-1);
+	point xRaycastT = terminal + xRayDisplacementT;
+
+	// find the endpoint for vessel
+	double tParamT = 0.0;
+	point hitpointT;
+	point pcoordsT;
+	vtkIdType endCellIdT;
+	int endSubIdT = 0;
+
+	foundRaycast = this->locatorIntersect->IntersectWithLine(terminal.p, xRaycastT.p, intersectionTolerance,
+		tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT);
+	
+	point directionT = hitpointT - terminal;
+	directionT = directionT / sqrt(directionT^directionT);
+
+	// Check if segment is too long, and clamp it to a maximum value
+	// point is always from inside the surface, we subtract to make the length shorter.
+	point endpointT;
+	endpointT = hitpointT - directionT * endpointOffset;
+
+	point penetratingT = endpointT - terminal;
+	double lengthT = sqrt(penetratingT^penetratingT);
+	lengthT = adjustMaxPenetratingLength(lengthT);
+
+	point xNew2 = terminal + (penetratingT/sqrt(penetratingT^penetratingT))*lengthT*penetrationFactor;
+
+	return xNew2;
+}
+
+double PenetratingVesselTreeGenerator::adjustMaxPenetratingLength(double length) {
+	if (length > maxPenetratingVesselLength){
+		cout << "NOTE: Terminal shortened, length beyond maximum distance." << "\n";
+		length = maxPenetratingVesselLength;
+	}
+	return length;
 }
 
 bool PenetratingVesselTreeGenerator::isPenetratingValid(int foundRaycast) {
@@ -244,6 +282,16 @@ bool PenetratingVesselTreeGenerator::isPenetratingValid(int foundRaycast) {
 	return outputCheck;
 }
 
+bool PenetratingVesselTreeGenerator::isPenetratingInside(point xProx, point xDist) {
+	bool isInside = true;
+	// check if the displaced new point/segment is indeed inside domain.
+	isInside = domain->isSegmentInside(xProx, xDist);
+	if (!isInside) {
+		cout << "WARNING: Terminal penetrating step 2 outside domain. Aborted this vessel. Is the domain thick enough?" << "\n";
+		isInside = false;
+	}
+	return isInside;
+}
 
 AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescending(long long int saveInterval, string tempDirectory){
 	failsafeCheck();
@@ -278,56 +326,16 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescending(long l
 		point normal;
 		// get intersection point from bifurcation to surface along versor
 		point xNew1 = findDistalDescending(terminal, normal, length2);
-		bool generateFromTerminal = isDescendingValid(length2);
 
 		// =====================================================================================
 
-		// get final point of bifurcation per new segment. this technique uses a ray-cast and
-		// finds the first intersection to a surface, and considers it as the end of domain.
-		point xRayDisplacementT = (normal*xRayDisplacement)*(-1);
-		point xRaycastT = xNew1 + xRayDisplacementT;
-
-		// find the endpoint for vessel
-		double tParamT = 0.0;
-		point hitpointT;
-		point pcoordsT;
-		vtkIdType endCellIdT;
-		int endSubIdT = 0;
-
 		int foundRaycast;
-		foundRaycast = this->locatorIntersect->IntersectWithLine(xNew1.p, xRaycastT.p, intersectionTolerance,
-			tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT);
+		point xNew2 = findDistalPenetrating(xNew1, normal, foundRaycast);
 		
-		
-		generateFromTerminal = generateFromTerminal && isPenetratingValid(foundRaycast);
+		bool generateFromTerminal = (isDescendingValid(length2) && 
+									 isPenetratingValid(foundRaycast) && 
+									 isPenetratingInside(xNew1, xNew2));
 
-
-
-		point directionT = hitpointT - xNew1;
-		directionT = directionT / sqrt(directionT^directionT);
-
-		// Check if segment is too long, and clamp it to a maximum value
-		// point is always from inside the surface, we subtract to make the length shorter.
-		point endpointT;
-		endpointT = hitpointT - directionT * endpointOffset;
-
-		point penetratingT = endpointT - xNew1;
-		double lengthT = sqrt(penetratingT^penetratingT);
-
-		if (lengthT > maxPenetratingVesselLength){
-			cout << "NOTE: Terminal shortened, length beyond maximum distance." << "\n";
-			lengthT = maxPenetratingVesselLength;
-		}
-
-		point xNew2T = xNew1 + (penetratingT/sqrt(penetratingT^penetratingT))*lengthT*penetrationFactor;
-
-		// check if the displaced new point/segment is indeed inside domain.
-		bool isPenetratingInsideT;
-		isPenetratingInsideT = domain->isSegmentInside(xNew1, xNew2T);
-		if (!isPenetratingInsideT) {
-			cout << "WARNING: Terminal penetrating step 2 outside domain. Aborted this vessel. Is the domain thick enough?" << "\n";
-			generateFromTerminal = false;
-		}
 
 		if (parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT)
 			parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING;
@@ -341,7 +349,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescending(long l
 			// The following assumes parent vessel was a terminal and has a single child at the distal tip
 			cout << "add descending 2nd step" << endl;
 			SingleVessel* firstStepVesselT = (SingleVessel *) parent->getChildren()[0];
-			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1, xNew2T, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1, xNew2, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
 			SingleVessel* secondStepVesselT = (SingleVessel *) firstStepVesselT->getChildren()[0];
 			// cout << "added!." << endl;
