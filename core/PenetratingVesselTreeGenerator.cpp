@@ -302,14 +302,8 @@ bool PenetratingVesselTreeGenerator::isPenetratingInside(point xProx, point xDis
 	return isInside;
 }
 
-void PenetratingVesselTreeGenerator::setParentDistal(SingleVessel* parent) {
-	// if (parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT)
-		parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING;
-}
-
-void PenetratingVesselTreeGenerator::setParentRigid(SingleVessel* parent) {
-	// if (parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING)
-		parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT;
+void PenetratingVesselTreeGenerator::setParentMode(SingleVessel* parent, AbstractVascularElement::BRANCHING_MODE mode) {
+	parent->branchingMode = mode; 
 }
 
 AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateData(
@@ -337,9 +331,9 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateData(
 		SingleVessel* parent = (*it);
 		
 		if (parametricT == 1.0) {
-			setParentDistal(parent);
+			parent->AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING;
 		} else if (parametricT < 1.0) {
-			setParentRigid(parent);
+			parent->AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT;
 		}
 		// get the bifurcation point from the terminal
 		// the bifurcation points are the terminal and midpoint points
@@ -406,6 +400,26 @@ int temporaryfunction(){
 
 }
  */
+
+AbstractObjectCCOTree *PenetratingVesselTreeGenerator::descend(
+		long long int saveInterval, string tempDirectory){
+	//
+	//
+	return tree;
+}
+
+AbstractObjectCCOTree *PenetratingVesselTreeGenerator::penetrate(
+		long long int saveInterval, string tempDirectory){
+	//
+	//
+	return tree;
+}
+
+int PenetratingVesselTreeGenerator::saveData(/*file type*/) {
+	/// TODO: write function
+	return 0;
+}
+
 int PenetratingVesselTreeGenerator::isValidSegment(point xNew, int iTry) {
 
 	if (iTry % instanceData->nTerminalTrial == 0) {

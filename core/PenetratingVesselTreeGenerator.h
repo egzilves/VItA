@@ -225,20 +225,31 @@ public:
 	double adjustMaxPenetratingLength(double length);
 	/**
 	 * Checks if penetrating vessel is valid.
+	 * @param foundRaycast Parameter passed, 1 if found, 0 if no intersection
 	 */
 	bool isPenetratingValid(int foundRaycast);
 	/**
 	 * Checks if generated penetrating segment is fully inside the geometry.
+	 * @param xProx proximal point of vessel
+	 * @param xDist distal point of vessel
 	 */
 	bool isPenetratingInside(point xProx, point xDist);
 	/**
-	 * Make parent distal branching.
+	 * Make parent rigid/distal/nobranching.
 	 */
-	void setParentDistal(SingleVessel* parent);
+	void setParentMode(SingleVessel* parent, AbstractVascularElement::BRANCHING_MODE mode);
 	/**
-	 * Make parent rigid parent.
+	 * Save the penetrating data to a file.
 	 */
-	void setParentRigid(SingleVessel* parent);
+	int saveData(/*file type*/);
+	/**
+	 * Append descending arterioles to the tree.
+	 */
+	AbstractObjectCCOTree *descend(long long int saveInterval, string tempDirectory);
+	/**
+	 * Append penetrating arterioles to the descending arterioles.
+	 */
+	AbstractObjectCCOTree *penetrate(long long int saveInterval, string tempDirectory);
 
 	/**
 	 * Returns the perfusion domain.
