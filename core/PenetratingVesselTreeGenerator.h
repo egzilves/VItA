@@ -16,6 +16,7 @@
 #include <vector>
 #include <ctime>
 #include <unordered_map>
+#include <map>
 
 #include <vtkSmartPointer.h>
 #include <vtkPolyData.h>
@@ -128,6 +129,15 @@ class PenetratingVesselTreeGenerator : public IDomainObserver  {
 	double xRayDisplacement;
 	/** endpoint tolerance for intersecting cells */
 	double intersectionTolerance;
+	/** Parametric position of the terminal where descending will occur, 1.0 is distal, 0.5 is midpoint. */
+	double parametricT;
+	/** Information about descending and penetrating vessels to be appended */
+	map<double,unordered_map<vtkIdType,vector<point>>> penetratingData;
+	/** Vessel function for generation */
+	AbstractVascularElement::VESSEL_FUNCTION vesselFunction;
+	/** Branching mode for generation */
+	AbstractVascularElement::BRANCHING_MODE branchingMode;
+
 
     // SingleVesselCCOOTree *treee;
     // vector<vector<ReadData>*> *vesselToMerge;
@@ -171,15 +181,8 @@ public:
 	 * @param tempDirectory Directory where intermediate solutions are saved.
 	 * @return	Perfusion tree.
 	 */
-	AbstractObjectCCOTree *generateDescending(long long int saveInterval, string tempDirectory);
-	/**
-	 * Generates the tree penetration into domain, the second step.
-	 * @param saveInterval Number of iterations performed between saved steps.
-	 * @param tempDirectory Directory where intermediate solutions are saved.
-	 * @return	Perfusion tree.
-	 */
-	AbstractObjectCCOTree *generatePenetrating(long long int saveInterval, string tempDirectory);
-	
+	AbstractObjectCCOTree *generateData(long long int saveInterval, string tempDirectory);
+
 	/** 
 	 * Failsafe to avoid usage of incomplete class.
 	 */
@@ -228,6 +231,14 @@ public:
 	 * Checks if generated penetrating segment is fully inside the geometry.
 	 */
 	bool isPenetratingInside(point xProx, point xDist);
+	/**
+	 * Make parent distal branching.
+	 */
+	void setParentDistal(SingleVessel* parent);
+	/**
+	 * Make parent rigid parent.
+	 */
+	void setParentRigid(SingleVessel* parent);
 
 	/**
 	 * Returns the perfusion domain.
