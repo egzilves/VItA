@@ -136,7 +136,9 @@ PenetratingVesselTreeGenerator::PenetratingVesselTreeGenerator(
 	this->vesselFunction = (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction;
 	this->branchingMode = (AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode;
 
-	this->penetratingData.clear();
+	this->vesselsList.clear();
+	this->descendingData.clear();
+	this->appendedVesselData.clear();
 
 }
 
@@ -306,6 +308,7 @@ void PenetratingVesselTreeGenerator::setParentMode(SingleVessel* parent, Abstrac
 	parent->branchingMode = mode; 
 }
 
+
 AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateData(
 		long long int saveInterval, string tempDirectory){
 	failsafeCheck();
@@ -314,7 +317,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateData(
 	buildIntersectionLocator();
 
 	// get list of bifurcable vessels, the parent vessels
-	vector<SingleVessel *> vesselsList = filterTerminalVessels();
+	this->vesselsList = filterTerminalVessels();
 	long long int vesselcount = 0;
 	// parametricT = 1.0;
 	// cout << "WARNING: Hardcode of parametricT to " << parametricT << " . " << endl;
@@ -331,9 +334,9 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateData(
 		SingleVessel* parent = (*it);
 		
 		if (parametricT == 1.0) {
-			parent->AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING;
+			parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING;
 		} else if (parametricT < 1.0) {
-			parent->AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT;
+			parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT;
 		}
 		// get the bifurcation point from the terminal
 		// the bifurcation points are the terminal and midpoint points
@@ -361,7 +364,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateData(
 		// parent (ID), xbif, xnew1, xnew2.
 		if (generateFromTerminal) {
 			cout << "Saving coordinates to local variable" << endl;
-			penetratingData[parametricT][parent->vtkSegmentId] = {xBifT, xNew1, xNew2};
+			descendingData[parametricT][parent->vtkSegmentId] = {xBifT, xNew1, xNew2};
 		}
 	}
 	cout << "iterated through all " << vesselsList.size() << " vessels" << endl;
@@ -374,49 +377,72 @@ int temporaryfunction(){
 	// INSIDE LOOP
 		/// TODO: move this to another function, 2 functions.
 		if (generateFromTerminal) {
-			cout << "add descending 1st step" << endl;
-			// Move to descend();
-			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifT, xNew1, parent, this->vesselFunction, this->branchingMode);
 
-			// Move to penetrate();
-			// The following assumes parent vessel was a terminal and has a single child at the distal tip
-			cout << "add descending 2nd step" << endl;
-			SingleVessel* firstStepVesselT = (SingleVessel *) parent->getChildren()[0];
-			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1, xNew2, firstStepVesselT, this->vesselFunction, this->branchingMode);
-			SingleVessel* secondStepVesselT = (SingleVessel *) firstStepVesselT->getChildren()[0];
-			// cout << "added!." << endl;
 		}
-
-	// OUTSIDE LOOP
-/// TODO: move this to another function
-    // Update tree
-	cout << "updating the tree" << endl;
-	((SingleVesselCCOOTree*) tree)->updateMassiveTree();
-	cout << "tree updated" << endl;
-
-	tree->computePressure(tree->getRoot());
-	tree->setPointCounter(domain->getPointCounter());
-	saveStatus(nTerminals-1);
 
 }
  */
 
-AbstractObjectCCOTree *PenetratingVesselTreeGenerator::descend(
-		long long int saveInterval, string tempDirectory){
-	//
+AbstractObjectCCOTree *PenetratingVesselTreeGenerator::descend(double parametricValue){
+	// ATTENTION: add first terminal tip connections, and after that go inwards from distal towards proximal.
+	cout << "adding descending 1st step" << endl;
+	AbstractVascularElement::BRANCHING_MODE parametricMode;
+	if (parametricValue == 1.0) {
+		parametricMode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING;
+	} else if (parametricValue < 1.0) {
+		parametricMode = AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT;
+	}
+	// We get the parametricCase-th case in the map
+	unordered_map<vtkIdType, vector<point>> parametricPoints = descendingData[parametricValue];
+	for (unordered_map<vtkIdType, vector<point>>::iterator it = (parametricPoints).begin(); it!=(parametricPoints).end(); ++it) {
+		// My parent ID
+		vtkIdType parentID = (*it).first;
+		// My parent vessel
+		SingleVessel* parent = (SingleVessel*) tree->getSegments()[parentID];
+		parent->branchingMode = parametricMode;
+		// My bifurcation point
+		point xBifT = (*it).second[0];
+		// My new distal
+		point xNew1 = (*it).second[1];
+		// xNew2 is ignored, we save the coordinates and get from the file.
+		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifT, xNew1, parent, this->vesselFunction, this->branchingMode);
+		/// TODO: find a way to save the first step ID
+		vtkIdType firstStepVesselID = ((SingleVessel*)parent->getChildren()[0])->vtkSegmentId;
+		this->appendedVesselData[firstStepVesselID] = vector<point> {xBifT, xNew1, (*it).second[2]};
+	}
+	cout << "added!." << endl;
 	//
 	return tree;
 }
 
 AbstractObjectCCOTree *PenetratingVesselTreeGenerator::penetrate(
 		long long int saveInterval, string tempDirectory){
-	//
-	//
+	// This function is not implemented, I need to find a way to save the VTKIDSEGMENT of the descending vessels before implementing this, 
+	// so I can retrieve and find the new parent for the penetrating vessel. Since I want the points not the segment, it's postponed
+	/// TODO: implement this and find a way to get the descending segment VTKIDSEGMENT
+	cout << "ERROR: this function is not implemented" << endl;
+			// // Move to penetrate();
+			// // The following assumes parent vessel was a terminal and has a single child at the distal tip
+			// cout << "add descending 2nd step" << endl;
+			// ((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1, xNew2, firstStepVesselT, this->vesselFunction, this->branchingMode);
+			// SingleVessel* secondStepVesselT = (SingleVessel *) firstStepVesselT->getChildren()[0];
 	return tree;
+}
+
+void PenetratingVesselTreeGenerator:: updateGeneratedSegments() {
+    // Update tree
+	cout << "updating the tree" << endl;
+	((SingleVesselCCOOTree*) this->tree)->updateMassiveTree();
+	tree->computePressure(tree->getRoot());
+	tree->setPointCounter(domain->getPointCounter());
+	saveStatus(nTerminals-1);
+	cout << "tree updated" << endl;
+
 }
 
 int PenetratingVesselTreeGenerator::saveData(/*file type*/) {
 	/// TODO: write function
+	// I need to save the generated segment ID with the coordinates, to find the correct when appending the tree.
 	return 0;
 }
 

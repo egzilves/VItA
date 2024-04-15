@@ -131,8 +131,12 @@ class PenetratingVesselTreeGenerator : public IDomainObserver  {
 	double intersectionTolerance;
 	/** Parametric position of the terminal where descending will occur, 1.0 is distal, 0.5 is midpoint. */
 	double parametricT;
+	/** List of vessels allowed to descend */
+	vector<SingleVessel *> vesselsList;
 	/** Information about descending and penetrating vessels to be appended */
-	map<double,unordered_map<vtkIdType,vector<point>>> penetratingData;
+	map<double,unordered_map<vtkIdType,vector<point>>> descendingData;
+	/** Generated segment ID of children + xbif,xnew1,xnew2 for when saving the data */
+	unordered_map<vtkIdType, vector<point>> appendedVesselData;
 	/** Vessel function for generation */
 	AbstractVascularElement::VESSEL_FUNCTION vesselFunction;
 	/** Branching mode for generation */
@@ -244,12 +248,17 @@ public:
 	int saveData(/*file type*/);
 	/**
 	 * Append descending arterioles to the tree.
+	 * @param parametric value for the position of the bifurcation. Go from 1.0 towards 0.5, in descending order.
 	 */
-	AbstractObjectCCOTree *descend(long long int saveInterval, string tempDirectory);
+	AbstractObjectCCOTree *descend(double parametricValue);
 	/**
 	 * Append penetrating arterioles to the descending arterioles.
 	 */
 	AbstractObjectCCOTree *penetrate(long long int saveInterval, string tempDirectory);
+	/**
+	 * Runs the command to update the tree after running the descend/penetrate methods.
+	 */
+	void updateGeneratedSegments();
 
 	/**
 	 * Returns the perfusion domain.
