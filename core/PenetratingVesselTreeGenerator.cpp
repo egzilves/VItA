@@ -405,10 +405,14 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::descend(double parametric
 		// My new distal
 		point xNew1 = (*it).second[1];
 		// xNew2 is ignored, we save the coordinates and get from the file.
-		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifT, xNew1, parent, this->vesselFunction, this->branchingMode);
+		point xNew2 = (*it).second[2];
+		// my newly added segment id
+		vtkIdType addedVesselID;
+		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifT, xNew1, parent, this->vesselFunction, this->branchingMode, addedVesselID);
 		/// TODO: find a way to save the first step ID
-		vtkIdType firstStepVesselID = ((SingleVessel*)parent->getChildren()[0])->vtkSegmentId;
-		this->appendedVesselData[firstStepVesselID] = vector<point> {xBifT, xNew1, (*it).second[2]};
+		// The below is buggy, for some reason it only worked because iNew is added before iCon
+		// vtkIdType firstStepVesselID = ((SingleVessel*)parent->getChildren()[0])->vtkSegmentId;
+		this->appendedVesselData[addedVesselID] = vector<point> {xNew1, xNew2};
 	}
 	cout << "added!." << endl;
 	//
@@ -443,6 +447,9 @@ void PenetratingVesselTreeGenerator:: updateGeneratedSegments() {
 int PenetratingVesselTreeGenerator::saveData(/*file type*/) {
 	/// TODO: write function
 	// I need to save the generated segment ID with the coordinates, to find the correct when appending the tree.
+	// This was done via a new method that returns the ID via parameter. Now the function:
+	/// I need to save the @param appendedVesselData to a .txt file or binary...
+
 	return 0;
 }
 

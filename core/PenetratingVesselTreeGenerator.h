@@ -135,7 +135,7 @@ class PenetratingVesselTreeGenerator : public IDomainObserver  {
 	vector<SingleVessel *> vesselsList;
 	/** Information about descending and penetrating vessels to be appended */
 	map<double,unordered_map<vtkIdType,vector<point>>> descendingData;
-	/** Generated segment ID of children + xbif,xnew1,xnew2 for when saving the data */
+	/** Generated segment ID of children + xnew1,xnew2 for when saving the data */
 	unordered_map<vtkIdType, vector<point>> appendedVesselData;
 	/** Vessel function for generation */
 	AbstractVascularElement::VESSEL_FUNCTION vesselFunction;
