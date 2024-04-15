@@ -444,14 +444,71 @@ void PenetratingVesselTreeGenerator:: updateGeneratedSegments() {
 
 }
 
-int PenetratingVesselTreeGenerator::saveData(/*file type*/) {
+int PenetratingVesselTreeGenerator::saveData(string filename) {
 	/// TODO: write function
 	// I need to save the generated segment ID with the coordinates, to find the correct when appending the tree.
 	// This was done via a new method that returns the ID via parameter. Now the function:
 	/// I need to save the @param appendedVesselData to a .txt file or binary...
-
+	ofstream outStream;
+	outStream.open(filename, ios::out);
+	if (!outStream.is_open()) {
+		cout << "ERROR: file was not open!" << endl;
+		return 1;
+	}
+	for (auto it : appendedVesselData) {
+		// append NEWVESSELID + xNew1 + xNew2 
+		outStream << it.first << " "; // new vessel id
+		outStream << it.second[0].p[0] << " "; // xnew1
+		outStream << it.second[0].p[1] << " ";
+		outStream << it.second[0].p[2] << " ";
+		outStream << it.second[1].p[0] << " "; // xnew2
+		outStream << it.second[1].p[1] << " ";
+		outStream << it.second[1].p[2] << "\n";
+	}
+	outStream.close();
 	return 0;
 }
+/*
+//For reference
+// writing on a text file
+#include <iostream>
+#include <fstream>
+using namespace std;
+
+int main () {
+  ofstream myfile ("example.txt");
+  if (myfile.is_open())
+  {
+    myfile << "This is a line.\n";
+    myfile << "This is another line.\n";
+    myfile.close();
+  }
+  else cout << "Unable to open file";
+  return 0;
+}
+// reading a text file
+#include <iostream>
+#include <fstream>
+#include <string>
+using namespace std;
+
+int main () {
+  string line;
+  ifstream myfile ("example.txt");
+  if (myfile.is_open())
+  {
+    while ( getline (myfile,line) )
+    {
+      cout << line << '\n';
+    }
+    myfile.close();
+  }
+
+  else cout << "Unable to open file"; 
+
+  return 0;
+}
+*/
 
 int PenetratingVesselTreeGenerator::isValidSegment(point xNew, int iTry) {
 

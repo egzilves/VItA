@@ -245,7 +245,7 @@ public:
 	/**
 	 * Save the penetrating data to a file.
 	 */
-	int saveData(/*file type*/);
+	int saveData(string fileName);
 	/**
 	 * Append descending arterioles to the tree.
 	 * @param parametric value for the position of the bifurcation. Go from 1.0 towards 0.5, in descending order.
