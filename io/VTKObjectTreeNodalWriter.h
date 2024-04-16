@@ -17,6 +17,7 @@ public:
 	VTKObjectTreeNodalWriter();
 	virtual void write(string filename, AbstractObjectCCOTree *tree);
 	virtual ~VTKObjectTreeNodalWriter();
+	bool saveBinary = true;
 };
 
 #endif /* VTKOBJECTTREENODALWRITER_H_ */

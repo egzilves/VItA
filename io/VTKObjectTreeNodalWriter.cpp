@@ -29,7 +29,7 @@
 VTKObjectTreeNodalWriter::VTKObjectTreeNodalWriter()
 {
 	// TODO Auto-generated constructor stub
-
+	this->saveBinary = true;
 }
 
 void VTKObjectTreeNodalWriter::write(string filename, AbstractObjectCCOTree* tree) {
@@ -149,7 +149,11 @@ void VTKObjectTreeNodalWriter::write(string filename, AbstractObjectCCOTree* tre
 	vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
 	writer->SetFileName(filename.c_str());
 	writer->SetInputData(vtkNewTree);
-	writer->SetDataModeToBinary();
+	if (this->saveBinary) {
+		writer->SetDataModeToBinary();
+	} else {
+		writer->SetDataModeToAscii();
+	}
 	writer->Write();
 }
 
