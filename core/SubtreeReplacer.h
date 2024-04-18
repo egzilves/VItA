@@ -145,6 +145,16 @@ public:
 	 * Replace the segment with a subtree given the probability of picking
 	 */
 	AbstractObjectCCOTree *replaceSegments(long long int saveInterval, string tempDirectory, string subtreeFilename);
+
+	/**
+	 * Filters the target vessels
+	 */
+	vector<SingleVessel *> getFilteredVessels();
+	/**
+	 * Loads the data from a txt file
+	 */
+	int SubtreeReplacer::loadData(string filename);
+
 	
 	// // /**
 	// //  * Resumes the tree generation.
@@ -254,6 +264,44 @@ public:
 	 * @param penetrationOffset projection offset.
 	 */
 	void setPenetrationOffset(double penetrationOffset);
+
+
+	/** maximum number of iterations, for testing */
+	int maxIterationsLimit;
+	/**
+	 * each element is a population, contains a list of cco files
+	 * example:
+	 * { {"file1", "file2", "file3"}, {"pop2file1", "pop2file2", ...} }
+	 */
+	vector<vector<string>> populations;
+	/**
+	 * the ACCUMULATED distributions for each population
+	 * {0.5, 1.0}
+	 */
+	vector<double> accumulatedPercentages;
+	/**
+	 * Generic gendata for subtrees
+	 */
+	GeneratorData *gen_data_0;
+	/**
+	 * Generic gam for subtrees
+	 */
+	AbstractConstraintFunction<double,int> *gam_0;
+	/**
+	 * Generic epslim for subtrees
+	 */
+	AbstractConstraintFunction<double, int> *eps_lim_1;
+	/**
+	 * Generic nu for subtrees
+	 */
+	AbstractConstraintFunction<double,int> *nu;
+	/** 
+	 * State to append subtrees, use the terminal tips stage
+	 */
+	int stageToAppend;
+	/** Generated segment ID of parent + xnew1,xnew2 of subtrees for when loading the data */
+	unordered_map<vtkIdType, vector<point>> toAppendVesselData;
+
 
 
     // void TreeMerger(SingleVesselCCOOTree *baseTree, vector<string>& derivedTreePoints);

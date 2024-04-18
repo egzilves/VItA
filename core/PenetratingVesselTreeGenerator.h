@@ -99,56 +99,6 @@ class PenetratingVesselTreeGenerator : public IDomainObserver  {
 	 */
 	// bool bypassFunctionIfMidpointInside;
 
-	/** Domain. */
-	string domainFile;
-	/** Projection domain. */
-	string projectionDomainFile;
-	/** vtkPolydata description of the domain. */
-	vtkSmartPointer<vtkPolyData> vtkGeometryIntersect;
-	/** vtkPolydata description of the projection domain. */
-	vtkSmartPointer<vtkPolyData> vtkGeometryProjection;
-	/** Cell locator responsible to determine if a segment is inside the domain. */
-	vtkSmartPointer<vtkCellLocator> locatorIntersect;
-	/** Cell locator responsible to determine if a segment is inside the domain, check closest cell to project. */
-	vtkSmartPointer<vtkCellLocator> locatorProjection;
-	/** Normal geometry for the cells */
-	vtkSmartPointer<vtkDataArray> cellNormalsRetrieved;
-	/**	Descending offset for projected points */
-	double descendingOffset;
-	/**	Penetration offset for projected points */
-	double endpointOffset;
-	/** Maximum distance between terminal and closest point/cell on projection surface to allow generating a vessel. */
-	double maxDistanceToClosestPoint;
-	/** Maximum segment length inside domain. */
-	double maxPenetratingVesselLength;
-	/** Penetration length factor of generated penetrating vessels, 1.0 for full length up to max length */
-	double penetrationFactor;
-	/** Maximum generation limit for quantity of descending/penetrating vessels, for test purposes. If running, keep high value */
-	long long int maxGenerateLimit;
-	/** Raycast displacement for calculating intersecting cells */
-	double xRayDisplacement;
-	/** endpoint tolerance for intersecting cells */
-	double intersectionTolerance;
-	/** Parametric position of the terminal where descending will occur, 1.0 is distal, 0.5 is midpoint. */
-	double parametricT;
-	/** List of vessels allowed to descend */
-	vector<SingleVessel *> vesselsList;
-	/** Information about descending and penetrating vessels to be appended */
-	map<double,unordered_map<vtkIdType,vector<point>>> descendingData;
-	/** Generated segment ID of children + xnew1,xnew2 for when saving the data */
-	unordered_map<vtkIdType, vector<point>> appendedVesselData;
-	/** Vessel function for generation */
-	AbstractVascularElement::VESSEL_FUNCTION vesselFunction;
-	/** Branching mode for generation */
-	AbstractVascularElement::BRANCHING_MODE branchingMode;
-
-
-    // SingleVesselCCOOTree *treee;
-    // vector<vector<ReadData>*> *vesselToMerge;
-    unordered_map<string, SingleVessel *> *stringToPointer;
-
-	/** Failsafe to avoid usage of incomplete class.*/
-	bool allowThisClass = false;
 
 public:
 	/**
@@ -355,6 +305,57 @@ public:
     // void /*~*/dTreeMerger();
     // SingleVesselCCOOTree *mergeFast();
 
+
+	/** Domain. */
+	string domainFile;
+	/** Projection domain. */
+	string projectionDomainFile;
+	/** vtkPolydata description of the domain. */
+	vtkSmartPointer<vtkPolyData> vtkGeometryIntersect;
+	/** vtkPolydata description of the projection domain. */
+	vtkSmartPointer<vtkPolyData> vtkGeometryProjection;
+	/** Cell locator responsible to determine if a segment is inside the domain. */
+	vtkSmartPointer<vtkCellLocator> locatorIntersect;
+	/** Cell locator responsible to determine if a segment is inside the domain, check closest cell to project. */
+	vtkSmartPointer<vtkCellLocator> locatorProjection;
+	/** Normal geometry for the cells */
+	vtkSmartPointer<vtkDataArray> cellNormalsRetrieved;
+	/**	Descending offset for projected points */
+	double descendingOffset;
+	/**	Penetration offset for projected points */
+	double endpointOffset;
+	/** Maximum distance between terminal and closest point/cell on projection surface to allow generating a vessel. */
+	double maxDistanceToClosestPoint;
+	/** Maximum segment length inside domain. */
+	double maxPenetratingVesselLength;
+	/** Penetration length factor of generated penetrating vessels, 1.0 for full length up to max length */
+	double penetrationFactor;
+	/** Maximum generation limit for quantity of descending/penetrating vessels, for test purposes. If running, keep high value */
+	long long int maxGenerateLimit;
+	/** Raycast displacement for calculating intersecting cells */
+	double xRayDisplacement;
+	/** endpoint tolerance for intersecting cells */
+	double intersectionTolerance;
+	/** Parametric position of the terminal where descending will occur, 1.0 is distal, 0.5 is midpoint. */
+	double parametricT;
+	/** List of vessels allowed to descend */
+	vector<SingleVessel *> vesselsList;
+	/** Information about descending and penetrating vessels to be appended */
+	map<double,unordered_map<vtkIdType,vector<point>>> descendingData;
+	/** Generated segment ID of children + xnew1,xnew2 for when saving the data */
+	unordered_map<vtkIdType, vector<point>> appendedVesselData;
+	/** Vessel function for generation */
+	AbstractVascularElement::VESSEL_FUNCTION vesselFunction;
+	/** Branching mode for generation */
+	AbstractVascularElement::BRANCHING_MODE branchingMode;
+
+
+    // SingleVesselCCOOTree *treee;
+    // vector<vector<ReadData>*> *vesselToMerge;
+    unordered_map<string, SingleVessel *> *stringToPointer;
+
+	/** Failsafe to avoid usage of incomplete class.*/
+	bool allowThisClass = false;
 
 protected:
 	/**	Configuration file stream. */

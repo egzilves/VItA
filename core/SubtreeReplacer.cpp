@@ -39,6 +39,7 @@
 #include "../filters/VesselFilterByBranchingMode.h"
 #include "../filters/VesselFilterByTerminal.h"
 #include "../filters/VesselFilterByVesselFunction.h"
+#include "../filters/VesselFilterByStage.h"
 
 #include "GeneratorData.h"
 
@@ -114,6 +115,15 @@ SubtreeReplacer::SubtreeReplacer(
 	// this->domainFile = projectionDomainFile;
 
 
+	this->maxIterationsLimit = 1000000;
+
+
+	this->gen_data_0 = new GeneratorData(16000, 2000, 0.95, 1.0, 1.0, 0.25, 7, 0, false, new VolumetricCostEstimator());
+    this->gam_0 = new ConstantConstraintFunction<double, int>(3.0);
+    this->eps_lim_1 = new ConstantPiecewiseConstraintFunction<double, int>({0.0, 0.0},{0, 2});
+    this->nu = new ConstantConstraintFunction<double, int>(3.6); //cP
+
+	this->toAppendVesselData.clear();
 
 
 }
@@ -126,53 +136,43 @@ SubtreeReplacer::~SubtreeReplacer() {
 	}
 }
 
+vector<SingleVessel *> SubtreeReplacer::getFilteredVessels() {
+	// Filter vessels by type
+	// filter the penetrating vessels, distalbranching, etc.
+	// terminal && function=penetrating && mode=distal
+	AbstractVascularElement::VESSEL_FUNCTION vesselfunction = AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR; //penetrating
+	AbstractVascularElement::BRANCHING_MODE branchingmode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING; //penetrating
+	int stage = this->stageToAppend;
+	AbstractVesselFilter *replacedFilters = new VesselFilterComposite({
+		new VesselFilterByTerminal(), 
+		new VesselFilterByVesselFunction(vesselfunction), 
+		new VesselFilterByBranchingMode(branchingmode),
+		new VesselFilterByStage(stage)
+		});
+	vector<SingleVessel *> treeVessels = this->tree->getVessels();
+	vector<SingleVessel *> replacedVessels = replacedFilters->apply(treeVessels);
+	delete replacedFilters;
+	return replacedVessels;
+}
+
 
 AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterval, string tempDirectory, string subtreeFilename){
 	if (!allowThisClass) {
 		cout << "FATAL: experimental class, set bool 'allowThisClass' to true to use this" << endl;
 		exit(1);
 	}
-	this->beginTime = time(nullptr);
-	generatesConfigurationFile(ios::out);
-
-	int generatedVessels = 0;
-	string modelsFolder = "./";
-	string outputDir = "./";
-	string prefix = "output";
-
-
 
 	// pass parameters, longTreeList.cco, shortTreeList.cco, percentages
-	vector<vector<string>> populations; // each element is a population, contains a list of cco files
-	vector<double> accumulatedPercentages; // the ACCUMULATED distributions for each population
 
-	// Filter vessels by type
-	// filter the penetrating vessels, distalbranching, etc.
-	// terminal && function=penetrating && mode=distal
-	AbstractVascularElement::VESSEL_FUNCTION vesselfunction = AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR; //penetrating
-	AbstractVascularElement::BRANCHING_MODE branchingmode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING; //penetrating
-	AbstractVesselFilter *replacedFilters = new VesselFilterComposite({
-		new VesselFilterByTerminal(), 
-		new VesselFilterByVesselFunction(vesselfunction), 
-		new VesselFilterByBranchingMode(branchingmode)
-		});
-	vector<SingleVessel *> treeVessels = this->tree->getVessels();
-	vector<SingleVessel *> replacedVessels = replacedFilters->apply(treeVessels);
+	vector<SingleVessel *> replacedVessels = getFilteredVessels();
+	int itCount = 0;
 
 	/// TODO: for each (SingleVessel *) vessel
-	int maxIterations = 1000;
-	int itCount = 0;
-    GeneratorData *gen_data_0 {new GeneratorData(16000, 2000, 0.95,
-        1.0, 1.0, 0.25, 7, 0, false, new VolumetricCostEstimator())};
-    AbstractConstraintFunction<double,int> *gam_0 {new ConstantConstraintFunction<double, int>(3.0)};
-    AbstractConstraintFunction<double, int> *eps_lim_1 {new ConstantPiecewiseConstraintFunction<double, int>({0.0, 0.0},{0, 2})};
-    AbstractConstraintFunction<double,int> *nu {new ConstantConstraintFunction<double, int>(3.6)}; //cP
-
 	/// TODO: sort type of tree
-	cout << "WARNING: limiting max iterations to " << maxIterations << endl;
-	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
+	cout << "WARNING: limiting max iterations to " << maxIterationsLimit << endl;
+	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterationsLimit; ++it, ++itCount) {
 		SingleVessel* oldVessel = (*it);
-		// TODO: get properties, get distal (coordinates), get radius, length
+		/// TODO: get properties, get distal (coordinates), get radius, length
 		point vesselProx = oldVessel->xProx;
 		point vesselDist = oldVessel->xDist;
 
@@ -274,29 +274,43 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 	cout << "iterated through all vessels" << endl;
 
 
-	// yes run it because we dont want to update everything after EVERY vessel.
-
     // Update tree
 	cout << "updating the tree" << endl;
 	((SingleVesselCCOOTree*) tree)->updateMassiveTree();
-	cout << "tree updated" << endl;
-
-
 	tree->computePressure(tree->getRoot());
 	tree->setPointCounter(domain->getPointCounter());
-
-
-	this->endTime = time(nullptr);
-	this->dLimLast = this->dLim;
-
 	saveStatus(nTerminals-1);
-	markTimestampOnConfigurationFile("Final tree volume " + to_string(((SingleVessel *) tree->getRoot())->treeVolume));
-	markTimestampOnConfigurationFile("Tree successfully generated.");
-	closeConfigurationFile();
+	cout << "tree updated" << endl;
 
 	return tree;
 
+}
 
+int SubtreeReplacer::loadData(string filename) {
+	// Load the segment ID of parent + coordinates for subtree, to find the correct when appending the tree.
+	// This was done via a new method that returns the ID via parameter. Now the function:
+	/// I need to save the @param toAppendVesselData to a .txt file or binary...
+	ifstream inStream;
+	inStream.open(filename, ios::in);
+	long long int vesselID;
+	double x1, y1, z1, x2, y2, z2;
+	if (!inStream.is_open()) {
+		cout << "ERROR: file was not open!" << endl;
+		return 1;
+	}
+	while (inStream >> vesselID >> x1 >> y1 >> z1 >> x2 >> y2 >> z2) {
+		point pProx, pDist;
+		pProx.p[0] = x1;
+		pProx.p[1] = y1;
+		pProx.p[2] = z1;
+		pDist.p[0] = x2;
+		pDist.p[1] = y2;
+		pDist.p[2] = z2;
+		point pDist;
+		toAppendVesselData[vesselID] = vector<point> {pProx, pDist};
+	}
+	inStream.close();
+	return 0;
 }
 
 int SubtreeReplacer::isValidSegment(point xNew, int iTry) {
