@@ -154,7 +154,14 @@ public:
 	 * Loads the data from a txt file
 	 */
 	int SubtreeReplacer::loadData(string filename);
-
+	/**
+	 * instantiates a new subtree
+	 */
+	SingleVesselCCOOTree *buildNewSubtree(string subtreeFilename);
+	/**
+	 * Scale, rotate, and translate the subtree to a factor to correct dimentions
+	*/
+	void mapSubtree(point xProx, point xDist);
 	
 	// // /**
 	// //  * Resumes the tree generation.

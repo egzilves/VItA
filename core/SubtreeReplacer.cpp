@@ -155,6 +155,40 @@ vector<SingleVessel *> SubtreeReplacer::getFilteredVessels() {
 	return replacedVessels;
 }
 
+SingleVesselCCOOTree *SubtreeReplacer::buildNewSubtree(string subtreeFilename) {
+		// Instantiate a new subtree
+		// string subtreeFilename = subtreeFilename;
+		SingleVesselCCOOTree *newSubtree {new SingleVesselCCOOTree(subtreeFilename, this->gen_data_0, this->gam_0, this->eps_lim_1, this->nu)};
+		return newSubtree;
+}
+
+void SubtreeReplacer::mapSubtree(point xProx, point xDist) {
+	// Map geometry of subtree
+	// map: 0,0,0 -> proximal, map 0,0,h -> distal with h=0.25cm
+	// map xyz-translation, map xy-rotation, map z-scale
+	// keep xy-scale (or use z-scale)
+	// TODO: random z-rotation
+	// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
+	cout << "tree imported, calculating basic characteristics" << endl;
+	// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
+	point originSubtree = {0,0,0};
+	double heightSubtree = 2.5; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
+	point terminalSubtree = {0,0,heightSubtree};
+	point displacementSubtree = terminalSubtree-originSubtree;
+	double lengthSubtree = sqrt(displacementSubtree^displacementSubtree);
+	point unitSubtree = displacementSubtree/lengthSubtree;
+
+	point displacement = vesselDist-vesselProx; 
+	double length = sqrt(displacement^displacement);
+	point unitDirection = displacement/length;
+
+	cout << "linear mapping the tree..." << endl;
+	// SCALING
+	double scaleFactor = length / heightSubtree;
+	// scale the tree, for each terminal scale distal/proximal points
+
+	return;
+}
 
 AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterval, string tempDirectory, string subtreeFilename){
 	if (!allowThisClass) {
@@ -171,39 +205,17 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 	/// TODO: sort type of tree
 	cout << "WARNING: limiting max iterations to " << maxIterationsLimit << endl;
 	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterationsLimit; ++it, ++itCount) {
-		SingleVessel* oldVessel = (*it);
+		SingleVessel* parentTerminal = (*it);
+		vtkIdType parentID = parentTerminal->vtkSegmentId;
 		/// TODO: get properties, get distal (coordinates), get radius, length
-		point vesselProx = oldVessel->xProx;
-		point vesselDist = oldVessel->xDist;
+		point subtreeProx = toAppendVesselData[parentID][0];
+		point subtreeDist = toAppendVesselData[parentID][1];
 
-		// Instantiate a new subtree
-		// string subtreeFilename = subtreeFilename;
-		SingleVesselCCOOTree *newSubtree {new SingleVesselCCOOTree(subtreeFilename, gen_data_0, gam_0, eps_lim_1, nu)};
+		SingleVesselCCOOTree *newSubtree = buildNewSubtree(subtreeFilename);
 		vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
 
+		// mapSubtree();
 
-		// Map geometry of subtree
-		// map: 0,0,0 -> proximal, map 0,0,h -> distal with h=0.25cm
-		// map xyz-translation, map xy-rotation, map z-scale
-		// keep xy-scale (or use z-scale)
-		// TODO: random z-rotation
-		cout << "tree imported, calculating basing characteristics" << endl;
-		// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
-		point originSubtree = {0,0,0};
-		double heightSubtree = 2.5; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
-		point terminalSubtree = {0,0,heightSubtree};
-		point displacementSubtree = terminalSubtree-originSubtree;
-		double lengthSubtree = sqrt(displacementSubtree^displacementSubtree);
-		point unitSubtree = displacementSubtree/lengthSubtree;
-
-		point displacement = vesselDist-vesselProx; 
-		double length = sqrt(displacement^displacement);
-		point unitDirection = displacement/length;
-
-		cout << "linear mapping the tree..." << endl;
-		// SCALING
-		double scaleFactor = length / heightSubtree;
-		// scale the tree, for each terminal scale distal/proximal points
 		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); it != subtreeVessels.end(); ++it) {
 			(*itVessel)->xProx.p[0] = (*itVessel)->xProx.p[0]*scaleFactor;
 			(*itVessel)->xDist.p[0] = (*itVessel)->xDist.p[0]*scaleFactor;
@@ -292,7 +304,7 @@ int SubtreeReplacer::loadData(string filename) {
 	/// I need to save the @param toAppendVesselData to a .txt file or binary...
 	ifstream inStream;
 	inStream.open(filename, ios::in);
-	long long int vesselID;
+	vtkIdType vesselID;
 	double x1, y1, z1, x2, y2, z2;
 	if (!inStream.is_open()) {
 		cout << "ERROR: file was not open!" << endl;
@@ -307,7 +319,7 @@ int SubtreeReplacer::loadData(string filename) {
 		pDist.p[1] = y2;
 		pDist.p[2] = z2;
 		point pDist;
-		toAppendVesselData[vesselID] = vector<point> {pProx, pDist};
+		this->toAppendVesselData[vesselID] = vector<point> {pProx, pDist};
 	}
 	inStream.close();
 	return 0;
