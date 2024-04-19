@@ -248,13 +248,13 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 
 	// pass parameters, longTreeList.cco, shortTreeList.cco, percentages
 
-	vector<SingleVessel *> replacedVessels = getFilteredVessels();
+	vector<SingleVessel *> parentVessels = getFilteredVessels();
 	int itCount = 0;
 
 	/// TODO: for each (SingleVessel *) vessel
 	/// TODO: sort type of tree
 	cout << "WARNING: limiting max iterations to " << maxIterationsLimit << endl;
-	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterationsLimit; ++it, ++itCount) {
+	for (vector<SingleVessel *>::iterator it = parentVessels.begin(); it != parentVessels.end() && itCount<maxIterationsLimit; ++it, ++itCount) {
 		SingleVessel* parentTerminal = (*it);
 		vtkIdType parentID = parentTerminal->vtkSegmentId;
 		/// TODO: get properties, get distal (coordinates), get radius, length
