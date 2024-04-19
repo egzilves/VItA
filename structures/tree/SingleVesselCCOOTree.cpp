@@ -2412,6 +2412,7 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 }
 
 void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *oldTerminalVessel, int nNewTerms){
+	exit(1); // refactor this method
 
 	// Subtree is passed with xDist and xProx updated before this, assuming the xProx for subtree->root and oldVessel are exactly the same.
 	// we don't allocate SingleVessel in this method.

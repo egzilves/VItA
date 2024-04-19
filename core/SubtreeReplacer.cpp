@@ -162,7 +162,7 @@ SingleVesselCCOOTree *SubtreeReplacer::buildNewSubtree(string subtreeFilename) {
 		return newSubtree;
 }
 
-void SubtreeReplacer::mapSubtree(point xProx, point xDist) {
+void SubtreeReplacer::mapSubtree(SingleVesselCCOOTree *subtree, point xProx, point xDist) {
 	// Map geometry of subtree
 	// map: 0,0,0 -> proximal, map 0,0,h -> distal with h=0.25cm
 	// map xyz-translation, map xy-rotation, map z-scale
@@ -172,21 +172,71 @@ void SubtreeReplacer::mapSubtree(point xProx, point xDist) {
 	cout << "tree imported, calculating basic characteristics" << endl;
 	// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
 	point originSubtree = {0,0,0};
-	double heightSubtree = 2.5; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
+	double heightSubtree = 0.25; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
 	point terminalSubtree = {0,0,heightSubtree};
+	cout << "WARNING: hardcode for " << heightSubtree << " [cm] height of subtree" << endl;
+	// find the versors of subtree
 	point displacementSubtree = terminalSubtree-originSubtree;
 	double lengthSubtree = sqrt(displacementSubtree^displacementSubtree);
-	point unitSubtree = displacementSubtree/lengthSubtree;
-
-	point displacement = vesselDist-vesselProx; 
+	point unitVersorSubtree = displacementSubtree/lengthSubtree;
+	// find the versors of the target position
+	point displacement = xProx-xDist; 
 	double length = sqrt(displacement^displacement);
-	point unitDirection = displacement/length;
+	point unitVersorDirection = displacement/length;
 
-	cout << "linear mapping the tree..." << endl;
+	cout << "linear mapping of the tree..." << endl;
+	vector<SingleVessel *> subtreeVessels = subtree->getVessels();
 	// SCALING
 	double scaleFactor = length / heightSubtree;
 	// scale the tree, for each terminal scale distal/proximal points
+	for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
+		(*itVessel)->xProx.p[0] = (*itVessel)->xProx.p[0]*scaleFactor;
+		(*itVessel)->xDist.p[0] = (*itVessel)->xDist.p[0]*scaleFactor;
+		(*itVessel)->xProx.p[1] = (*itVessel)->xProx.p[1]*scaleFactor;
+		(*itVessel)->xDist.p[1] = (*itVessel)->xDist.p[1]*scaleFactor;
+		(*itVessel)->xProx.p[2] = (*itVessel)->xProx.p[2]*scaleFactor;
+		(*itVessel)->xDist.p[2] = (*itVessel)->xDist.p[2]*scaleFactor;
+	}
+	cout << "scaled, now rotating" << endl;
+	// ROTATION
+	// Rodrigues formula.
+	point u {unitVersorSubtree};
+	point Ru = {unitVersorDirection};
+	matrix Identity = {{1,0,0, 0,1,0, 0,0,1}};
+	matrix Rotation;
+	matrix Krotation;
+	double smallValue = 1e-5;
+	bool calculateRotation = true;
+	double cosineAngle = u^Ru;
+	if (abs(cosineAngle-1) < smallValue){
+		Rotation = Identity;
+		calculateRotation = false;
+	}
+	if (abs(cosineAngle+1) < smallValue){
+		Rotation = Identity*(-1);
+		calculateRotation = false;
+	}
+	if (calculateRotation){
+		matrix Krotation = outer(Ru,u) - outer(u,Ru);
+		Rotation = Identity + Krotation + (Krotation*Krotation)/(1+cosineAngle);
+	}
+	// TODO: add random rotation, add matrix to rotate in xy plane, z axis, random angle.
+	// Rotate the points for each terminal, multiply R*v for every point v
+	for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
+		(*itVessel)->xProx = Rotation*(*itVessel)->xProx;
+		(*itVessel)->xDist = Rotation*(*itVessel)->xDist;
+	}
 
+	cout << "rotated, now translating" << endl;
+	// TRANSLATION
+	point translationVector = xProx - originSubtree;
+	// translate for each point
+	for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
+		(*itVessel)->xProx = (*itVessel)->xProx + translationVector;
+		(*itVessel)->xDist = (*itVessel)->xDist + translationVector;
+	}
+	cout << "subtree ready for replacement" << endl;
+	// Now the subtree is geometrically located in the correct point. Time to replace the subtree.
 	return;
 }
 
@@ -212,65 +262,19 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		point subtreeDist = toAppendVesselData[parentID][1];
 
 		SingleVesselCCOOTree *newSubtree = buildNewSubtree(subtreeFilename);
-		vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
+		
 
-		// mapSubtree();
-
-		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); it != subtreeVessels.end(); ++it) {
-			(*itVessel)->xProx.p[0] = (*itVessel)->xProx.p[0]*scaleFactor;
-			(*itVessel)->xDist.p[0] = (*itVessel)->xDist.p[0]*scaleFactor;
-			(*itVessel)->xProx.p[1] = (*itVessel)->xProx.p[1]*scaleFactor;
-			(*itVessel)->xDist.p[1] = (*itVessel)->xDist.p[1]*scaleFactor;
-			(*itVessel)->xProx.p[2] = (*itVessel)->xProx.p[2]*scaleFactor;
-			(*itVessel)->xDist.p[2] = (*itVessel)->xDist.p[2]*scaleFactor;
-		}
-		cout << "scaled, now rotating" << endl;
-		// ROTATION
-		// Rodrigues formula.
-		point u {unitSubtree};
-		point Ru = {unitDirection};
-		matrix Identity = {{1,0,0, 0,1,0, 0,0,1}};
-		matrix Rotation;
-		matrix Krotation;
-		double smallValue = 1e-5;
-		bool calculateRotation = true;
-		double cosineAngle = u^Ru;
-		if (abs(cosineAngle-1) < smallValue){
-			Rotation = Identity;
-			calculateRotation = false;
-		}
-		if (abs(cosineAngle+1) < smallValue){
-			Rotation = Identity*(-1);
-			calculateRotation = false;
-		}
-		if (calculateRotation){
-			matrix Krotation = outer(Ru,u) - outer(u,Ru);
-			Rotation = Identity + Krotation + (Krotation*Krotation)/(1+cosineAngle);
-		}
-		// TODO: add random rotation, add matrix to rotate in xy plane, z axis, random angle.
-		// Rotate the points for each terminal, multiply R*v for every point v
-		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); it != subtreeVessels.end(); ++it) {
-			(*itVessel)->xProx = Rotation*(*itVessel)->xProx;
-			(*itVessel)->xDist = Rotation*(*itVessel)->xDist;
-		}
-		cout << "rotated, now translating" << endl;
-		// TRANSLATION
-		point translationVector = vesselProx - originSubtree;
-		// translate for each point
-		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); it != subtreeVessels.end(); ++it) {
-			(*itVessel)->xProx = (*itVessel)->xProx + translationVector;
-			(*itVessel)->xDist = (*itVessel)->xDist + translationVector;
-		}
-		cout << "subtree ready for replacement" << endl;
+		mapSubtree(newSubtree, subtreeProx, subtreeDist);
 		// Now the subtree is geometrically located in the correct point. Time to replace the subtree.
 
-		// TODO: make subtree and append
+
+		/// TODO: make subtree and append
 		// Read CCO, map root, and childs recursively
 		// map proximal and distal of subtrees, recursively for every child.
 		// update radius, update tree
 		int newTerms = 101;
 		cout << "WARNING: hardcode for " << newTerms << " new terms in subtree" << endl;
-		tree->addSubtree(newSubtree, oldVessel, newTerms);
+		tree->addSubtree(newSubtree, parentTerminal, newTerms);
 
 		
 		// append tree, use SVCCOOT::addSubtree() method.

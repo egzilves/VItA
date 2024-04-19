@@ -160,8 +160,10 @@ public:
 	SingleVesselCCOOTree *buildNewSubtree(string subtreeFilename);
 	/**
 	 * Scale, rotate, and translate the subtree to a factor to correct dimentions
+	 * @param subtree going to be mapped
+	 * @param xProx @param xDist proximal and distal "points" of the subtree position
 	*/
-	void mapSubtree(point xProx, point xDist);
+	void mapSubtree(SingleVesselCCOOTree *subtree, point xProx, point xDist);
 	
 	// // /**
 	// //  * Resumes the tree generation.
