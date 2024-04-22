@@ -2411,41 +2411,56 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 	}
 }
 
-void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *oldTerminalVessel, int nNewTerms){
+void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *parentVessel, int nNewSegments){
+	cout << "FATAL: experimental method." << endl;
 	exit(1); // refactor this method
-
-	// Subtree is passed with xDist and xProx updated before this, assuming the xProx for subtree->root and oldVessel are exactly the same.
+	// Subtree is passed with xDist and xProx updated before this, 
+	// assuming subtree->getRoot()->xProx and parentVessel->xDist are exactly the same.
 	// we don't allocate SingleVessel in this method.
 
-	cout << "INFO: nTerms was not updated, was passed as argument." << endl;
-	// TODO: update nTerms, nCommonTerminals in a smarter way.
-	// Subtract the terminal to be replaced
-	nTerms--;
-	nCommonTerminals--;
-	nTerms += nNewTerms;
-	nCommonTerminals += nCommonTerminals;	
-
 	// referencing the vessels that are to be connected
-	SingleVessel *targetParent = (SingleVessel *)oldTerminalVessel->getParent();
+	SingleVessel *targetParent = (SingleVessel *)parentVessel;
 	SingleVessel *subtreeRoot = (SingleVessel *)newSubtree->getRoot();
+	
+	cout << "INFO: nNewSegments " << nNewSegments << "was not updated, was passed as argument." << endl;
+	// // Subtract the terminal to be replaced
+	// nTerms--;
+	// nCommonTerminals--;
+	/// NOTE: we don't subtract --nTerms in this refactoring because we don't delete the oldvessel anymore, we append directly to the correct parent.
+	int nNewTerms = newSubtree->getNTerms();
+	cout << "Adding tree with " << nNewTerms << " new terms." << endl;
+	nTerms += nNewTerms;
+	nCommonTerminals += nNewTerms;	
+	/// TODO: update nTerms, nCommonTerminals in a smarter way.
+	// possible way:
+	// nNewTerms += newSubtree->getNTerms(); 
+	// but for segments not terminals
+
 
 	if (!targetParent){
 		// no sense in concatening empty and tree: 0 + Tree = Tree, use the subtree.
 		cout << "ERROR: Invalid parent, nowhere to append. Nothing was appended." << endl;
 		return;
 	}
+	if (!subtreeRoot){
+		// the tree is either empty or invalid. Please add a valid subtree.
+		cout << "ERROR: Invalid subtree, nothing to append. Nothing was appended." << endl;
+		return;
+	}
 
 	// The terminal descends from DISTAL_BRANCHING, The midpoint descends from RIGID_PARENT
 	// But the penetrating vessel segment is the exact same case for both situations
-
 	// Update properties recursively, for this get the subtree under subtreeRoot.
 	vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
 	// Update the new root radius, and the subtree vessel radii.
-	double radiusScalingFactor = ((SingleVessel *)oldTerminalVessel)->radius / (subtreeRoot->radius);
+	double radiusScalingFactor = ((SingleVessel *)parentVessel)->radius / (subtreeRoot->radius);
+	cout << "WARNING: nNewSegments " << nNewSegments << " was passed not calculated" << endl;
+	/// TODO: addVessel recursively in a smarter way.
 	for (vector<SingleVessel *>::iterator vessel = subtreeVessels.begin(); vessel != subtreeVessels.end(); ++vessel) {
 		(*vessel)->ID = (*vessel)->ID + nTerms;
-		(*vessel)->stage = currentStage; // remember to setCurrentStage when generating!
-		(*vessel)->nLevel = (*vessel)->nLevel + targetParent->nLevel + 1; // or ((SingleVessel*)oldTerminalVessel)->nLevel;
+		/// NOTE: remember to setCurrentStage when generating!
+		(*vessel)->stage = currentStage; 
+		(*vessel)->nLevel = (*vessel)->nLevel + targetParent->nLevel + 1;
 		(*vessel)->radius = (*vessel)->radius * radiusScalingFactor;
 		(*vessel)->viscosity = nu->getValue((*vessel)->nLevel);
 		(*vessel)->resistance = 8 * nu->getValue((*vessel)->nLevel) / M_PI * (*vessel)->length;
@@ -2454,58 +2469,49 @@ void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, Abstrac
 	// Swap parents for root vessels after updating all the properties.
 
 	// Move the new root to the tree.
-	targetParent->removeChildren();
+	if (targetParent->getChildren().size() != 0) {
+		cout << "WARNING: this target parent already has children. Removing them." << endl;
+	}
+	targetParent->removeChildren(); // this should be empty already.
 	targetParent->addChild(subtreeRoot);
 	subtreeRoot->parent = targetParent;
 
-	// Move the old vessel to the temporary subtree.
-	((SingleVesselCCOOTree*)newSubtree)->setRoot((SingleVessel*)oldTerminalVessel);
-	oldTerminalVessel->parent = NULL;
+	// delete the subtree root.
+	((SingleVesselCCOOTree*)newSubtree)->setRoot(NULL);
+	// oldTerminalVessel->parent = NULL;
 
 	// update the VTK properties
 	// the same object subtreeVessels refers to new vessels
 	// we must add nterms to every vtkIdType so we don't have two with the same number
-	int idOffset = nTerms;
+	int idOffset = nNewSegments;
 	for (vector<SingleVessel *>::iterator vessel = subtreeVessels.begin(); vessel != subtreeVessels.end(); ++vessel) {
 		// for the root vessel, we don't "InsertNextPoint", we SetPoint to not keep the ghost point/segment
-		if ((*vessel)->vtkSegmentId == subtreeRoot->vtkSegmentId) {
+		/// UPDATE: the code was refactored, so rootVessel gets same treatment as other vessels.
+		// Update tree geometry
+		vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint((*vessel)->xDist.p);
+		// vtkIdType idDist = ((SingleVessel*)oldTerminalVessel)->vtkSegmentId; // get the ID to be replaced
+		// vtkTree->GetPoints()->SetPoint(idDist,(*vessel)->xDist.p); /// use the GetPoints()->SetPoint(...) to replace the root distal point with new root distal point.
+		// I will assume the iterator loops through the vessel list in a parent-first children-after order
+		/// WARNING: this will possibly induce in errors, but i haven't found a more elegant way to solve this by now.
+		/// TODO: pass this a recursive function will possibly solve this issue. (Todo later).
+		(*vessel)->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		// (*vessel)->vtkSegment = ((SingleVessel *)oldTerminalVessel)->vtkSegment;
+		// ((SingleVessel *)oldTerminalVessel)->vtkSegment = nullptr;
+		(*vessel)->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *)(*vessel)->parent)->vtkSegment->GetPointId(1));
+		(*vessel)->vtkSegment->GetPointIds()->SetId(1, idDist);
+		
+		// I opted to re-include this, and use the remove ghost cells after.
+		(*vessel)->vtkSegmentId = vtkTree->GetLines()->InsertNextCell((*vessel)->vtkSegment);
+		elements[(*vessel)->vtkSegmentId] = (*vessel);
+		//// NOTE: I hope the old terminal vessel is removed, because i replace in the hash_map, but if not, uncomment the item below:
+		// elements[((SingleVessel*)oldTerminalVessel)->vtkSegmentId]
 
-			vtkIdType idDist = ((SingleVessel*)oldTerminalVessel)->vtkSegmentId; // get the ID to be replaced
-			vtkTree->GetPoints()->SetPoint(idDist,(*vessel)->xDist.p); /// use the GetPoints()->SetPoint(...) to replace the root distal point with new root distal point.
-
-			(*vessel)->vtkSegment = ((SingleVessel *)oldTerminalVessel)->vtkSegment;
-			((SingleVessel *)oldTerminalVessel)->vtkSegment = nullptr;
-			(*vessel)->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *)(*vessel)->parent)->vtkSegment->GetPointId(1));
-			(*vessel)->vtkSegment->GetPointIds()->SetId(1, idDist);
-
-			// I opted to re-include this, and use the remove ghost cells after.
-			(*vessel)->vtkSegmentId = vtkTree->GetLines()->InsertNextCell((*vessel)->vtkSegment);
-			elements[(*vessel)->vtkSegmentId] = (*vessel);
-			//// NOTE: I hope the old terminal vessel is removed, because i replace in the hash_map, but if not, remove the item below:
-			// elements[((SingleVessel*)oldTerminalVessel)->vtkSegmentId]
-
-		} else { // for all the other segments
-
-			// Update tree geometry
-			vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint((*vessel)->xDist.p);
-
-			// I will assume the iterator loops through the vessel list in a parent-first children-after order
-			/// WARNING: this will possibly induce in errors, but i haven't found a more elegant way to solve this by now.
-			/// TODO: pass this a recursive function will possibly solve this issue. (Todo later).
-			(*vessel)->vtkSegment = vtkSmartPointer<vtkLine>::New();
-			(*vessel)->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *)(*vessel)->parent)->vtkSegment->GetPointId(1));
-			(*vessel)->vtkSegment->GetPointIds()->SetId(1, idDist);
-			
-			(*vessel)->vtkSegmentId = vtkTree->GetLines()->InsertNextCell((*vessel)->vtkSegment);
-			elements[(*vessel)->vtkSegmentId] = (*vessel);
-
-		}
 	}
 	// if i want to replace the point ids of a cell, i could use the line below:
 	// vtkTree->ReplaceCellPoint(((SingleVessel *) parent)->vtkSegmentId, ((SingleVessel *) parent)->vtkSegment->GetPointId(1), idProx);
 	// ((SingleVessel *) parent)->vtkSegment->GetPointIds()->SetId(1, idProx);
-
-	vtkTree->RemoveGhostCells();
+	// and remove ghost cells with:
+	// vtkTree->RemoveGhostCells();
 
 
 	vtkTree->BuildCells();

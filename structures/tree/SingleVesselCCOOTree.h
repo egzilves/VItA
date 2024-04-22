@@ -227,11 +227,11 @@ public:
 	 * The CCO tree diameters are not updated, must use the Update Massive Tree method to validate the vessels.
 	 * TODO: if extend this function, use this signature as a wrapper for extended method.
 	 * @param subtree The Subtree to be appended to the tree, replacing the terminal vessel.
-	 * @param terminalVessel The terminal vessel to be replaced in the operation.
+	 * @param parentVessel The terminal vessel parent to the subtree in the operation. Must be a distal_branching terminal.
 	 * -@param parent The parent vessel to the new subtree. // get parent inside with vessel->getParent()
-	 * @param nNewTerms Number of new terminals to add
+	 * @param nNewSegments Number of new terminals to add
 	 */
-	void addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *oldTerminalVessel, int nNewTerms);
+	void addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *parentVessel, int nNewSegments);
 
 //	/**
 //	 * Adds a new vessel to the CCO tree as continuation of the pre-existent vessel @p parent. @param xDist is the distal nodes of the new

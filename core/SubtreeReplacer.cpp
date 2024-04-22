@@ -196,6 +196,9 @@ void SubtreeReplacer::mapSubtree(SingleVesselCCOOTree *subtree, point xProx, poi
 		(*itVessel)->xDist.p[1] = (*itVessel)->xDist.p[1]*scaleFactor;
 		(*itVessel)->xProx.p[2] = (*itVessel)->xProx.p[2]*scaleFactor;
 		(*itVessel)->xDist.p[2] = (*itVessel)->xDist.p[2]*scaleFactor;
+		// and other dimensional properties
+		(*itVessel)->length = (*itVessel)->length * scaleFactor;
+		(*itVessel)->radius = (*itVessel)->radius * scaleFactor;
 	}
 	cout << "scaled, now rotating" << endl;
 	// ROTATION
@@ -272,9 +275,12 @@ AbstractObjectCCOTree *SubtreeReplacer::replaceSegments(long long int saveInterv
 		// Read CCO, map root, and childs recursively
 		// map proximal and distal of subtrees, recursively for every child.
 		// update radius, update tree
-		int newTerms = 101;
-		cout << "WARNING: hardcode for " << newTerms << " new terms in subtree" << endl;
-		tree->addSubtree(newSubtree, parentTerminal, newTerms);
+		int newSegments = 101;
+		/// TODO: smarter way to pass nTerms, maybe with:
+		// int qtyTerms = newSubtree->getNTerms();
+		// but for the amount of segments, not terminals;
+		cout << "WARNING: hardcode for " << newSegments << " new segments in subtree" << endl;
+		tree->addSubtree(newSubtree, parentTerminal, newSegments);
 
 		
 		// append tree, use SVCCOOT::addSubtree() method.
