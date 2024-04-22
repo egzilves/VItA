@@ -153,7 +153,7 @@ public:
 	/**
 	 * Loads the data from a txt file
 	 */
-	int SubtreeReplacer::loadData(string filename);
+	int loadData(string filename);
 	/**
 	 * instantiates a new subtree
 	 */

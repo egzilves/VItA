@@ -220,7 +220,7 @@ void SubtreeReplacer::mapSubtree(SingleVesselCCOOTree *subtree, point xProx, poi
 		calculateRotation = false;
 	}
 	if (calculateRotation){
-		matrix Krotation = outer(Ru,u) - outer(u,Ru);
+		Krotation = outer(Ru,u) - outer(u,Ru);
 		Rotation = Identity + Krotation + (Krotation*Krotation)/(1+cosineAngle);
 	}
 	// TODO: add random rotation, add matrix to rotate in xy plane, z axis, random angle.
@@ -321,14 +321,14 @@ int SubtreeReplacer::loadData(string filename) {
 		return 1;
 	}
 	while (inStream >> vesselID >> x1 >> y1 >> z1 >> x2 >> y2 >> z2) {
-		point pProx, pDist;
+		point pProx;
 		pProx.p[0] = x1;
 		pProx.p[1] = y1;
 		pProx.p[2] = z1;
+		point pDist;
 		pDist.p[0] = x2;
 		pDist.p[1] = y2;
 		pDist.p[2] = z2;
-		point pDist;
 		this->toAppendVesselData[vesselID] = vector<point> {pProx, pDist};
 	}
 	inStream.close();
