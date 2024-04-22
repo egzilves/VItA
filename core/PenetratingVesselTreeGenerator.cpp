@@ -414,6 +414,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::descend(double parametric
 		// The below is buggy, for some reason it only worked because iNew is added before iCon
 		// vtkIdType firstStepVesselID = ((SingleVessel*)parent->getChildren()[0])->vtkSegmentId;
 		this->appendedVesselData[addedVesselID] = vector<point> {xNew1, xNew2};
+		cout << "appended segment " << addedVesselID << " to tree." << "\n";
 	}
 	cout << "added!." << endl;
 	//
