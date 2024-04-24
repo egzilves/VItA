@@ -113,32 +113,7 @@ PenetratingVesselTreeGenerator::PenetratingVesselTreeGenerator(
 	this->domainFile = projectionDomainFile;
 
 
-	// Penetration parameters
-	/// TODO: pass penetrationFactor as parameter
-	this->descendingOffset = max<double>(descendingOffset, 1.0E-4);
-	this->endpointOffset = max<double>(endpointOffset, 1.0E-4);
-	this->maxDistanceToClosestPoint = 0.4; // cm
-	this->maxPenetratingVesselLength = 0.25; //cm
 
-	this->penetrationFactor = 1.0;
-	this->maxGenerateLimit = 1000000; 
-
-	// get final point of bifurcation per new segment. this technique uses a ray-cast and
-	// finds the first intersection to a surface, and considers it as the end of domain.
-	this->xRayDisplacement = 100.0;
-	// find the endpoint for vessel
-	this->intersectionTolerance = 1e-5;
-
-	// set CTOR as terminal and generate, set 0.5 for midpoint and generate again
-	this->parametricT = 1.0;
-
-	// function and mode for the addvessel
-	this->vesselFunction = (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction;
-	this->branchingMode = (AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode;
-
-	this->vesselsList.clear();
-	this->descendingData.clear();
-	this->appendedVesselData.clear();
 
 }
 
@@ -150,24 +125,48 @@ PenetratingVesselTreeGenerator::~PenetratingVesselTreeGenerator() {
 	}
 }
 
-inline void PenetratingVesselTreeGenerator::failsafeCheck() {
+
+AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long long int saveInterval, string tempDirectory){
 	if (!allowThisClass) {
 		cout << "FATAL: experimental class, set bool 'allowThisClass' to true to use this" << endl;
 		exit(1);
 	}
-	return;
-}
+	this->beginTime = time(nullptr);
+	generatesConfigurationFile(ios::out);
 
-vector<SingleVessel *> PenetratingVesselTreeGenerator::filterTerminalVessels() {
+	int generatedVessels = 0;
+
+	// parametros
+
+	// TODO pass penetrationFactor as parameter
+	this->descendingOffset = max<double>(descendingOffset, 1.0E-4);
+	this->endpointOffset = max<double>(endpointOffset, 1.0E-4);
+	this->maxDistanceToClosestPoint = 0.4; // cm
+	this->maxPenetratingVesselLength = 0.25; //cm
+	double penetrationFactor = 1.0;
+	// double maxPenetrationLength = 1e4;
+	long long int maxGenerateLimit = 1000000; 
+
+
+	string modelsFolder = "./";
+	string outputDir = "./";
+	string prefix = "output";
+	// int stage = 99
+
+
 	// filter the bifurcable vessels, stage, distalbranching, etc.
 	AbstractVesselFilter *terminalFilters = new VesselFilterComposite({new VesselFilterByTerminal()});
 	vector<SingleVessel *> treeVessels = this->tree->getVessels();
 	vector<SingleVessel *> terminalVessels = terminalFilters->apply(treeVessels);
-	delete terminalFilters;
-	return terminalVessels;
-}
 
-void PenetratingVesselTreeGenerator::buildNormalLocator() {
+	vector<SingleVessel *> allTreeVessels = this->tree->getVessels();
+
+	// get the projection domain and the perfusion domain via CTOR
+	// Perfusion : StagedDomain
+	// Projection : String
+
+	// get surface normals
+
 	//	Read all the data from the file
 	vtkSmartPointer<vtkPolyDataReader> projectionReader = vtkSmartPointer<vtkPolyDataReader>::New();
 	projectionReader->SetFileName(this->projectionDomainFile.c_str());
@@ -184,11 +183,10 @@ void PenetratingVesselTreeGenerator::buildNormalLocator() {
 	this->locatorProjection = vtkSmartPointer<vtkCellLocator>::New();
 	this->locatorProjection->SetDataSet(vtkGeometryProjection);
 	this->locatorProjection->BuildLocator();
-	// prepare the normal geometries
-	this->cellNormalsRetrieved = this->vtkGeometryProjection->GetCellData()->GetNormals();
-}
 
-void PenetratingVesselTreeGenerator::buildIntersectionLocator() {
+
+	// get domain endpoints
+
 	//	Read all the data from the file
 	vtkSmartPointer<vtkPolyDataReader> readerIntersect = vtkSmartPointer<vtkPolyDataReader>::New();
 	readerIntersect->SetFileName(this->domainFile.c_str());
@@ -198,277 +196,275 @@ void PenetratingVesselTreeGenerator::buildIntersectionLocator() {
 	this->locatorIntersect = vtkSmartPointer<vtkCellLocator>::New();
 	this->locatorIntersect->SetDataSet(vtkGeometryIntersect);
 	this->locatorIntersect->BuildLocator();
-}
 
-point PenetratingVesselTreeGenerator::findDistalDescending(point terminal, point& normalT, double& distance2T) {
-	// Find the endpoint for the terminal
-	point projectionT;
-	vtkIdType closeCellIdT;
-	int subIdT;
-	// double distance2T; // This is returned by reference
-	// find closest cell from point of bifurcation
-	this->locatorProjection->FindClosestPoint(terminal.p, projectionT.p, closeCellIdT, subIdT, distance2T); // the distance is squared!
+	// get list of bifurcable vessels
+	vector<SingleVessel *> vesselsList = terminalVessels;
 
-	// get normal of the closest cell at closest point and the normal versor
-	cellNormalsRetrieved->GetTuple(closeCellIdT, normalT.p);
+	// prepare the normal geometries
+	vtkSmartPointer<vtkDataArray> cellNormalsRetrieved = vtkGeometryProjection->GetCellData()->GetNormals();
 
-	// define displacement versor for the offset (+-something%), get projection and add/subtract the displacement, always below surface.
-	// this displacement is NOT the normal, it is in the direction from terminal to projection
-	point displacementT = projectionT - terminal;
-	displacementT = displacementT / sqrt(displacementT^displacementT);
+	// iterate for all the vessels
 
-	// add if same direction, subtract if going outwards
-	// however, start from terminal if point is inside, to avoid zig-zag pattern
-	// it checks if point is inside domain and then change how the first step is added, to avoid weird zig-zag patterns.
-	bool terminalIsInside = false;
-	if ((normalT^displacementT)<0) {
-		projectionT = projectionT + displacementT * descendingOffset;
-	} else { // here the point is inside the domain
-		// projectionT = projectionT - displacementT * descendingOffset;
-		projectionT = terminal - displacementT * descendingOffset;
-		terminalIsInside = true;
-	}
-
-	return projectionT;
-}
-
-bool PenetratingVesselTreeGenerator::isDescendingValid(double distance2T) {
-	// check if the distance is under a maximum value, to verify if there is gray matter below it
-	// if not, then abort this vessel/point from bifurcating
-	bool outputCheck = true;
-	if (distance2T > pow(this->maxDistanceToClosestPoint, 2)) {
-		cout << "WARNING: Terminal aborted, closest point beyond maximum distance." << endl;
-		outputCheck = false;
-	}
-	return outputCheck;
-}
-
-point PenetratingVesselTreeGenerator::findDistalPenetrating(point terminal, point normal, int& foundRaycast) {
-	/// NOTE: @param terminal is the xNew1/distal of the descending, the xBif/proximal of the penetrating.
-	// get final point of bifurcation per new segment. this technique uses a ray-cast and
-	// finds the first intersection to a surface, and considers it as the end of domain.
-	point xRayDisplacementT = (normal*xRayDisplacement)*(-1);
-	point xRaycastT = terminal + xRayDisplacementT;
-
-	// find the endpoint for vessel
-	double tParamT = 0.0;
-	point hitpointT;
-	point pcoordsT;
-	vtkIdType endCellIdT;
-	int endSubIdT = 0;
-
-	foundRaycast = this->locatorIntersect->IntersectWithLine(terminal.p, xRaycastT.p, intersectionTolerance,
-		tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT);
-	
-	point directionT = hitpointT - terminal;
-	directionT = directionT / sqrt(directionT^directionT);
-
-	// Check if segment is too long, and clamp it to a maximum value
-	// point is always from inside the surface, we subtract to make the length shorter.
-	point endpointT;
-	endpointT = hitpointT - directionT * endpointOffset;
-
-	point penetratingT = endpointT - terminal;
-	double lengthT = sqrt(penetratingT^penetratingT);
-	lengthT = adjustMaxPenetratingLength(lengthT);
-
-	point xNew2 = terminal + (penetratingT/sqrt(penetratingT^penetratingT))*lengthT*penetrationFactor;
-
-	return xNew2;
-}
-
-double PenetratingVesselTreeGenerator::adjustMaxPenetratingLength(double length) {
-	if (length > maxPenetratingVesselLength){
-		cout << "NOTE: Terminal shortened, length beyond maximum distance." << "\n";
-		length = maxPenetratingVesselLength;
-	}
-	return length;
-}
-
-bool PenetratingVesselTreeGenerator::isPenetratingValid(int foundRaycast) {
-	bool outputCheck = true;
-	if (!foundRaycast){
-		cout << "WARNING: no intersection found! Terminal aborted." << endl;
-		outputCheck = false;
-	}
-	return outputCheck;
-}
-
-bool PenetratingVesselTreeGenerator::isPenetratingInside(point xProx, point xDist) {
-	bool isInside = true;
-	// check if the displaced new point/segment is indeed inside domain.
-	isInside = domain->isSegmentInside(xProx, xDist);
-	if (!isInside) {
-		cout << "WARNING: Terminal penetrating step 2 outside domain. Aborted this vessel. Is the domain thick enough?" << "\n";
-		isInside = false;
-	}
-	return isInside;
-}
-
-void PenetratingVesselTreeGenerator::setParentMode(SingleVessel* parent, AbstractVascularElement::BRANCHING_MODE mode) {
-	parent->branchingMode = mode; 
-}
-
-
-AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateData(
-		long long int saveInterval, string tempDirectory){
-	failsafeCheck();
-
-	buildNormalLocator();
-	buildIntersectionLocator();
-
-	// get list of bifurcable vessels, the parent vessels
-	this->vesselsList = filterTerminalVessels();
+	printf("iterating all segments, bifurcating from terminals\n");
+	cout << vesselsList.size() << endl;
 	long long int vesselcount = 0;
-	// parametricT = 1.0;
-	// cout << "WARNING: Hardcode of parametricT to " << parametricT << " . " << endl;
-	if (parametricT > 1.0) {
-		cout << "ERROR: invalid parametricT " << parametricT << " ." << endl;
-		return tree;
-	}
-
 	cout << "INFO: Limiting to " << maxGenerateLimit << " vessels." << endl;
-	cout << "iterating all " << vesselsList.size() << " terminal segments, bifurcating from terminals and midpoint" << "\n";
 	for (vector<SingleVessel *>::iterator it = vesselsList.begin(); it != vesselsList.end() && vesselcount<maxGenerateLimit; ++it, ++vesselcount) {
+		// cout<<"\n-----\n"<<endl;
+
 		dataMonitor->update();
-		cout << "Adding: Vessel count " << vesselcount << "; vtksegmentid " << (*it)->vtkSegmentId << endl;
-		SingleVessel* parent = (*it);
-		
-		if (parametricT == 1.0) {
-			parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING;
-		} else if (parametricT < 1.0) {
-			parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT;
+		cout << "Adding: Vessel count " << vesselcount << "; vessel id " << (*it)->ID << "; vtksegmentid " << (*it)->vtkSegmentId << endl;
+
+		// get the two points of bifurcation per segment
+		point terminal = (*it)->xDist;
+		point midpoint = ((*it)->xDist + (*it)->xProx)*0.5;
+		bool generateFromTerminal=true;
+		bool generateFromMidpoint=true;
+
+		point projectionT, normalT;
+		point projectionM, normalM;
+		vtkIdType closeCellIdT;
+		vtkIdType closeCellIdM;
+		int subIdT;
+		int subIdM;
+		double distance2T;
+		double distance2M;
+
+		// find closest cell from point of bifurcation
+		this->locatorProjection->FindClosestPoint(terminal.p, projectionT.p, closeCellIdT, subIdT, distance2T); // the distance is squared!
+		this->locatorProjection->FindClosestPoint(midpoint.p, projectionM.p, closeCellIdM, subIdM, distance2M);
+
+		// check if the distance is under a maximum value, to verify if there is gray matter below it
+		// if not, then abort this vessel/point from bifurcating
+		if (distance2T > pow(maxDistanceToClosestPoint, 2)) {
+			cout << "WARNING: Terminal aborted, closest point beyond maximum distance." << endl;
+			generateFromTerminal = false;
 		}
-		// get the bifurcation point from the terminal
-		// the bifurcation points are the terminal and midpoint points
-		// Generic point terminal is a combination of terminal (t=1.0) and midpoint (t=0.5)
-		point xBifT = parent->xProx + (parent->xDist - parent->xProx)*parametricT;
-		
+		if (distance2M > pow(maxDistanceToClosestPoint, 2)) {
+			cout << "WARNING: Midpoint aborted, closest point beyond maximum distance." << endl;
+			generateFromMidpoint = false;
+		}
+
+		// get normal of the closest cell at closest point and the normal versor
+		cellNormalsRetrieved->GetTuple(closeCellIdT, normalT.p);
+		cellNormalsRetrieved->GetTuple(closeCellIdM, normalM.p);
+
+		// define displacement versor for the offset (+-something%), get projection and add/subtract the displacement, always below surface.
+		// this displacement is NOT the normal, it is in the direction from terminal to projection
+		point displacementT = projectionT - terminal;
+		point displacementM = projectionM - midpoint;
+		displacementT = displacementT / sqrt(displacementT^displacementT);
+		displacementM = displacementM / sqrt(displacementM^displacementM);
+
+		// add if same direction, subtract if going outwards
+		// however, start from terminal if point is inside, to avoid zig-zag pattern
+		// it checks if point is inside domain and then change how the first step is added, to avoid weird zig-zag patterns.
+		bool terminalIsInside = false;
+		bool midpointIsInside = false;
+		if ((normalT^displacementT)<0) {
+			projectionT = projectionT + displacementT * descendingOffset;
+		} else { // here the point is inside the domain
+			// projectionT = projectionT - displacementT * descendingOffset;
+			projectionT = terminal - displacementT * descendingOffset;
+			terminalIsInside = true;
+		}
+		if ((normalM^displacementM)<0) {
+			projectionM = projectionM + displacementM * descendingOffset;
+		} else { // here the point is inside the domain
+			// projectionM = projectionM - displacementM * descendingOffset;
+			projectionM = midpoint - displacementM * descendingOffset;
+			midpointIsInside = true;
+		}
+
 		// define the new terminal point as the projection point.
 		// we do not do (*it)->xDist = projectionT; because it changes the tree
 		// we need to addVessel(...) instead.
 
-		double length2;
-		point normal;
+		// the bifurcation points are the terminal and midpoint points
+		SingleVessel* parent = (*it);
+		point xBifT = terminal;
+		point xBifM = midpoint;
+
 		// get intersection point from bifurcation to surface along versor
-		point xNew1 = findDistalDescending(xBifT, normal, length2);
+		point xNew1T = projectionT;
+		point xNew1M = projectionM;
 
-		int foundRaycast;
-		point xNew2 = findDistalPenetrating(xNew1, normal, foundRaycast);
-		
-		bool generateFromTerminal = (isDescendingValid(length2) && 
-									 isPenetratingValid(foundRaycast) && 
-									 isPenetratingInside(xNew1, xNew2));
+		// get final point of bifurcation per new segment. this technique uses a ray-cast and
+		// finds the first intersection to a surface, and considers it as the end of domain.
+		double xRayDisplacement = 100.0;
+		point xRayDisplacementT = (normalT*xRayDisplacement)*(-1);
+		point xRayDisplacementM = (normalM*xRayDisplacement)*(-1);
+		point xRaycastT = projectionT + xRayDisplacementT;
+		point xRaycastM = projectionM + xRayDisplacementM;
 
-		// generate for terminal, generate from midpoint, save the results in a variable:
-		// if generate from terminal: save the following:
-		// parent (ID), xbif, xnew1, xnew2.
-		if (generateFromTerminal) {
-			cout << "Saving coordinates to local variable" << endl;
-			descendingData[parametricT][parent->vtkSegmentId] = {xBifT, xNew1, xNew2};
+		// find the endpoint for vessel
+		double intersectionTolerance = 1e-5;
+		double tParamT = 0.0;
+		double tParamM = 0.0;
+		point hitpointT;
+		point hitpointM;
+		point pcoordsT;
+		point pcoordsM;
+		vtkIdType endCellIdT;
+		vtkIdType endCellIdM;
+		int endSubIdT = 0;
+		int endSubIdM = 0;
+
+		int ret2T, ret2M;
+		ret2T = this->locatorIntersect->IntersectWithLine(xNew1T.p, xRaycastT.p, intersectionTolerance,
+			tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT);
+		if (!ret2T){
+			cout << "WARNING: no intersection found! Terminal aborted." << endl;
+			generateFromTerminal = false;
 		}
-	}
-	cout << "iterated through all " << vesselsList.size() << " vessels" << endl;
-	return tree;
-}
-
-/* 
-int temporaryfunction(){
-
-	// INSIDE LOOP
-		/// TODO: move this to another function, 2 functions.
-		if (generateFromTerminal) {
-
+		ret2M = this->locatorIntersect->IntersectWithLine(xNew1M.p, xRaycastM.p, intersectionTolerance,
+			tParamM, hitpointM.p, pcoordsM.p, endSubIdM, endCellIdM);
+		if (!ret2M){
+			cout << "WARNING: no intersection found! Midpoint aborted." << endl;
+			generateFromMidpoint = false;
 		}
 
-}
- */
+		point directionT = hitpointT - xNew1T;
+		point directionM = hitpointM - xNew1M;
+		directionT = directionT / sqrt(directionT^directionT);
+		directionM = directionM / sqrt(directionM^directionM);
 
-AbstractObjectCCOTree *PenetratingVesselTreeGenerator::descend(double parametricValue){
-	// ATTENTION: add first terminal tip connections, and after that go inwards from distal towards proximal.
-	cout << "adding descending 1st step" << endl;
-	AbstractVascularElement::BRANCHING_MODE parametricMode;
-	if (parametricValue == 1.0) {
-		parametricMode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING;
-	} else if (parametricValue < 1.0) {
-		parametricMode = AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT;
-	}
-	// We get the parametricCase-th case in the map
-	unordered_map<vtkIdType, vector<point>> parametricPoints = descendingData[parametricValue];
-	for (unordered_map<vtkIdType, vector<point>>::iterator it = (parametricPoints).begin(); it!=(parametricPoints).end(); ++it) {
-		// My parent ID
-		vtkIdType parentID = (*it).first;
-		// My parent vessel
-		SingleVessel* parent = (SingleVessel*) tree->getSegments()[parentID];
-		parent->branchingMode = parametricMode;
-		// My bifurcation point
-		point xBifT = (*it).second[0];
-		// My new distal
-		point xNew1 = (*it).second[1];
-		// xNew2 is ignored, we save the coordinates and get from the file.
-		point xNew2 = (*it).second[2];
-		// my newly added segment id
-		vtkIdType addedVesselID;
-		((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifT, xNew1, parent, this->vesselFunction, this->branchingMode, addedVesselID);
-		/// TODO: find a way to save the first step ID
-		// The below is buggy, for some reason it only worked because iNew is added before iCon
-		// vtkIdType firstStepVesselID = ((SingleVessel*)parent->getChildren()[0])->vtkSegmentId;
-		this->appendedVesselData[addedVesselID] = vector<point> {xNew1, xNew2};
-		cout << "appended segment " << addedVesselID << " to tree." << "\n";
-	}
-	cout << "added!." << endl;
-	//
-	return tree;
-}
+		// Check if segment is too long, and clamp it to a maximum value
 
-AbstractObjectCCOTree *PenetratingVesselTreeGenerator::penetrate(
-		long long int saveInterval, string tempDirectory){
-	// This function is not implemented, I need to find a way to save the VTKIDSEGMENT of the descending vessels before implementing this, 
-	// so I can retrieve and find the new parent for the penetrating vessel. Since I want the points not the segment, it's postponed
-	/// TODO: implement this and find a way to get the descending segment VTKIDSEGMENT
-	cout << "ERROR: this function is not implemented" << endl;
-			// // Move to penetrate();
-			// // The following assumes parent vessel was a terminal and has a single child at the distal tip
+		// point is always from inside the surface, we subtract to make the length shorter.
+		point endpointT;
+		point endpointM;
+		endpointT = hitpointT - directionT * endpointOffset;
+		endpointM = hitpointM - directionM * endpointOffset;
+
+		point penetratingT = endpointT - xNew1T;
+		point penetratingM = endpointM - xNew1M;
+		double lengthT = sqrt(penetratingT^penetratingT);
+		double lengthM = sqrt(penetratingM^penetratingM);
+
+		if (lengthT > maxPenetratingVesselLength){
+			cout << "NOTE: Terminal shortened, length beyond maximum distance." << "\n";
+			lengthT = maxPenetratingVesselLength;
+		}
+		if (lengthM > maxPenetratingVesselLength){
+			cout << "NOTE: Midpoint shortened, length beyond maximum distance." << "\n";
+			lengthM = maxPenetratingVesselLength;
+		}
+
+		// bool generateHalf = false;
+
+		point xNew2T = xNew1T + (penetratingT/sqrt(penetratingT^penetratingT))*lengthT*penetrationFactor;
+		point xNew2M = xNew1M + (penetratingM/sqrt(penetratingM^penetratingM))*lengthM*penetrationFactor;
+
+		// check if the displaced new point/segment is indeed inside domain.
+		bool isPenetratingInsideT, isPenetratingInsideM;
+		isPenetratingInsideT = domain->isSegmentInside(xNew1T, xNew2T);
+		isPenetratingInsideM = domain->isSegmentInside(xNew1M, xNew2M);
+		if (!isPenetratingInsideT) {
+			cout << "WARNING: Terminal penetrating step 2 outside domain. Aborted this vessel. Is the domain thick enough?" << "\n";
+			generateFromTerminal = false;
+		}
+		if (!isPenetratingInsideM) {
+			cout << "WARNING: Midpoint penetrating step 2 outside domain. Aborted this vessel. Is the domain thick enough?" << "\n";
+			generateFromMidpoint = false;
+		}
+
+		// cout << "parent mode was " << parent->branchingMode << "; ";
+
+		if (parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT)
+			parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING;
+
+		// cout << "now parent mode is " << parent->branchingMode << "\n";
+
+
+		if (generateFromTerminal) {
+			// cout << "adding descending and penetrating segments" << "\n";
+			// cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
+			// cout << "add descending 1st step" << endl;
+			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifT, xNew1T, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+			// cout << "added!." << endl;
+
+			// cout << "..." << endl;
+
 			// cout << "add descending 2nd step" << endl;
-			// ((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1, xNew2, firstStepVesselT, this->vesselFunction, this->branchingMode);
-			// SingleVessel* secondStepVesselT = (SingleVessel *) firstStepVesselT->getChildren()[0];
-	return tree;
-}
+			// The following assumes parent vessel was a terminal and has a single child at the distal tip
+			SingleVessel* firstStepVesselT = (SingleVessel *) parent->getChildren()[0];
+			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1T, xNew2T, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+			SingleVessel* secondStepVesselT = (SingleVessel *) firstStepVesselT->getChildren()[0];
+			// cout << "added!." << endl;
+		}
 
-void PenetratingVesselTreeGenerator:: updateGeneratedSegments() {
+		// Change parent vessel DistalBranching to RigidParent bifurcation
+		// cout << "parent mode was " << parent->branchingMode << "; ";
+
+		if (parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING)
+			parent->branchingMode = AbstractVascularElement::BRANCHING_MODE::RIGID_PARENT;
+
+		// cout << "now parent mode is " << parent->branchingMode << "\n";
+
+		if (generateFromMidpoint) {
+			// cout << "=== branching from midpoint ===" << endl;
+			// cout << "adding descending and penetrating segments midpoint" << "\n";
+
+			// cout << "Added with a cost of " << "[NoCost]" << " with a total cost of " << ((SingleVessel *) tree->getRoot())->treeVolume << endl;
+			// cout << "add descending 1st step" << endl;
+			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xBifM, xNew1M, parent, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+			// cout << "added!." << endl;
+
+			// cout << "..." << endl;
+
+			// cout << "add descending 2nd step" << endl;
+			// The following assumes parent vessel was a terminal and has a single child at the distal tip
+			SingleVessel * firstStepVesselM = (SingleVessel *) parent->getChildren()[0];
+			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1M, xNew2M, firstStepVesselM, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+			SingleVessel* secondStepVesselM = (SingleVessel *) firstStepVesselM->getChildren()[0];
+			// cout << "added!." << endl;
+		}
+
+		// cout<<"\n-----\n"<<endl;
+	}
+
+	cout << "iterated through all vessels" << endl;
+
+
+	printf("iterating all segments, bifurcating from midpoint (todo)\n");
+	cout << vesselsList.size() << endl;
+
+
+	// Do not run the SVCCOOT::updateTree function, it is called by the SingleVesselCCOOTree when adding the vessel with addVessel
+	// Do not forcefully update viscosities with SVCCOOT::updateTreeViscositiesBeta, it is called when adding the vessel with addVessel
+	// these are called when merging the tree because the steps are different
+
+	// yes run it because we dont want to update everything after EVERY vessel.
+
     // Update tree
 	cout << "updating the tree" << endl;
-	((SingleVesselCCOOTree*) this->tree)->updateMassiveTree();
-	tree->computePressure(tree->getRoot());
-	tree->setPointCounter(domain->getPointCounter());
-	saveStatus(nTerminals-1);
+	((SingleVesselCCOOTree*) tree)->updateMassiveTree();
 	cout << "tree updated" << endl;
 
-}
+    this->tree->computePressure(this->tree->getRoot());
 
-int PenetratingVesselTreeGenerator::saveData(string filename) {
-	/// TODO: write function
-	// I need to save the generated segment ID with the coordinates, to find the correct when appending the tree.
-	// This was done via a new method that returns the ID via parameter. Now the function:
-	/// I need to save the @param appendedVesselData to a .txt file or binary...
-	ofstream outStream;
-	outStream.open(filename, ios::out);
-	if (!outStream.is_open()) {
-		cout << "ERROR: file was not open!" << endl;
-		return 1;
-	}
-	for (auto it : appendedVesselData) {
-		// append NEWVESSELID + xNew1 + xNew2 
-		outStream << it.first << " "; // new vessel id
-		outStream << it.second[0].p[0] << " "; // xnew1
-		outStream << it.second[0].p[1] << " ";
-		outStream << it.second[0].p[2] << " ";
-		outStream << it.second[1].p[0] << " "; // xnew2
-		outStream << it.second[1].p[1] << " ";
-		outStream << it.second[1].p[2] << "\n";
-	}
-	outStream.close();
-	return 0;
+
+
+	tree->computePressure(tree->getRoot());
+	tree->setPointCounter(domain->getPointCounter());
+
+
+	this->endTime = time(nullptr);
+	this->dLimLast = this->dLim;
+
+	saveStatus(nTerminals-1);
+	markTimestampOnConfigurationFile("Final tree volume " + to_string(((SingleVessel *) tree->getRoot())->treeVolume));
+	markTimestampOnConfigurationFile("Tree successfully generated.");
+	closeConfigurationFile();
+
+	return tree;
+
+
 }
 
 int PenetratingVesselTreeGenerator::isValidSegment(point xNew, int iTry) {
