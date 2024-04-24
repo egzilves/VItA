@@ -224,7 +224,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// map xyz-translation, map xy-rotation, map z-scale
 		// keep xy-scale (or use z-scale)
 		// TODO: random z-rotation
-		cout << "tree imported, calculating basing characteristics" << endl;
+		cout << "tree imported, calculating basing characteristics" << "\n";
 		// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
 		point originSubtree = {0,0,0};
 		double heightSubtree = 2.5; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
@@ -237,7 +237,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		double length = sqrt(displacement^displacement);
 		point unitDirection = displacement/length;
 
-		cout << "linear mapping the tree..." << endl;
+		cout << "linear mapping the tree..." << "\n";
 		// SCALING
 		double scaleFactor = length / heightSubtree;
 		// scale the tree, for each terminal scale distal/proximal points
@@ -249,7 +249,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 			(*itVessel)->xProx.p[2] = (*itVessel)->xProx.p[2]*scaleFactor;
 			(*itVessel)->xDist.p[2] = (*itVessel)->xDist.p[2]*scaleFactor;
 		}
-		cout << "scaled, now rotating" << endl;
+		cout << "scaled, now rotating" << "\n";
 		// ROTATION
 		// Rodrigues formula.
 		point u {unitSubtree};
@@ -278,7 +278,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 			(*itVessel)->xProx = Rotation*(*itVessel)->xProx;
 			(*itVessel)->xDist = Rotation*(*itVessel)->xDist;
 		}
-		cout << "rotated, now translating" << endl;
+		cout << "rotated, now translating" << "\n";
 		// TRANSLATION
 		point translationVector = vesselProx - originSubtree;
 		// translate for each point
@@ -286,7 +286,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 			(*itVessel)->xProx = (*itVessel)->xProx + translationVector;
 			(*itVessel)->xDist = (*itVessel)->xDist + translationVector;
 		}
-		cout << "subtree ready for replacement" << endl;
+		cout << "subtree ready for replacement" << "\n";
 		// Now the subtree is geometrically located in the correct point. Time to replace the subtree.
 
 		// TODO: make subtree and append
@@ -294,7 +294,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// map proximal and distal of subtrees, recursively for every child.
 		// update radius, update tree
 		int newTerms = 101;
-		cout << "WARNING: hardcode for " << newTerms << " new terms in subtree" << endl;
+		cout << "WARNING: hardcode for " << newTerms << " new terms in subtree" << "\n";
 		tree->addSubtree(newSubtree, oldVessel, newTerms);
 
 		
