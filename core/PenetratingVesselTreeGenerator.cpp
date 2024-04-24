@@ -900,7 +900,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 		// cout<<"\n-----\n"<<endl;
 
 		dataMonitor->update();
-		cout << "Adding: Vessel count " << vesselcount << "; vessel id " << (*it)->ID << "; vtksegmentid " << (*it)->vtkSegmentId << endl;
+		cout << "Adding: Vessel count " << vesselcount << "; to vessel id vtksegmentid " << (*it)->vtkSegmentId << "\n";
 
 		// get the two points of bifurcation per segment
 		point terminal = (*it)->xDist;
@@ -924,11 +924,11 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 		// check if the distance is under a maximum value, to verify if there is gray matter below it
 		// if not, then abort this vessel/point from bifurcating
 		if (distance2T > pow(maxDistanceToClosestPoint, 2)) {
-			cout << "WARNING: Terminal aborted, closest point beyond maximum distance." << endl;
+			cout << "WARNING: Terminal aborted, closest point beyond maximum distance." << "\n";
 			generateFromTerminal = false;
 		}
 		if (distance2M > pow(maxDistanceToClosestPoint, 2)) {
-			cout << "WARNING: Midpoint aborted, closest point beyond maximum distance." << endl;
+			cout << "WARNING: Midpoint aborted, closest point beyond maximum distance." << "\n";
 			generateFromMidpoint = false;
 		}
 
@@ -1001,13 +1001,13 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 		ret2T = this->locatorIntersect->IntersectWithLine(xNew1T.p, xRaycastT.p, intersectionTolerance,
 			tParamT, hitpointT.p, pcoordsT.p, endSubIdT, endCellIdT);
 		if (!ret2T){
-			cout << "WARNING: no intersection found! Terminal aborted." << endl;
+			cout << "WARNING: no intersection found! Terminal aborted." << "\n";
 			generateFromTerminal = false;
 		}
 		ret2M = this->locatorIntersect->IntersectWithLine(xNew1M.p, xRaycastM.p, intersectionTolerance,
 			tParamM, hitpointM.p, pcoordsM.p, endSubIdM, endCellIdM);
 		if (!ret2M){
-			cout << "WARNING: no intersection found! Midpoint aborted." << endl;
+			cout << "WARNING: no intersection found! Midpoint aborted." << "\n";
 			generateFromMidpoint = false;
 		}
 
@@ -1148,14 +1148,12 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 		// cout<<"\n-----\n"<<endl;
 	}
 
-	cout << "Closing file for penetrating data." << endl;
+	cout << "Closing file for penetrating data." << "\n";
 	fileOut.close();
 
-	cout << "iterated through all vessels" << endl;
+	cout << "iterated through all vessels" << "\n";
 
-
-	printf("iterating all segments, bifurcating from midpoint (todo)\n");
-	cout << vesselsList.size() << endl;
+	cout << vesselsList.size() << "\n";
 
 
 	// Do not run the SVCCOOT::updateTree function, it is called by the SingleVesselCCOOTree when adding the vessel with addVessel
@@ -1165,9 +1163,9 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 	// yes run it because we dont want to update everything after EVERY vessel.
 
     // Update tree
-	cout << "updating the tree" << endl;
+	cout << "updating the tree" << "\n";
 	((SingleVesselCCOOTree*) tree)->updateMassiveTree();
-	cout << "tree updated" << endl;
+	cout << "tree updated" << "\n";
 
     this->tree->computePressure(this->tree->getRoot());
 
