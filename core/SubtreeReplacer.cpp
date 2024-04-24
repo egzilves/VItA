@@ -114,7 +114,7 @@ SubtreeReplacer::SubtreeReplacer(
 	// this->projectionDomainFile = projectionDomainFile;
 	// this->domainFile = projectionDomainFile;
 
-
+/*
 	this->maxIterationsLimit = 1000000;
 
 
@@ -124,7 +124,7 @@ SubtreeReplacer::SubtreeReplacer(
     this->nu = new ConstantConstraintFunction<double, int>(3.6); //cP
 
 	this->toAppendVesselData.clear();
-
+*/
 
 }
 
@@ -134,6 +134,206 @@ SubtreeReplacer::~SubtreeReplacer() {
 	if (this->didAllocateTree) {
 		delete this->tree;
 	}
+}
+
+
+AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval, string tempDirectory, string subtreeFilename, string filenameData){
+	if (!allowThisClass) {
+		cout << "FATAL: experimental class, set bool 'allowThisClass' to true to use this" << endl;
+		exit(1);
+	}
+	this->beginTime = time(nullptr);
+	generatesConfigurationFile(ios::out);
+
+	int generatedVessels = 0;
+	string modelsFolder = "./";
+	string outputDir = "./";
+	string prefix = "output";
+
+
+
+	// pass parameters, longTreeList.cco, shortTreeList.cco, percentages
+	vector<vector<string>> populations; // each element is a population, contains a list of cco files
+	vector<double> accumulatedPercentages; // the ACCUMULATED distributions for each population
+
+	// Filter vessels by type
+	// filter the penetrating vessels, distalbranching, etc.
+	// terminal && function=penetrating && mode=distal
+	AbstractVascularElement::VESSEL_FUNCTION vesselfunction = AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR; //penetrating
+	AbstractVascularElement::BRANCHING_MODE branchingmode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING; //penetrating
+	AbstractVesselFilter *replacedFilters = new VesselFilterComposite({
+		new VesselFilterByTerminal(), 
+		new VesselFilterByVesselFunction(vesselfunction), 
+		new VesselFilterByBranchingMode(branchingmode)
+		});
+	vector<SingleVessel *> treeVessels = this->tree->getVessels();
+	vector<SingleVessel *> replacedVessels = replacedFilters->apply(treeVessels);
+
+	/// TODO: for each (SingleVessel *) vessel
+	int maxIterations = 1000;
+	int itCount = 0;
+    GeneratorData *gen_data_0 {new GeneratorData(16000, 2000, 0.95,
+        1.0, 1.0, 0.25, 7, 0, false, new VolumetricCostEstimator())};
+    AbstractConstraintFunction<double,int> *gam_0 {new ConstantConstraintFunction<double, int>(3.0)};
+    AbstractConstraintFunction<double, int> *eps_lim_1 {new ConstantPiecewiseConstraintFunction<double, int>({0.0, 0.0},{0, 2})};
+    AbstractConstraintFunction<double,int> *nu {new ConstantConstraintFunction<double, int>(3.6)}; //cP
+
+
+	// Load the segment ID of parent + coordinates for subtree, to find the correct when appending the tree.
+	// This was done via a new method that returns the ID via parameter. Now the function:
+	ifstream streamIn;
+	streamIn.open(filenameData, ios::in);
+	if (!streamIn.is_open()) {
+		cout << "ERROR: file was not open!" << endl;
+		return tree;
+	}
+	cout << "Loading data from filename " << filenameData << " and saving to memory." << endl;
+	vtkIdType parentVesselID;
+	double x1, y1, z1, x2, y2, z2;
+	while (streamIn >> parentVesselID >> x1 >> y1 >> z1 >> x2 >> y2 >> z2) {
+		point pProx;
+		pProx.p[0] = x1;
+		pProx.p[1] = y1;
+		pProx.p[2] = z1;
+		point pDist;
+		pDist.p[0] = x2;
+		pDist.p[1] = y2;
+		pDist.p[2] = z2;
+		this->toAppendVesselData[parentVesselID] = vector<point> {pProx, pDist};
+	}
+	streamIn.close();
+	cout << "Data loaded." << endl;
+
+
+	/// TODO: sort type of tree
+	cout << "WARNING: limiting max iterations to " << maxIterations << endl;
+	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
+		SingleVessel* oldVessel = (*it);
+		// TODO: get properties, get distal (coordinates), get radius, length
+		point vesselProx = oldVessel->xProx;
+		point vesselDist = oldVessel->xDist;
+
+		// Instantiate a new subtree
+		// string subtreeFilename = subtreeFilename;
+		SingleVesselCCOOTree *newSubtree {new SingleVesselCCOOTree(subtreeFilename, gen_data_0, gam_0, eps_lim_1, nu)};
+		vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
+
+
+		// Map geometry of subtree
+		// map: 0,0,0 -> proximal, map 0,0,h -> distal with h=0.25cm
+		// map xyz-translation, map xy-rotation, map z-scale
+		// keep xy-scale (or use z-scale)
+		// TODO: random z-rotation
+		cout << "tree imported, calculating basing characteristics" << endl;
+		// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
+		point originSubtree = {0,0,0};
+		double heightSubtree = 2.5; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
+		point terminalSubtree = {0,0,heightSubtree};
+		point displacementSubtree = terminalSubtree-originSubtree;
+		double lengthSubtree = sqrt(displacementSubtree^displacementSubtree);
+		point unitSubtree = displacementSubtree/lengthSubtree;
+
+		point displacement = vesselDist-vesselProx; 
+		double length = sqrt(displacement^displacement);
+		point unitDirection = displacement/length;
+
+		cout << "linear mapping the tree..." << endl;
+		// SCALING
+		double scaleFactor = length / heightSubtree;
+		// scale the tree, for each terminal scale distal/proximal points
+		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
+			(*itVessel)->xProx.p[0] = (*itVessel)->xProx.p[0]*scaleFactor;
+			(*itVessel)->xDist.p[0] = (*itVessel)->xDist.p[0]*scaleFactor;
+			(*itVessel)->xProx.p[1] = (*itVessel)->xProx.p[1]*scaleFactor;
+			(*itVessel)->xDist.p[1] = (*itVessel)->xDist.p[1]*scaleFactor;
+			(*itVessel)->xProx.p[2] = (*itVessel)->xProx.p[2]*scaleFactor;
+			(*itVessel)->xDist.p[2] = (*itVessel)->xDist.p[2]*scaleFactor;
+		}
+		cout << "scaled, now rotating" << endl;
+		// ROTATION
+		// Rodrigues formula.
+		point u {unitSubtree};
+		point Ru = {unitDirection};
+		matrix Identity = {{1,0,0, 0,1,0, 0,0,1}};
+		matrix Rotation;
+		matrix Krotation;
+		double smallValue = 1e-5;
+		bool calculateRotation = true;
+		double cosineAngle = u^Ru;
+		if (abs(cosineAngle-1) < smallValue){
+			Rotation = Identity;
+			calculateRotation = false;
+		}
+		if (abs(cosineAngle+1) < smallValue){
+			Rotation = Identity*(-1);
+			calculateRotation = false;
+		}
+		if (calculateRotation){
+			matrix Krotation = outer(Ru,u) - outer(u,Ru);
+			Rotation = Identity + Krotation + (Krotation*Krotation)/(1+cosineAngle);
+		}
+		// TODO: add random rotation, add matrix to rotate in xy plane, z axis, random angle.
+		// Rotate the points for each terminal, multiply R*v for every point v
+		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
+			(*itVessel)->xProx = Rotation*(*itVessel)->xProx;
+			(*itVessel)->xDist = Rotation*(*itVessel)->xDist;
+		}
+		cout << "rotated, now translating" << endl;
+		// TRANSLATION
+		point translationVector = vesselProx - originSubtree;
+		// translate for each point
+		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
+			(*itVessel)->xProx = (*itVessel)->xProx + translationVector;
+			(*itVessel)->xDist = (*itVessel)->xDist + translationVector;
+		}
+		cout << "subtree ready for replacement" << endl;
+		// Now the subtree is geometrically located in the correct point. Time to replace the subtree.
+
+		// TODO: make subtree and append
+		// Read CCO, map root, and childs recursively
+		// map proximal and distal of subtrees, recursively for every child.
+		// update radius, update tree
+		int newTerms = 101;
+		cout << "WARNING: hardcode for " << newTerms << " new terms in subtree" << endl;
+		tree->addSubtree(newSubtree, oldVessel, newTerms);
+
+		
+		// append tree, use SVCCOOT::addSubtree() method.
+		// transfer ownership, use addChild, removeChildren, setParent, 
+
+		// update the tree, terms, VTK_ID, etc.
+
+		delete newSubtree;
+	}
+	
+
+
+	cout << "iterated through all vessels" << endl;
+
+
+	// yes run it because we dont want to update everything after EVERY vessel.
+
+    // Update tree
+	cout << "updating the tree" << endl;
+	((SingleVesselCCOOTree*) tree)->updateMassiveTree();
+	cout << "tree updated" << endl;
+
+
+	tree->computePressure(tree->getRoot());
+	tree->setPointCounter(domain->getPointCounter());
+
+
+	this->endTime = time(nullptr);
+	this->dLimLast = this->dLim;
+
+	saveStatus(nTerminals-1);
+	markTimestampOnConfigurationFile("Final tree volume " + to_string(((SingleVessel *) tree->getRoot())->treeVolume));
+	markTimestampOnConfigurationFile("Tree successfully generated.");
+	closeConfigurationFile();
+
+	return tree;
+
+
 }
 
 vector<SingleVessel *> SubtreeReplacer::getFilteredVessels() {
