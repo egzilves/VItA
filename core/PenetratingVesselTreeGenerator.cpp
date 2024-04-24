@@ -1077,9 +1077,9 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 			// cout << "add descending 2nd step" << endl;
 			// The following assumes parent vessel was a terminal and has a single child at the distal tip
 			SingleVessel* firstStepVesselT = (SingleVessel *) parent->getChildren()[0];
-			((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1T, xNew2T, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
-								(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
-			SingleVessel* secondStepVesselT = (SingleVessel *) firstStepVesselT->getChildren()[0];
+			// ((SingleVesselCCOOTree*) tree)->addVesselNoUpdate(xNew1T, xNew2T, firstStepVesselT, (AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+			// 					(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode);
+			// SingleVessel* secondStepVesselT = (SingleVessel *) firstStepVesselT->getChildren()[0];
 
 			// SAVE DATA OF SECOND VESSEL TO FILE
 
