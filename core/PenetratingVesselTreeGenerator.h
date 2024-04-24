@@ -136,6 +136,13 @@ public:
 	 * @return	Perfusion tree.
 	 */
 	AbstractObjectCCOTree *generatePenetrating(long long int saveInterval, string tempDirectory);
+	/**
+	 * Generates the tree descending into domain and save penetrating data.
+	 * @param saveInterval Number of iterations performed between saved steps.
+	 * @param tempDirectory Directory where intermediate solutions are saved.
+	 * @return	Perfusion tree.
+	 */
+	AbstractObjectCCOTree *generateDescendingSave(long long int saveInterval, string tempDirectory, string filenameOut);
 
 	/**
 	 * Generates the tree descending into domain, the first step.
