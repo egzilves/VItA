@@ -204,14 +204,15 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 	streamIn.close();
 	cout << "Data loaded." << endl;
 
+	cout << "WARNING: testing for 1 subtree only. Filename: " << subtreeFilename << " " << endl;
 
 	/// TODO: sort type of tree
 	cout << "WARNING: limiting max iterations to " << maxIterations << endl;
 	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
-		SingleVessel* oldVessel = (*it);
+		SingleVessel* parentVessel = (*it);
 		// TODO: get properties, get distal (coordinates), get radius, length
-		point vesselProx = oldVessel->xProx;
-		point vesselDist = oldVessel->xDist;
+		point vesselProx = this->toAppendVesselData[parentVessel->vtkSegmentId][0]; // xProx
+		point vesselDist = this->toAppendVesselData[parentVessel->vtkSegmentId][1]; // xDist
 
 		// Instantiate a new subtree
 		// string subtreeFilename = subtreeFilename;
@@ -227,7 +228,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		cout << "tree imported, calculating basing characteristics" << "\n";
 		// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
 		point originSubtree = {0,0,0};
-		double heightSubtree = 2.5; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
+		double heightSubtree = 0.25; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
 		point terminalSubtree = {0,0,heightSubtree};
 		point displacementSubtree = terminalSubtree-originSubtree;
 		double lengthSubtree = sqrt(displacementSubtree^displacementSubtree);
@@ -248,6 +249,8 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 			(*itVessel)->xDist.p[1] = (*itVessel)->xDist.p[1]*scaleFactor;
 			(*itVessel)->xProx.p[2] = (*itVessel)->xProx.p[2]*scaleFactor;
 			(*itVessel)->xDist.p[2] = (*itVessel)->xDist.p[2]*scaleFactor;
+			(*itVessel)->length = (*itVessel)->length * scaleFactor;
+			(*itVessel)->radius = (*itVessel)->radius * scaleFactor;
 		}
 		cout << "scaled, now rotating" << "\n";
 		// ROTATION
@@ -269,7 +272,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 			calculateRotation = false;
 		}
 		if (calculateRotation){
-			matrix Krotation = outer(Ru,u) - outer(u,Ru);
+			Krotation = outer(Ru,u) - outer(u,Ru);
 			Rotation = Identity + Krotation + (Krotation*Krotation)/(1+cosineAngle);
 		}
 		// TODO: add random rotation, add matrix to rotate in xy plane, z axis, random angle.
@@ -295,7 +298,8 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// update radius, update tree
 		int newTerms = 101;
 		cout << "WARNING: hardcode for " << newTerms << " new terms in subtree" << "\n";
-		tree->addSubtree(newSubtree, oldVessel, newTerms);
+		tree->addSubtree(newSubtree, parentVessel, newTerms);
+		/// TODO: loop tree and addvessel noalloc noupdate
 
 		
 		// append tree, use SVCCOOT::addSubtree() method.
