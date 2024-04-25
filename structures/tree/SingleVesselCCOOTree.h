@@ -251,6 +251,17 @@ public:
 	 * @param nNewSegments Number of new terminals to add
 	 */
 	void addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *parentVessel, int nNewSegments);
+	/**
+	 * Appends subtree to xDist of a terminal vessel.
+	 * The terminal vessel is passed as a SingleVessel where the replacing will occur.
+	 * The subtree is passed as another SingleVesselCCOOTree object with the correct point coordinates mapped *BEFORE* this step.
+	 * This ensures no resource wasted with allocation.
+	 * The CCO tree diameters are not updated, must use the Update Massive Tree method to validate the vessels.
+	 * TODO: if extend this function, use this signature as a wrapper for extended method.
+	 * @param subtree The Subtree to be appended to the tree, replacing the terminal vessel.
+	 * @param parentVessel The terminal vessel parent to the subtree in the operation. Must be a distal_branching terminal.
+	 */
+	void appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *parentVessel);
 
 //	/**
 //	 * Adds a new vessel to the CCO tree as continuation of the pre-existent vessel @p parent. @param xDist is the distal nodes of the new

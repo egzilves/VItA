@@ -2600,6 +2600,11 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 	}
 }
 
+void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *parentVessel) {
+	
+	return;
+}
+
 void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *parentVessel, int nNewSegments){
 	cout << "FATAL: experimental method." << endl;
 	exit(1); // refactor this method
