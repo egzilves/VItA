@@ -217,6 +217,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// Instantiate a new subtree
 		// string subtreeFilename = subtreeFilename;
 		SingleVesselCCOOTree *newSubtree {new SingleVesselCCOOTree(subtreeFilename, gen_data_0, gam_0, eps_lim_1, nu)};
+		(*newSubtree).setIsInCm(true);
 		vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
 
 
