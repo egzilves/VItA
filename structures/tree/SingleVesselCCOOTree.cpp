@@ -2472,10 +2472,44 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 	}
 }
 
-void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *parentVessel) {
-	
+void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel) {
+	if (!subtreeRoot) {
+		// reached leaf node of subtree (? shouldn't happen in the for-loop below... but base case for recursion nonetheless)
+		return;
+	}
+	// addvessel to the tree
+	vtkIdType vesselSegmentId;
+	point xProx = ((SingleVessel*)subtreeRoot)->xProx;
+	point xDist = ((SingleVessel*)subtreeRoot)->xDist;
+	if (!subtreeLevel) {
+		// subtree root only: i need this to fix possible numerical errors when moving the tree, the connection point must be the exact same point
+		xProx = ((SingleVessel*)parentVessel)->xDist;
+	}
+	addVesselNoAllocNoUpdate(xProx, xDist, subtreeRoot, parentVessel,
+		(AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+		(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode,
+		vesselSegmentId);
+	// loop over children
+	// this solves the problem of having an existing parent before appending the children, and add them in a correct consistent manner
+	for (vector<AbstractVascularElement *>::iterator itChildren = subtreeRoot->children.begin(); itChildren != subtreeRoot->children.end(); ++itChildren) {
+		// call itself recursively, but the root and parent vessel are changed
+		appendSubtree(newSubtree, *itChildren, subtreeRoot, subtreeLevel+1);
+	}
 	return;
 }
+
+
+
+// void AbstractObjectCCOTree::saveVessels(AbstractVascularElement * root, ofstream *treeFile){
+// 	if(!root){
+// 		return;
+// 	}
+// 	root->saveVesselData(treeFile);
+// 	*treeFile << endl;
+// 	for (std::vector<AbstractVascularElement *>::iterator it = root->children.begin(); it != root->children.end(); ++it) {
+// 		saveVessels(*it,treeFile);
+// 	}
+// }
 
 void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *parentVessel, int nNewSegments){
 	cout << "FATAL: experimental method." << endl;

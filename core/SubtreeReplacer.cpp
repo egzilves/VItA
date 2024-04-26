@@ -296,9 +296,10 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// Read CCO, map root, and childs recursively
 		// map proximal and distal of subtrees, recursively for every child.
 		// update radius, update tree
-		int newTerms = 101;
-		cout << "WARNING: hardcode for " << newTerms << " new terms in subtree" << "\n";
-		tree->addSubtree(newSubtree, parentVessel, newTerms);
+		// int newTerms = 101;
+		// cout << "WARNING: hardcode for " << newTerms << " new terms in subtree (ignore)" << "\n";
+		// tree->addSubtree(newSubtree, parentVessel, newTerms);
+		tree->appendSubtree(newSubtree, newSubtree->getRoot(), parentVessel, 0);
 		/// TODO: loop tree and addvessel noalloc noupdate
 
 		
