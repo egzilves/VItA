@@ -2485,6 +2485,8 @@ void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, Abst
 		// subtree root only: i need this to fix possible numerical errors when moving the tree, the connection point must be the exact same point
 		xProx = ((SingleVessel*)parentVessel)->xDist;
 	}
+	// This is the best place to add this, but i don't want to test it, so i'll clear in the other function just before deleting the temporary subtree.
+	// ((SingleVesselCCOOTree*)newSubtree)->eraseElement(((SingleVessel*)subtreeRoot)->vtkSegmentId);
 	addVesselNoAllocNoUpdate(xProx, xDist, subtreeRoot, parentVessel,
 		(AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
 		(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode,
@@ -2498,7 +2500,21 @@ void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, Abst
 	return;
 }
 
-
+void SingleVesselCCOOTree::clearElements() {
+	/// WARNING: If used incorrectly this will cause huge memory leaks
+	elements.clear();
+	return;
+}
+void SingleVesselCCOOTree::eraseElement(vtkIdType keyID) {
+	/// WARNING: If used incorrectly this will cause huge memory leaks
+    // Find the iterator for key
+    auto iter = elements.find(keyID);
+    // Delete the pair with key if found
+    if (iter != elements.end()) {
+        elements.erase(iter);
+    }
+	return;
+}
 
 // void AbstractObjectCCOTree::saveVessels(AbstractVascularElement * root, ofstream *treeFile){
 // 	if(!root){

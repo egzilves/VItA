@@ -300,14 +300,8 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// cout << "WARNING: hardcode for " << newTerms << " new terms in subtree (ignore)" << "\n";
 		// tree->addSubtree(newSubtree, parentVessel, newTerms);
 		tree->appendSubtree(newSubtree, newSubtree->getRoot(), parentVessel, 0);
-		/// TODO: loop tree and addvessel noalloc noupdate
 
-		
-		// append tree, use SVCCOOT::addSubtree() method.
-		// transfer ownership, use addChild, removeChildren, setParent, 
-
-		// update the tree, terms, VTK_ID, etc.
-
+		newSubtree->clearElements();
 		delete newSubtree;
 	}
 	

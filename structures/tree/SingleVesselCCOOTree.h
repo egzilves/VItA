@@ -263,6 +263,17 @@ public:
 	 * @param parentVessel The terminal vessel parent to the subtree in the operation. Must be a distal_branching terminal.
 	 */
 	void appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel);
+	/**
+	 * Clear the segments in a vascular tree after you safely moved them to another tree.
+	 * Be sure to move them to another structure, or be careful with memory leaks
+	 */
+	void clearElements();
+	/**
+	 * Clear one segment in a vascular tree after you safely moved them to another tree.
+	 * Be sure to move them to another structure, or be careful with memory leaks
+	 */
+	void eraseElement(vtkIdType keyID);
+
 
 //	/**
 //	 * Adds a new vessel to the CCO tree as continuation of the pre-existent vessel @p parent. @param xDist is the distal nodes of the new
@@ -396,7 +407,7 @@ private:
 	 * Updates the tree values for the current topology in only one tree "in order" swept (O(N)).
 	 * As the recursion deepens, the level number is computed for each element. As the
 	 * recursion is returning, it computes the flow and resistance for the current node and the
-	 * radius ratio for its childs.
+	 * radius ratio for its children.
 	 * @param root Root vessel for the tree to update.
 	 * @param tree Tree to update.
 	 */
