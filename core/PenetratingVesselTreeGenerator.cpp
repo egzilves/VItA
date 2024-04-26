@@ -463,7 +463,7 @@ int PenetratingVesselTreeGenerator::saveData(string filename) {
 	return 0;
 }
 
-AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long long int saveInterval, string tempDirectory){
+AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long long int saveInterval, string tempDirectory, long long int maxGeneration){
 	if (!allowThisClass) {
 		cout << "FATAL: experimental class, set bool 'allowThisClass' to true to use this" << endl;
 		exit(1);
@@ -482,7 +482,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 	this->maxPenetratingVesselLength = 0.25; //cm
 	double penetrationFactor = 1.0;
 	// double maxPenetrationLength = 1e4;
-	long long int maxGenerateLimit = 1000000;
+	long long int maxGenerateLimit = maxGeneration;
 
 
 	string modelsFolder = "./";
@@ -805,7 +805,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 }
 
 
-AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(long long int saveInterval, string tempDirectory, string filenameOut){
+AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(long long int saveInterval, string tempDirectory, string filenameOut, long long int maxGeneration){
 	if (!allowThisClass) {
 		cout << "FATAL: experimental class, set bool 'allowThisClass' to true to use this" << endl;
 		exit(1);
@@ -824,7 +824,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 	this->maxPenetratingVesselLength = 0.25; //cm
 	double penetrationFactor = 1.0;
 	// double maxPenetrationLength = 1e4;
-	long long int maxGenerateLimit = 1000000;
+	long long int maxGenerateLimit = maxGeneration;
 
 
 	string modelsFolder = "./";
