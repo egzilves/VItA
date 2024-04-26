@@ -1260,58 +1260,53 @@ void SingleVesselCCOOTree::addVesselNoAllocNoUpdate(point xProx, point xDist, Ab
 	 * we pass the newVessel pointer instead.
 	 */
 
-	//	Root
-	if (!parent) {
-		cout << "ERROR: invalid parent vessel. Please use this function when attaching to existing parent" << endl;
-	}
+	nTerms++;
+	nCommonTerminals++;
+
 	// We always go into this case because for this method appending always occur in distal points
 	// non-root & distal branching
-	else {
 
-		nTerms++;
-		nCommonTerminals++;
-
-		if(parent->getChildren().empty()){
-			nTerms--;
-			nCommonTerminals--;
-		}
-
-		//	Add segment iNew, (NOT iCon NOR iBif) in the cloned tree updating nLevel and lengths
-		point dNew = xDist - xProx;
-
-		SingleVessel *iNew = (SingleVessel *) newVessel; // We don't allocate in this method.
-		iNew->xProx = xProx;
-		iNew->xDist = xDist;
-		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
-		iNew->length = sqrt(dNew ^ dNew);
-		iNew->viscosity = nu->getValue(iNew->nLevel);
-		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
-		iNew->parent = parent;
-		iNew->ID = nTerms;
-		iNew->stage = currentStage;
-		iNew->vesselFunction = vesselFunction;
-		iNew->branchingMode = branchingMode;
-		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
-
-		parent->addChild(iNew);
-
-		//	Update tree geometry
-		vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
-
-		iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
-		iNew->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second index is the global index of the mesh point
-		iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
-
-		iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
-		elements[iNew->vtkSegmentId] = iNew;
-		addedVesselID = iNew->vtkSegmentId;
-
-		vtkTree->BuildCells();
-		vtkTree->Modified();
-
-		//	Update tree locator
-		vtkTreeLocator->Update();
+	if(parent->getChildren().empty()){
+		nTerms--;
+		nCommonTerminals--;
 	}
+
+	//	Add segment iNew, (NOT iCon NOR iBif) in the cloned tree updating nLevel and lengths
+	point dNew = xDist - xProx;
+
+	SingleVessel *iNew = (SingleVessel *) newVessel; // We don't allocate in this method.
+	iNew->xProx = xProx;
+	iNew->xDist = xDist;
+	iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+	iNew->length = sqrt(dNew ^ dNew);
+	iNew->viscosity = nu->getValue(iNew->nLevel);
+	iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
+	iNew->parent = parent;
+	iNew->ID = nTerms;
+	iNew->stage = currentStage;
+	iNew->vesselFunction = vesselFunction;
+	iNew->branchingMode = branchingMode;
+	iNew->radius = static_cast<SingleVessel *>(parent)->radius;
+
+	parent->addChild(iNew);
+
+	//	Update tree geometry
+	vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
+
+	iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
+	iNew->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second index is the global index of the mesh point
+	iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
+
+	iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
+	elements[iNew->vtkSegmentId] = iNew;
+	addedVesselID = iNew->vtkSegmentId;
+
+	vtkTree->BuildCells();
+	vtkTree->Modified();
+
+	//	Update tree locator
+	vtkTreeLocator->Update();
+
 }
 
 void SingleVesselCCOOTree::updateMassiveTree(){
