@@ -441,7 +441,9 @@ int PenetratingVesselTreeGenerator::saveData(string filename) {
 	// This was done via a new method that returns the ID via parameter. Now the function:
 	/// I need to save the @param appendedVesselData to a .txt file or binary...
 	ofstream outStream;
-	outStream.open(filename, ios::out);
+	outStream.open(filename.c_str(), ios::out);
+	outStream.setf(ios::scientific, ios::floatfield);
+	outStream.precision(16);
 	if (!outStream.is_open()) {
 		cout << "ERROR: file was not open!" << endl;
 		return 1;
@@ -456,6 +458,7 @@ int PenetratingVesselTreeGenerator::saveData(string filename) {
 		outStream << it.second[1].p[1] << " ";
 		outStream << it.second[1].p[2] << "\n";
 	}
+	outStream.flush();
 	outStream.close();
 	return 0;
 }
