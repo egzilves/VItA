@@ -182,7 +182,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 	// Load the segment ID of parent + coordinates for subtree, to find the correct when appending the tree.
 	// This was done via a new method that returns the ID via parameter. Now the function:
 	ifstream streamIn;
-	streamIn.open(filenameData, ios::in);
+	streamIn.open(filenameData.c_str(), ios::in);
 	if (!streamIn.is_open()) {
 		cout << "ERROR: file was not open!" << endl;
 		return tree;
