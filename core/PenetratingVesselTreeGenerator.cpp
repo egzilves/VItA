@@ -891,7 +891,9 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 
 	cout << "Opening file " << filenameOut << " to save penetrating data." << endl;
 	ofstream fileOut;
-	fileOut.open(filenameOut, ios::out);
+	fileOut.open(filenameOut.c_str(), ios::out);
+	fileOut.setf(ios::scientific, ios::floatfield);
+	fileOut.precision(16);
 	if (!fileOut.is_open()) {
 		cout << "\n===\n" <<
 				"ERROR: file was not open! Returning..." << 
@@ -1152,6 +1154,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 	}
 
 	cout << "Closing file for penetrating data." << "\n";
+	fileOut.flush();
 	fileOut.close();
 
 	cout << "iterated through all vessels" << "\n";
