@@ -2475,6 +2475,8 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel, vtkIdType parentVesselSegmentID,
 		double scaleFactor, matrix rotationMatrix, point translationVector) {
 	/// NOTE: THIS SHOULD BE MOVED TO THE SUBTREEREPLACER CLASS
+	/// NOTE: I cannot move it because i have to access the "elements" attribute...
+	/// TODO: create method getElement(elementID)
 	if (!subtreeRoot) {
 		// reached leaf node of subtree (? shouldn't happen in the for-loop below... but base case for recursion nonetheless)
 		return;
