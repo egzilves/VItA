@@ -137,7 +137,7 @@ SubtreeReplacer::~SubtreeReplacer() {
 }
 
 
-AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval, string tempDirectory, string subtreeFilename, string filenameData, int max_iterations_count){
+AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval, string tempDirectory, vector<string> subtreeFilenameList, string filenameData, int max_iterations_count, int seed){
 	if (!allowThisClass) {
 		cout << "FATAL: experimental class, set bool 'allowThisClass' to true to use this" << endl;
 		exit(1);
@@ -153,8 +153,26 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 
 
 	// pass parameters, longTreeList.cco, shortTreeList.cco, percentages
+	/// TODO: implement populations, currently we have only one population.
 	vector<vector<string>> populations; // each element is a population, contains a list of cco files
+	/// TODO: implement percentages for each population. Currently we have equal distribution, random trees.
 	vector<double> accumulatedPercentages; // the ACCUMULATED distributions for each population
+
+    GeneratorData *gen_data_0 {new GeneratorData(16000, 2000, 0.95,
+        1.0, 1.0, 0.25, 7, 0, false, new VolumetricCostEstimator())};
+    AbstractConstraintFunction<double,int> *gam_0 {new ConstantConstraintFunction<double, int>(3.0)};
+    AbstractConstraintFunction<double, int> *eps_lim_1 {new ConstantPiecewiseConstraintFunction<double, int>({0.0, 0.0},{0, 2})};
+    AbstractConstraintFunction<double,int> *nu {new ConstantConstraintFunction<double, int>(3.6)}; //cP
+
+	// cout << "allocating subtrees" << endl;
+	// vector<SingleVesselCCOOTree *> subtreeList;
+	// for (auto& subtreeFilename : subtreeFilenameList) {
+	// 	// Instantiate a new subtree
+	// 	SingleVesselCCOOTree *instanceSubtree = new SingleVesselCCOOTree(subtreeFilename, gen_data_0, gam_0, eps_lim_1, nu);
+	// 	(*instanceSubtree).setIsInCm(true);
+	// 	subtreeList.push_back(instanceSubtree);
+	// }
+	// cout << "allocated. Continuing" << endl;
 
 	// Filter vessels by type
 	// filter the penetrating vessels, distalbranching, etc.
@@ -172,11 +190,6 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 	/// TODO: for each (SingleVessel *) vessel
 	int maxIterations = max_iterations_count;
 	int itCount = 0;
-    GeneratorData *gen_data_0 {new GeneratorData(16000, 2000, 0.95,
-        1.0, 1.0, 0.25, 7, 0, false, new VolumetricCostEstimator())};
-    AbstractConstraintFunction<double,int> *gam_0 {new ConstantConstraintFunction<double, int>(3.0)};
-    AbstractConstraintFunction<double, int> *eps_lim_1 {new ConstantPiecewiseConstraintFunction<double, int>({0.0, 0.0},{0, 2})};
-    AbstractConstraintFunction<double,int> *nu {new ConstantConstraintFunction<double, int>(3.6)}; //cP
 
 	// Where to save the data to be read.
 	vector<ProxySegment> proxySegments;
@@ -207,8 +220,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 	streamIn.close();
 	cout << "Data loaded." << endl;
 
-	cout << "WARNING: testing for 1 subtree only. Filename: " << subtreeFilename << " " << endl;
-
+	cout << "WARNING: testing for " << subtreeFilenameList.size() << " subtrees only." << endl;
 	/// TODO: sort type of tree
 	cout << "WARNING: limiting max iterations to " << maxIterations << endl;
 	// for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
@@ -216,6 +228,18 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 	for (vector<ProxySegment>::iterator it = proxySegments.begin(); it != proxySegments.end() && itCount<maxIterations; ++it, ++itCount) {
 		// SingleVessel* parentVessel = (*it);
 		vtkIdType parentSegmentID = (*it).parentID;
+
+
+		// // Get a random subtree
+		// /// NOTE: this uses bad pseudo-random rand() function, but this is good enough, i don't care for mt19937 here
+		// srand(seed);
+		// int index = rand() % subtreeList.size();
+		// SingleVesselCCOOTree *newSubtree = subtreeList[index];
+		SingleVesselCCOOTree *newSubtree = new SingleVesselCCOOTree(subtreeFilenameList[0], gen_data_0, gam_0, eps_lim_1, nu);
+
+
+		vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
+
 		cout << "iteration number " << itCount << " adding subtree for parent segment id " << parentSegmentID << "\n";
 		// TODO: get properties, get distal (coordinates), get radius, length
 		// point vesselProx = this->toAppendVesselData[parentVessel->vtkSegmentId][0]; // xProx
@@ -223,11 +247,6 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// point vesselDist = this->toAppendVesselData[parentVessel->vtkSegmentId][1]; // xDist
 		point vesselDist = (*it).xDist; // xDist
 
-		// Instantiate a new subtree
-		// string subtreeFilename = subtreeFilename;
-		SingleVesselCCOOTree *newSubtree {new SingleVesselCCOOTree(subtreeFilename, gen_data_0, gam_0, eps_lim_1, nu)};
-		(*newSubtree).setIsInCm(true);
-		vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
 
 
 		// Map geometry of subtree
@@ -314,6 +333,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// DO NOT CLEAR ELEMENTS, i reverted the NoAlloc, tree is copyed instead of moved, and deletion should occur normally.
 		// newSubtree->clearElements();
 
+		// Now we allocate and delete outside the forloop
 		delete newSubtree;
 	}
 	
@@ -321,6 +341,10 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 
 	cout << "iterated through all vessels" << endl;
 
+	// for (auto& instanceSubtree : subtreeList) {
+	// 	// Delete the subtrees
+	// 	delete instanceSubtree;
+	// }
 
 	// yes run it because we dont want to update everything after EVERY vessel.
 
