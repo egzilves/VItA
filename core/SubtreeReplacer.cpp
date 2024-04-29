@@ -178,7 +178,9 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
     AbstractConstraintFunction<double, int> *eps_lim_1 {new ConstantPiecewiseConstraintFunction<double, int>({0.0, 0.0},{0, 2})};
     AbstractConstraintFunction<double,int> *nu {new ConstantConstraintFunction<double, int>(3.6)}; //cP
 
-
+	// Where to save the data to be read.
+	vector<ProxySegment> proxySegments;
+	proxySegments.clear();
 	// Load the segment ID of parent + coordinates for subtree, to find the correct when appending the tree.
 	// This was done via a new method that returns the ID via parameter. Now the function:
 	ifstream streamIn;
@@ -199,7 +201,8 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		pDist.p[0] = x2;
 		pDist.p[1] = y2;
 		pDist.p[2] = z2;
-		this->toAppendVesselData[parentVesselID] = vector<point> {pProx, pDist};
+		// this->toAppendVesselData[parentVesselID] = vector<point> {pProx, pDist};
+		proxySegments.push_back(ProxySegment(parentVesselID, pProx, pDist));
 	}
 	streamIn.close();
 	cout << "Data loaded." << endl;
@@ -208,11 +211,16 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 
 	/// TODO: sort type of tree
 	cout << "WARNING: limiting max iterations to " << maxIterations << endl;
-	for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
-		SingleVessel* parentVessel = (*it);
+	// for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
+	// I should instead iterate over the list of proxy vessels, and not the subtree. This ensures we don't try to access an invalid vessel.
+	for (vector<ProxySegment>::iterator it = proxySegments.begin(); it != proxySegments.end() && itCount<maxIterations; ++it, ++itCount) {
+		// SingleVessel* parentVessel = (*it);
+		vtkIdType parentSegmentID = (*it).parentID;
 		// TODO: get properties, get distal (coordinates), get radius, length
-		point vesselProx = this->toAppendVesselData[parentVessel->vtkSegmentId][0]; // xProx
-		point vesselDist = this->toAppendVesselData[parentVessel->vtkSegmentId][1]; // xDist
+		// point vesselProx = this->toAppendVesselData[parentVessel->vtkSegmentId][0]; // xProx
+		point vesselProx = (*it).xProx; // xProx
+		// point vesselDist = this->toAppendVesselData[parentVessel->vtkSegmentId][1]; // xDist
+		point vesselDist = (*it).xDist; // xDist
 
 		// Instantiate a new subtree
 		// string subtreeFilename = subtreeFilename;
@@ -300,7 +308,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// int newTerms = 101;
 		// cout << "WARNING: hardcode for " << newTerms << " new terms in subtree (ignore)" << "\n";
 		// tree->addSubtree(newSubtree, parentVessel, newTerms);
-		tree->appendSubtree(newSubtree, newSubtree->getRoot(), parentVessel, 0);
+		tree->appendSubtree(newSubtree, newSubtree->getRoot(), nullptr /* parentVessel */, 0, parentSegmentID);
 
 		newSubtree->clearElements();
 		delete newSubtree;

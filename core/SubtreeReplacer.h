@@ -45,6 +45,17 @@ using namespace std;
 //     int stage;
 // };
 
+struct ProxySegment { // Rename this to ProxySegment when fully implementing to VItA
+	vtkIdType parentID;
+	point xProx;
+	point xDist;
+	ProxySegment(vtkIdType pID, point xP, point xD) {
+		parentID = pID;
+		xProx = xP;
+		xDist = xD;
+	}
+};
+
 /**
  * Generator for a projected perfusion from existing tree with many stages.
  * Generates a segment from terminals into the projectiondomain, and continues inside the domain

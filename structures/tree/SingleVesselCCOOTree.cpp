@@ -2472,7 +2472,7 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 	}
 }
 
-void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel) {
+void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel, vtkIdType parentVesselSegmentID) {
 	if (!subtreeRoot) {
 		// reached leaf node of subtree (? shouldn't happen in the for-loop below... but base case for recursion nonetheless)
 		return;
@@ -2481,9 +2481,15 @@ void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, Abst
 	vtkIdType vesselSegmentId;
 	point xProx = ((SingleVessel*)subtreeRoot)->xProx;
 	point xDist = ((SingleVessel*)subtreeRoot)->xDist;
+	if (!parentVessel) {
+		// When we don't have parent vessel, pass the segment ID and we get from the elements! 
+		// (can't pass because elements is private attribute, so it must be done here)
+		parentVessel = elements[parentVesselSegmentID];
+	}
 	if (!subtreeLevel) {
 		// subtree root only: i need this to fix possible numerical errors when moving the tree, the connection point must be the exact same point
 		xProx = ((SingleVessel*)parentVessel)->xDist;
+		/// TODO: make all xProx equal to xDist of the parent.
 	}
 	// This is the best place to add this, but i don't want to test it, so i'll clear in the other function just before deleting the temporary subtree.
 	// ((SingleVesselCCOOTree*)newSubtree)->eraseElement(((SingleVessel*)subtreeRoot)->vtkSegmentId);
@@ -2495,7 +2501,7 @@ void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, Abst
 	// this solves the problem of having an existing parent before appending the children, and add them in a correct consistent manner
 	for (vector<AbstractVascularElement *>::iterator itChildren = subtreeRoot->children.begin(); itChildren != subtreeRoot->children.end(); ++itChildren) {
 		// call itself recursively, but the root and parent vessel are changed
-		appendSubtree(newSubtree, *itChildren, subtreeRoot, subtreeLevel+1);
+		appendSubtree(newSubtree, *itChildren, subtreeRoot, subtreeLevel+1, ((SingleVessel*)(subtreeRoot))->vtkSegmentId);
 	}
 	return;
 }
