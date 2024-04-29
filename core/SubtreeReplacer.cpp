@@ -164,28 +164,30 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
     AbstractConstraintFunction<double, int> *eps_lim_1 {new ConstantPiecewiseConstraintFunction<double, int>({0.0, 0.0},{0, 2})};
     AbstractConstraintFunction<double,int> *nu {new ConstantConstraintFunction<double, int>(3.6)}; //cP
 
-	// cout << "allocating subtrees" << endl;
-	// vector<SingleVesselCCOOTree *> subtreeList;
-	// for (auto& subtreeFilename : subtreeFilenameList) {
-	// 	// Instantiate a new subtree
-	// 	SingleVesselCCOOTree *instanceSubtree = new SingleVesselCCOOTree(subtreeFilename, gen_data_0, gam_0, eps_lim_1, nu);
-	// 	(*instanceSubtree).setIsInCm(true);
-	// 	subtreeList.push_back(instanceSubtree);
-	// }
-	// cout << "allocated. Continuing" << endl;
+	/// BUG: linear mapping is applied multiple times, i must pass the parameters to the addvessel and only apply to xprox and xdist when adding the vessel
+	cout << "allocating subtrees" << endl;
+	vector<SingleVesselCCOOTree *> subtreeList;
+	for (auto& subtreeFilename : subtreeFilenameList) {
+		// Instantiate a new subtree
+		cout << "subtree filename " << subtreeFilename << endl;
+		SingleVesselCCOOTree *instanceSubtree = new SingleVesselCCOOTree(subtreeFilename, gen_data_0, gam_0, eps_lim_1, nu);
+		(*instanceSubtree).setIsInCm(true);
+		subtreeList.push_back(instanceSubtree);
+	}
+	cout << "allocated. Continuing" << endl;
 
-	// Filter vessels by type
-	// filter the penetrating vessels, distalbranching, etc.
-	// terminal && function=penetrating && mode=distal
-	AbstractVascularElement::VESSEL_FUNCTION vesselfunction = AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR; //penetrating
-	AbstractVascularElement::BRANCHING_MODE branchingmode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING; //penetrating
-	AbstractVesselFilter *replacedFilters = new VesselFilterComposite({
-		new VesselFilterByTerminal(), 
-		new VesselFilterByVesselFunction(vesselfunction), 
-		new VesselFilterByBranchingMode(branchingmode)
-		});
-	vector<SingleVessel *> treeVessels = this->tree->getVessels();
-	vector<SingleVessel *> replacedVessels = replacedFilters->apply(treeVessels);
+	// // Filter vessels by type
+	// // filter the penetrating vessels, distalbranching, etc.
+	// // terminal && function=penetrating && mode=distal
+	// AbstractVascularElement::VESSEL_FUNCTION vesselfunction = AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR; //penetrating
+	// AbstractVascularElement::BRANCHING_MODE branchingmode = AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING; //penetrating
+	// AbstractVesselFilter *replacedFilters = new VesselFilterComposite({
+	// 	new VesselFilterByTerminal(), 
+	// 	new VesselFilterByVesselFunction(vesselfunction), 
+	// 	new VesselFilterByBranchingMode(branchingmode)
+	// 	});
+	// vector<SingleVessel *> treeVessels = this->tree->getVessels();
+	// vector<SingleVessel *> replacedVessels = replacedFilters->apply(treeVessels);
 
 	/// TODO: for each (SingleVessel *) vessel
 	int maxIterations = max_iterations_count;
@@ -232,13 +234,13 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 
 		// // Get a random subtree
 		// /// NOTE: this uses bad pseudo-random rand() function, but this is good enough, i don't care for mt19937 here
-		// srand(seed);
-		// int index = rand() % subtreeList.size();
-		// SingleVesselCCOOTree *newSubtree = subtreeList[index];
-		SingleVesselCCOOTree *newSubtree = new SingleVesselCCOOTree(subtreeFilenameList[0], gen_data_0, gam_0, eps_lim_1, nu);
+		srand(seed);
+		int index = rand() % subtreeList.size();
+		SingleVesselCCOOTree *newSubtree = subtreeList[index];
+		// SingleVesselCCOOTree *newSubtree = new SingleVesselCCOOTree(subtreeFilenameList[0], gen_data_0, gam_0, eps_lim_1, nu);
 
 
-		vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
+		// vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
 
 		cout << "iteration number " << itCount << " adding subtree for parent segment id " << parentSegmentID << "\n";
 		// TODO: get properties, get distal (coordinates), get radius, length
@@ -271,16 +273,16 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// SCALING
 		double scaleFactor = length / heightSubtree;
 		// scale the tree, for each terminal scale distal/proximal points
-		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
-			(*itVessel)->xProx.p[0] = (*itVessel)->xProx.p[0]*scaleFactor;
-			(*itVessel)->xDist.p[0] = (*itVessel)->xDist.p[0]*scaleFactor;
-			(*itVessel)->xProx.p[1] = (*itVessel)->xProx.p[1]*scaleFactor;
-			(*itVessel)->xDist.p[1] = (*itVessel)->xDist.p[1]*scaleFactor;
-			(*itVessel)->xProx.p[2] = (*itVessel)->xProx.p[2]*scaleFactor;
-			(*itVessel)->xDist.p[2] = (*itVessel)->xDist.p[2]*scaleFactor;
-			(*itVessel)->length = (*itVessel)->length * scaleFactor;
-			(*itVessel)->radius = (*itVessel)->radius * scaleFactor;
-		}
+		// for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
+		// 	(*itVessel)->xProx.p[0] = (*itVessel)->xProx.p[0]*scaleFactor;
+		// 	(*itVessel)->xDist.p[0] = (*itVessel)->xDist.p[0]*scaleFactor;
+		// 	(*itVessel)->xProx.p[1] = (*itVessel)->xProx.p[1]*scaleFactor;
+		// 	(*itVessel)->xDist.p[1] = (*itVessel)->xDist.p[1]*scaleFactor;
+		// 	(*itVessel)->xProx.p[2] = (*itVessel)->xProx.p[2]*scaleFactor;
+		// 	(*itVessel)->xDist.p[2] = (*itVessel)->xDist.p[2]*scaleFactor;
+		// 	// (*itVessel)->length = (*itVessel)->length * scaleFactor;
+		// 	// (*itVessel)->radius = (*itVessel)->radius * scaleFactor;
+		// }
 		// cout << "scaled, now rotating" << "\n";
 		// ROTATION
 		// Rodrigues formula.
@@ -306,18 +308,18 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		}
 		// TODO: add random rotation, add matrix to rotate in xy plane, z axis, random angle.
 		// Rotate the points for each terminal, multiply R*v for every point v
-		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
-			(*itVessel)->xProx = Rotation*(*itVessel)->xProx;
-			(*itVessel)->xDist = Rotation*(*itVessel)->xDist;
-		}
+		// for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
+		// 	(*itVessel)->xProx = Rotation*(*itVessel)->xProx;
+		// 	(*itVessel)->xDist = Rotation*(*itVessel)->xDist;
+		// }
 		// cout << "rotated, now translating" << "\n";
 		// TRANSLATION
 		point translationVector = vesselProx - originSubtree;
 		// translate for each point
-		for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
-			(*itVessel)->xProx = (*itVessel)->xProx + translationVector;
-			(*itVessel)->xDist = (*itVessel)->xDist + translationVector;
-		}
+		// for (vector<SingleVessel *>::iterator itVessel = subtreeVessels.begin(); itVessel != subtreeVessels.end(); ++itVessel) {
+		// 	(*itVessel)->xProx = (*itVessel)->xProx + translationVector;
+		// 	(*itVessel)->xDist = (*itVessel)->xDist + translationVector;
+		// }
 		cout << "subtree ready for append" << "\n";
 		// Now the subtree is geometrically located in the correct point. Time to replace the subtree.
 
@@ -328,23 +330,23 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// int newTerms = 101;
 		// cout << "WARNING: hardcode for " << newTerms << " new terms in subtree (ignore)" << "\n";
 		// tree->addSubtree(newSubtree, parentVessel, newTerms);
-		tree->appendSubtree(newSubtree, newSubtree->getRoot(), nullptr /* parentVessel */, 0 /* level */, parentSegmentID);
+		tree->appendSubtree(newSubtree, newSubtree->getRoot(), nullptr /* parentVessel */, 0 /* level */, parentSegmentID, scaleFactor, Rotation, translationVector);
 
 		// DO NOT CLEAR ELEMENTS, i reverted the NoAlloc, tree is copyed instead of moved, and deletion should occur normally.
 		// newSubtree->clearElements();
 
 		// Now we allocate and delete outside the forloop
-		delete newSubtree;
+		// delete newSubtree;
 	}
 	
 
 
 	cout << "iterated through all vessels" << endl;
 
-	// for (auto& instanceSubtree : subtreeList) {
-	// 	// Delete the subtrees
-	// 	delete instanceSubtree;
-	// }
+	for (auto& instanceSubtree : subtreeList) {
+		// Delete the subtrees
+		delete instanceSubtree;
+	}
 
 	// yes run it because we dont want to update everything after EVERY vessel.
 

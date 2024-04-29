@@ -2472,7 +2472,9 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 	}
 }
 
-void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel, vtkIdType parentVesselSegmentID) {
+void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel, vtkIdType parentVesselSegmentID,
+		double scaleFactor, matrix rotationMatrix, point translationVector) {
+	/// NOTE: THIS SHOULD BE MOVED TO THE SUBTREEREPLACER CLASS
 	if (!subtreeRoot) {
 		// reached leaf node of subtree (? shouldn't happen in the for-loop below... but base case for recursion nonetheless)
 		return;
@@ -2486,6 +2488,18 @@ void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, Abst
 	vtkIdType vesselSegmentId;
 	point xProx = ((SingleVessel*)subtreeRoot)->xProx;
 	point xDist = ((SingleVessel*)subtreeRoot)->xDist;
+	
+	xProx.p[0] = xProx.p[0]*scaleFactor;
+	xDist.p[0] = xDist.p[0]*scaleFactor;
+	xProx.p[1] = xProx.p[1]*scaleFactor;
+	xDist.p[1] = xDist.p[1]*scaleFactor;
+	xProx.p[2] = xProx.p[2]*scaleFactor;
+	xDist.p[2] = xDist.p[2]*scaleFactor;
+	xProx = rotationMatrix*xProx;
+	xDist = rotationMatrix*xDist;
+	xProx = xProx + translationVector;
+	xDist = xDist + translationVector;
+
 	if (!subtreeLevel) {
 		// subtree root only: i need this to fix possible numerical errors when moving the tree, the connection point must be the exact same point
 		xProx = ((SingleVessel*)parentVessel)->xDist;
@@ -2508,8 +2522,9 @@ void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, Abst
 	// this solves the problem of having an existing parent before appending the children, and add them in a correct consistent manner
 	for (vector<AbstractVascularElement *>::iterator itChildren = subtreeRoot->children.begin(); itChildren != subtreeRoot->children.end(); ++itChildren) {
 		// call itself recursively, but the root and parent vessel are changed
-		appendSubtree(newSubtree, *itChildren, nullptr /* parent vessel */, subtreeLevel+1, vesselSegmentId);
+		appendSubtree(newSubtree, *itChildren, nullptr /* parent vessel */, subtreeLevel+1, vesselSegmentId, scaleFactor, rotationMatrix, translationVector);
 		/// NOTE: DO NOT pass parent vessel id, we get from the vessel segment generated, this is a new segment (COPY) not the other case (MOVE)
+		/// we get the parent from the SegmentID
 	}
 	return;
 }
