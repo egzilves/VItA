@@ -155,7 +155,7 @@ public:
 	/**
 	 * Replace the segment with a subtree given the probability of picking
 	 */
-	AbstractObjectCCOTree *appendSubtree(long long int saveInterval, string tempDirectory, string subtreeFilename, string filenameData);
+	AbstractObjectCCOTree *appendSubtree(long long int saveInterval, string tempDirectory, string subtreeFilename, string filenameData, int max_iterations_count);
 
 	/**
 	 * Replace the segment with a subtree given the probability of picking

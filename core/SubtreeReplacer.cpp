@@ -137,7 +137,7 @@ SubtreeReplacer::~SubtreeReplacer() {
 }
 
 
-AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval, string tempDirectory, string subtreeFilename, string filenameData){
+AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval, string tempDirectory, string subtreeFilename, string filenameData, int max_iterations_count){
 	if (!allowThisClass) {
 		cout << "FATAL: experimental class, set bool 'allowThisClass' to true to use this" << endl;
 		exit(1);
@@ -170,7 +170,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 	vector<SingleVessel *> replacedVessels = replacedFilters->apply(treeVessels);
 
 	/// TODO: for each (SingleVessel *) vessel
-	int maxIterations = 1000;
+	int maxIterations = max_iterations_count;
 	int itCount = 0;
     GeneratorData *gen_data_0 {new GeneratorData(16000, 2000, 0.95,
         1.0, 1.0, 0.25, 7, 0, false, new VolumetricCostEstimator())};
@@ -216,6 +216,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 	for (vector<ProxySegment>::iterator it = proxySegments.begin(); it != proxySegments.end() && itCount<maxIterations; ++it, ++itCount) {
 		// SingleVessel* parentVessel = (*it);
 		vtkIdType parentSegmentID = (*it).parentID;
+		cout << "iteration number " << itCount << " adding subtree for parent segment id " << parentSegmentID << "\n";
 		// TODO: get properties, get distal (coordinates), get radius, length
 		// point vesselProx = this->toAppendVesselData[parentVessel->vtkSegmentId][0]; // xProx
 		point vesselProx = (*it).xProx; // xProx
@@ -234,7 +235,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// map xyz-translation, map xy-rotation, map z-scale
 		// keep xy-scale (or use z-scale)
 		// TODO: random z-rotation
-		cout << "tree imported, calculating basing characteristics" << "\n";
+		// cout << "tree imported, calculating basing characteristics" << "\n";
 		// NOTE: assuming subtree is generated from (0,0,0) to (0,0,h)
 		point originSubtree = {0,0,0};
 		double heightSubtree = 0.25; // NOTE: assuming h = 2.5mm, and shorter vessels (1.0mm) will be short penetrating
@@ -247,7 +248,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		double length = sqrt(displacement^displacement);
 		point unitDirection = displacement/length;
 
-		cout << "linear mapping the tree..." << "\n";
+		// cout << "linear mapping the tree..." << "\n";
 		// SCALING
 		double scaleFactor = length / heightSubtree;
 		// scale the tree, for each terminal scale distal/proximal points
@@ -261,7 +262,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 			(*itVessel)->length = (*itVessel)->length * scaleFactor;
 			(*itVessel)->radius = (*itVessel)->radius * scaleFactor;
 		}
-		cout << "scaled, now rotating" << "\n";
+		// cout << "scaled, now rotating" << "\n";
 		// ROTATION
 		// Rodrigues formula.
 		point u {unitSubtree};
@@ -290,7 +291,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 			(*itVessel)->xProx = Rotation*(*itVessel)->xProx;
 			(*itVessel)->xDist = Rotation*(*itVessel)->xDist;
 		}
-		cout << "rotated, now translating" << "\n";
+		// cout << "rotated, now translating" << "\n";
 		// TRANSLATION
 		point translationVector = vesselProx - originSubtree;
 		// translate for each point
@@ -298,7 +299,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 			(*itVessel)->xProx = (*itVessel)->xProx + translationVector;
 			(*itVessel)->xDist = (*itVessel)->xDist + translationVector;
 		}
-		cout << "subtree ready for replacement" << "\n";
+		cout << "subtree ready for append" << "\n";
 		// Now the subtree is geometrically located in the correct point. Time to replace the subtree.
 
 		// TODO: make subtree and append
@@ -308,9 +309,11 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// int newTerms = 101;
 		// cout << "WARNING: hardcode for " << newTerms << " new terms in subtree (ignore)" << "\n";
 		// tree->addSubtree(newSubtree, parentVessel, newTerms);
-		tree->appendSubtree(newSubtree, newSubtree->getRoot(), nullptr /* parentVessel */, 0, parentSegmentID);
+		tree->appendSubtree(newSubtree, newSubtree->getRoot(), nullptr /* parentVessel */, 0 /* level */, parentSegmentID);
 
-		newSubtree->clearElements();
+		// DO NOT CLEAR ELEMENTS, i reverted the NoAlloc, tree is copyed instead of moved, and deletion should occur normally.
+		// newSubtree->clearElements();
+
 		delete newSubtree;
 	}
 	
