@@ -224,6 +224,8 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 
 	cout << "WARNING: testing for " << subtreeFilenameList.size() << " subtrees only." << endl;
 	/// TODO: sort type of tree
+	// /// NOTE: this uses bad pseudo-random rand() function, but this is good enough, i don't care for mt19937 here
+	srand(seed);
 	cout << "WARNING: limiting max iterations to " << maxIterations << endl;
 	// for (vector<SingleVessel *>::iterator it = replacedVessels.begin(); it != replacedVessels.end() && itCount<maxIterations; ++it, ++itCount) {
 	// I should instead iterate over the list of proxy vessels, and not the subtree. This ensures we don't try to access an invalid vessel.
@@ -234,7 +236,6 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 
 		// // Get a random subtree
 		// /// NOTE: this uses bad pseudo-random rand() function, but this is good enough, i don't care for mt19937 here
-		srand(seed);
 		int index = rand() % subtreeList.size();
 		SingleVesselCCOOTree *newSubtree = subtreeList[index];
 		cout << "picked tree filename: " << subtreeFilenameList[index] << "\n";
@@ -243,7 +244,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 
 		// vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
 
-		cout << "itr. no. " << itCount << " add subtree for parent segment id " << parentSegmentID << "\n";
+		cout << "it-no. " << itCount << " add subtree for parent segment id " << parentSegmentID << "\n";
 		// TODO: get properties, get distal (coordinates), get radius, length
 		// point vesselProx = this->toAppendVesselData[parentVessel->vtkSegmentId][0]; // xProx
 		point vesselProx = (*it).xProx; // xProx
