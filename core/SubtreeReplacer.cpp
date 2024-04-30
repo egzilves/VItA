@@ -169,7 +169,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 	vector<SingleVesselCCOOTree *> subtreeList;
 	for (auto& subtreeFilename : subtreeFilenameList) {
 		// Instantiate a new subtree
-		cout << "subtree filename " << subtreeFilename << endl;
+		cout << "subtree filename " << subtreeFilename << " instantiated." << endl;
 		SingleVesselCCOOTree *instanceSubtree = new SingleVesselCCOOTree(subtreeFilename, gen_data_0, gam_0, eps_lim_1, nu);
 		(*instanceSubtree).setIsInCm(true);
 		subtreeList.push_back(instanceSubtree);
@@ -237,12 +237,13 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		srand(seed);
 		int index = rand() % subtreeList.size();
 		SingleVesselCCOOTree *newSubtree = subtreeList[index];
+		cout << "picked tree filename: " << subtreeFilenameList[index] << "\n";
 		// SingleVesselCCOOTree *newSubtree = new SingleVesselCCOOTree(subtreeFilenameList[0], gen_data_0, gam_0, eps_lim_1, nu);
 
 
 		// vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
 
-		cout << "iteration number " << itCount << " adding subtree for parent segment id " << parentSegmentID << "\n";
+		cout << "itr. no. " << itCount << " add subtree for parent segment id " << parentSegmentID << "\n";
 		// TODO: get properties, get distal (coordinates), get radius, length
 		// point vesselProx = this->toAppendVesselData[parentVessel->vtkSegmentId][0]; // xProx
 		point vesselProx = (*it).xProx; // xProx
