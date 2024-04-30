@@ -339,6 +339,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 
 		// Now we allocate and delete outside the forloop
 		// delete newSubtree;
+		cout << "subtree added" << endl;
 	}
 	
 
