@@ -244,7 +244,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 
 		// vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
 
-		cout << "it-no. " << itCount << " add subtree for parent segment id " << parentSegmentID << "\n";
+		cout << "it-no. " << itCount << " add subtree for parent segment id " << parentSegmentID << endl;
 		// TODO: get properties, get distal (coordinates), get radius, length
 		// point vesselProx = this->toAppendVesselData[parentVessel->vtkSegmentId][0]; // xProx
 		point vesselProx = (*it).xProx; // xProx
@@ -322,7 +322,7 @@ AbstractObjectCCOTree *SubtreeReplacer::appendSubtree(long long int saveInterval
 		// 	(*itVessel)->xProx = (*itVessel)->xProx + translationVector;
 		// 	(*itVessel)->xDist = (*itVessel)->xDist + translationVector;
 		// }
-		cout << "subtree ready for append" << "\n";
+		cout << "subtree ready for append" << endl;
 		// Now the subtree is geometrically located in the correct point. Time to replace the subtree.
 
 		// TODO: make subtree and append

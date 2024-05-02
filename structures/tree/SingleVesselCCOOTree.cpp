@@ -1080,7 +1080,8 @@ void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractV
 		newRoot->beta = rootRadius;
 		newRoot->radius = rootRadius;
 		newRoot->length = sqrt(dist ^ dist);
-		newRoot->viscosity = nu->getValue(newRoot->nLevel);
+		// newRoot->viscosity = nu->getValue(newRoot->nLevel);
+		newRoot->viscosity = 3.6; // I need this to run faster, instantiate the value and update later.
 		newRoot->resistance = (8 * newRoot->viscosity / M_PI) * newRoot->length;
 		newRoot->flow = qProx;
 		newRoot->treeVolume = M_PI * newRoot->length * rootRadius * rootRadius;
@@ -1132,8 +1133,9 @@ void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractV
 		iNew->xDist = xDist;
 		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
 		iNew->length = sqrt(dNew ^ dNew);
-		iNew->viscosity = nu->getValue(iNew->nLevel);
-		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
+		// iNew->viscosity = nu->getValue(iNew->nLevel);
+		iNew->viscosity = 3.6; // same as above
+		iNew->resistance = 8 * iNew->viscosity / M_PI * iNew->length;
 		iNew->parent = parent;
 		iNew->ID = nTerms;
 		iNew->stage = currentStage;
@@ -1174,8 +1176,9 @@ void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractV
 		iNew->xDist = xDist;
 		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
 		iNew->length = sqrt(dNew ^ dNew);
-		iNew->viscosity = nu->getValue(iNew->nLevel);
-		iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
+		// iNew->viscosity = nu->getValue(iNew->nLevel);
+		iNew->viscosity = 3.6; // see above
+		iNew->resistance = 8 * iNew->viscosity / M_PI * iNew->length;
 		iNew->parent = parent;
 		iNew->ID = nTerms;
 		iNew->stage = currentStage;
