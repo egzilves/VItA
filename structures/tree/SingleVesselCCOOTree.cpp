@@ -1191,7 +1191,8 @@ void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractV
 		iCon->xDist = ((SingleVessel *) parent)->xDist;
 		iCon->nLevel = ((SingleVessel *) parent)->nLevel + 1;
 		iCon->length = sqrt(dCon ^ dCon);
-		iCon->viscosity = nu->getValue(iCon->nLevel);
+		// iCon->viscosity = nu->getValue(iCon->nLevel);
+		iCon->viscosity = 3.6;
 		iCon->parent = parent;
 		iCon->ID = ((SingleVessel *) parent)->ID;
 		iCon->branchingMode = parent->branchingMode;
