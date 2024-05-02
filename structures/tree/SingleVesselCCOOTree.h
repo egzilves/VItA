@@ -263,7 +263,7 @@ public:
 	 * @param parentVessel The terminal vessel parent to the subtree in the operation. Must be a distal_branching terminal.
 	 */
 	void appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel, vtkIdType parentVesselSegmentId,
-		double scaleFactor, matrix rotationMatrix, point translationVector);
+		const double& scaleFactor, const matrix& rotationMatrix, const point& translationVector);
 	/**
 	 * Clear the segments in a vascular tree after you safely moved them to another tree.
 	 * Be sure to move them to another structure, or be careful with memory leaks

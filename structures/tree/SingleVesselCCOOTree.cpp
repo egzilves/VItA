@@ -2476,7 +2476,7 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 }
 
 void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel, vtkIdType parentVesselSegmentID,
-		double scaleFactor, matrix rotationMatrix, point translationVector) {
+		const double& scaleFactor, const matrix& rotationMatrix, const point& translationVector) {
 	/// NOTE: THIS SHOULD BE MOVED TO THE SUBTREEREPLACER CLASS
 	/// NOTE: I cannot move it because i have to access the "elements" attribute...
 	/// TODO: create method getElement(elementID)
@@ -2500,8 +2500,8 @@ void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, Abst
 	xDist.p[1] = xDist.p[1]*scaleFactor;
 	xProx.p[2] = xProx.p[2]*scaleFactor;
 	xDist.p[2] = xDist.p[2]*scaleFactor;
-	xProx = rotationMatrix*xProx;
-	xDist = rotationMatrix*xDist;
+	xProx = matrix_vector_mult(rotationMatrix, xProx);
+	xDist = matrix_vector_mult(rotationMatrix, xDist);
 	xProx = xProx + translationVector;
 	xDist = xDist + translationVector;
 

@@ -125,11 +125,18 @@ struct matrix {
 			a.e[2][0] * e[2][0] + a.e[2][1] * e[2][1] + a.e[2][2] * e[2][2]};
 	}
 };
-inline matrix outer(point a, point b){
+inline matrix outer(const point& a, const point& b){
 	return matrix {
 		a.p[0]*b.p[0], a.p[0]*b.p[1], a.p[0]*b.p[2], 
 		a.p[1]*b.p[0], a.p[1]*b.p[1], a.p[1]*b.p[2], 
 		a.p[2]*b.p[0], a.p[2]*b.p[1], a.p[2]*b.p[2]
+	};
+}
+inline point matrix_vector_mult(const matrix& m, const point& a) {
+	return{
+		m.e[0][0]*a.p[0] + m.e[0][1]*a.p[1] + m.e[0][2]*a.p[2],
+		m.e[1][0]*a.p[0] + m.e[1][1]*a.p[1] + m.e[1][2]*a.p[2],
+		m.e[2][0]*a.p[0] + m.e[2][1]*a.p[1] + m.e[2][2]*a.p[2]
 	};
 }
 
