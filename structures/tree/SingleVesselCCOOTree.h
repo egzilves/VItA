@@ -168,6 +168,22 @@ public:
 	 */
 	void addVesselNoUpdate(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
 					AbstractVascularElement::BRANCHING_MODE branchingMode, vtkIdType &addedVesselID);
+	/**
+	 * Adds a new vessel to the CCO tree without updating viscosities and radii. 
+	 * This is useful for fast generating steps e.g. merging the tree or generating penetrating vessels.
+	 * Must call updateMassiveTree afterwards to generate a tree with valid vessels.
+	 * @param xProx and @param xDist are the proximal and distal nodes of the new
+	 * vessel and @param parent is the attachment parent vessel.
+	 * @param xProx	Proximal point of the new vessel.
+	 * @param xDist Distal point of the new vessel.
+	 * @param parent	Parent to the new vessel.
+	 * @param vesselFunction Vessel function of the added vessel.
+	 * @param branchingMode Branching mode of the added vessel.
+	 * @param addedVesselID return value of the vessel id added.
+	 * WARNING: does not update the VTK LOCATOR, you must do it outside the function or else the VTK will fail.
+	 */
+	void addVesselNoUpdateNoVtkUpdate(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
+					AbstractVascularElement::BRANCHING_MODE branchingMode, vtkIdType &addedVesselID);
 
 	/**
 	 * Adds a new vessel to the CCO tree WITHOUT allocating a new vessel in memory.
