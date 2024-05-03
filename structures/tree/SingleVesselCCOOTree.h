@@ -180,7 +180,7 @@ public:
 	 * @param vesselFunction Vessel function of the added vessel.
 	 * @param branchingMode Branching mode of the added vessel.
 	 * @param addedVesselID return value of the vessel id added.
-	 * WARNING: does not update the VTK LOCATOR, you must do it outside the function or else the VTK will fail.
+	 * WARNING: does not update the VTK LOCATOR nor rebuild cells, you must do it outside the function or else the VTK will fail.
 	 */
 	void addVesselNoUpdateNoVtkUpdate(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
 					AbstractVascularElement::BRANCHING_MODE branchingMode, vtkIdType &addedVesselID);

@@ -1254,7 +1254,7 @@ void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractV
 
 void SingleVesselCCOOTree::addVesselNoUpdateNoVtkUpdate(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction,
 				AbstractVascularElement::BRANCHING_MODE branchingMode, vtkIdType &addedVesselID) {
-	/// WARNING: THIS FUNCTION DOES NOT UPDATE THE VTK LOCATOR, PLEASE UPDATE THE VTK LOCATOR OUTSIDE THIS FUNCTION.
+	/// WARNING: THIS FUNCTION DOES NOT UPDATE THE VTK LOCATOR (nor rebuild cells), PLEASE UPDATE THE VTK LOCATOR OUTSIDE THIS FUNCTION.
 	nTerms++;
 	nCommonTerminals++;
 
@@ -1347,7 +1347,8 @@ void SingleVesselCCOOTree::addVesselNoUpdateNoVtkUpdate(point xProx, point xDist
 		elements[iNew->vtkSegmentId] = iNew;
 		addedVesselID = iNew->vtkSegmentId;
 
-		vtkTree->BuildCells();
+		// moved to outside the addvessel
+		// vtkTree->BuildCells();
 		vtkTree->Modified();
 
 		//	Update tree locator
@@ -1432,7 +1433,8 @@ void SingleVesselCCOOTree::addVesselNoUpdateNoVtkUpdate(point xProx, point xDist
 		vtkTree->ReplaceCellPoint(((SingleVessel *) parent)->vtkSegmentId, ((SingleVessel *) parent)->vtkSegment->GetPointId(1), idProx);
 		((SingleVessel *) parent)->vtkSegment->GetPointIds()->SetId(1, idProx);
 
-		vtkTree->BuildCells();
+		// Moved to outside the addvessel
+		// vtkTree->BuildCells();
 		vtkTree->Modified();
 
 //		cout << "Points = " << vtkTree->GetNumberOfPoints() << endl;
@@ -1507,7 +1509,8 @@ void SingleVesselCCOOTree::addVesselNoAllocNoUpdate(point xProx, point xDist, Ab
 }
 
 void SingleVesselCCOOTree::updateMassiveTree(){
-	// Update the VTK locator just in case i skip in a previous step.
+	// Update the VTK locator and cells just in case i skip in a previous step.
+	vtkTree->BuildCells();
 	vtkTreeLocator->Update();
 
 	//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
