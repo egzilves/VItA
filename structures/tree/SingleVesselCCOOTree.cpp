@@ -1510,17 +1510,22 @@ void SingleVesselCCOOTree::addVesselNoAllocNoUpdate(point xProx, point xDist, Ab
 
 void SingleVesselCCOOTree::updateMassiveTree(){
 	// Update the VTK locator and cells just in case i skip in a previous step.
+	cout << "Building the VTK tree cells 'BuildCells()'" << endl;
 	vtkTree->BuildCells();
+	cout << "Updating the VTK tree locator 'Update()'" << endl;
 	vtkTreeLocator->Update();
 
+	cout << "Updating the post-order nLevel, flux, pressure and determine initial resistance and beta values" << endl;
 	//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
 	updateTree(((SingleVessel *) this->root), this);
 	
+	cout << "Updating resistance, pressure and betas" << endl;
 	//	Update resistance, pressure and betas
 	double maxVariation = INFINITY;
 	while (maxVariation > variationTolerance) {
 		updateTreeViscositiesBeta(((SingleVessel *) this->root), &maxVariation);
 	}
+	cout << "Computing pressure" << endl;
 	this->computePressure(this->root);
 }
 void SingleVesselCCOOTree::updateSubtree(SingleVessel *subtreeRoot){
