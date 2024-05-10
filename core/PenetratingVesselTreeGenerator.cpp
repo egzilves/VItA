@@ -858,6 +858,7 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 	string prefix = "output";
 	// int stage = 99
 
+	double additionalDescendingOffset = max<double>(descendingOffset, 0.1*0.001*1 /*microns in cm*/);
 
 	// filter the bifurcable vessels, stage, distalbranching, etc.
 	AbstractVesselFilter *terminalFilters = new VesselFilterComposite({new VesselFilterByTerminal()});
@@ -983,14 +984,14 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 			projectionT = projectionT + displacementT * descendingOffset;
 		} else { // here the point is inside the domain
 			// projectionT = projectionT - displacementT * descendingOffset;
-			projectionT = terminal - displacementT * descendingOffset;
+			projectionT = terminal - displacementT * (descendingOffset + additionalDescendingOffset);
 			terminalIsInside = true;
 		}
 		if ((normalM^displacementM)<0) {
 			projectionM = projectionM + displacementM * descendingOffset;
 		} else { // here the point is inside the domain
 			// projectionM = projectionM - displacementM * descendingOffset;
-			projectionM = midpoint - displacementM * descendingOffset;
+			projectionM = midpoint - displacementM * (descendingOffset + additionalDescendingOffset);
 			midpointIsInside = true;
 		}
 
@@ -1067,6 +1068,29 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 		if (lengthM > maxPenetratingVesselLength){
 			cout << "NOTE: Midpoint shortened, length beyond maximum distance." << "\n";
 			lengthM = maxPenetratingVesselLength;
+		}
+
+		double minimumSubtreeLength = 0.1*0.001*1; /*microns in cm*/
+		// Check if penetrating length is above a minimum threshold, if too short abort the generation, to avoid 
+		if (lengthT < minimumSubtreeLength){
+			cout << "WARNING: Subtree length below minimum threshold! Terminal aborted." << endl;
+			generateFromTerminal = false;
+		}
+		if (lengthM < minimumSubtreeLength){
+			cout << "WARNING: Subtree length below minimum threshold! Midpoint aborted." << endl;
+			generateFromMidpoint = false;
+		}
+	
+		double minimumSubtreeAspectRatio = 2; /*subtreelength/parentradius*/
+		double parentRadius = parent->radius;
+		// Check if penetrating length generates a vessel with minimum aspect ratio allowed
+		if (lengthT/parentRadius < minimumSubtreeAspectRatio){
+			cout << "WARNING: Subtree aspect ratio below minimum threshold! Terminal aborted." << endl;
+			generateFromTerminal = false;
+		}
+		if (lengthM/parentRadius < minimumSubtreeAspectRatio){
+			cout << "WARNING: Subtree aspect ratio below minimum threshold! Midpoint aborted." << endl;
+			generateFromMidpoint = false;
 		}
 
 		// bool generateHalf = false;
