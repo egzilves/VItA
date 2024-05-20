@@ -3112,6 +3112,7 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 			// check if the interval between 0%-100% of the vessel is inside the domain,
 			// point beforeMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*0.00);
 			// point afterMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*1.00);
+			/// TODO: REVERT THIS HARDCODE BEFORE MERGING THIS TO MAIN
 			point beforeMidpoint = pVessel->xProx; // 100% of vessel
 			point afterMidpoint = pVessel->xDist; // 100% of vessel
 			bool midpointCondition = domain->isSegmentInside(beforeMidpoint, afterMidpoint);
