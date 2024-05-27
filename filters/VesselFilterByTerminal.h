@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-/* Copyright 2020 Gonzalo Maso Talou */
+/* Copyright 2024 Eduardo Zilves & Gonzalo Maso Talou */
 /*
  * VesselFilterByTerminal.h
  *

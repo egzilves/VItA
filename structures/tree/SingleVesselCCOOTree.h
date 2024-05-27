@@ -154,9 +154,81 @@ public:
 					AbstractVascularElement::BRANCHING_MODE branchingMode);
 
 	/**
+	 * Adds a new vessel to the CCO tree without updating viscosities and radii. 
+	 * This is useful for fast generating steps e.g. merging the tree or generating penetrating vessels.
+	 * Must call updateMassiveTree afterwards to generate a tree with valid vessels.
+	 * @param xProx and @param xDist are the proximal and distal nodes of the new
+	 * vessel and @param parent is the attachment parent vessel.
+	 * @param xProx	Proximal point of the new vessel.
+	 * @param xDist Distal point of the new vessel.
+	 * @param parent	Parent to the new vessel.
+	 * @param vesselFunction Vessel function of the added vessel.
+	 * @param branchingMode Branching mode of the added vessel.
+	 * @param addedVesselID return value of the vessel id added.
+	 */
+	void addVesselNoUpdate(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
+					AbstractVascularElement::BRANCHING_MODE branchingMode, vtkIdType &addedVesselID);
+	/**
+	 * Adds a new vessel to the CCO tree without updating viscosities and radii. 
+	 * This is useful for fast generating steps e.g. merging the tree or generating penetrating vessels.
+	 * Must call updateMassiveTree afterwards to generate a tree with valid vessels.
+	 * @param xProx and @param xDist are the proximal and distal nodes of the new
+	 * vessel and @param parent is the attachment parent vessel.
+	 * @param xProx	Proximal point of the new vessel.
+	 * @param xDist Distal point of the new vessel.
+	 * @param parent	Parent to the new vessel.
+	 * @param vesselFunction Vessel function of the added vessel.
+	 * @param branchingMode Branching mode of the added vessel.
+	 * @param addedVesselID return value of the vessel id added.
+	 * WARNING: does not update the VTK LOCATOR nor rebuild cells, you must do it outside the function or else the VTK will fail.
+	 */
+	void addVesselNoUpdateNoVtkUpdate(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
+					AbstractVascularElement::BRANCHING_MODE branchingMode, vtkIdType &addedVesselID);
+
+	/**
+	 * Adds a new vessel to the CCO tree WITHOUT allocating a new vessel in memory.
+	 * Must pass vessel as argument.
+	 * Also without updating viscosities and radii. 
+	 * This is useful for fast generating steps e.g. merging the tree or generating penetrating vessels.
+	 * Must call updateMassiveTree afterwards to generate a tree with valid vessels.
+	 * @param xProx and @param xDist are the proximal and distal nodes of the new
+	 * vessel and @param parent is the attachment parent vessel.
+	 * @param xProx Proximal point of the new vessel.
+	 * @param xDist Distal point of the new vessel.
+	 * @param newVessel New vessel to be appended to the tree.
+	 * @param parent Parent to the new vessel.
+	 * @param vesselFunction Vessel function of the added vessel.
+	 * @param branchingMode Branching mode of the added vessel.
+	 * @param addedVesselID return value of the vessel id added.
+	 */
+	void addVesselNoAllocNoUpdate(point xProx, point xDist, AbstractVascularElement *newVessel, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, 
+					AbstractVascularElement::BRANCHING_MODE branchingMode, vtkIdType &addedVesselID);
+
+	/**
 	 * Runs the updateTree and updateViscosities functions manually after the addVesselNoUpdate.
 	 */
 	void updateMassiveTree();
+	/**
+	 * Runs the updateTree and updateViscosities functions for a subtree given a root vessel.
+	 * @param subtreeRoot The root vessel of the subtree.
+	 */
+	void updateSubtree(SingleVessel* subtreeRoot);
+	/**
+	 * Runs the updateTree and updateViscosities functions for a subtree given a root vessel.
+	 * @param subtreeRoot The root vessel of the subtree. Can be "this->root".
+	 * @param tolerance Viscosity tolerance for convergence.
+	 */
+	void updateSubtree(SingleVessel* subtreeRoot, double tolerance);
+	/**
+	 * Scale the tree root radius by a factor.
+	 * @param scaleFactor Factor to scale the diameters. (1.0 to not scale)
+	 */
+	void scaleTreeRootRadius(double scaleFactor);
+	/**
+	 * Scale the entire tree radii by a factor. Do not use with the scaleTreeRoot.
+	 * @param scaleFactor Factor to scale the diameters. (1.0 to not scale)
+	 */
+	void scaleTreeRadius(double scaleFactor);
 
 	void addVesselMergeFast(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, int stage, unordered_map<string, SingleVessel *>* stringToPointer);
 
@@ -178,6 +250,47 @@ public:
 	*/
 	//	FIXME This function probably should be part of other class
 	void addValitatedVesselFast(SingleVessel *newVessel, SingleVessel *originalVessel, unordered_map<SingleVessel *, SingleVessel *>& copiedTo);
+
+	/**
+	 * Adds a new pregenerated subtree as a replacement to a terminal vessel, or as is appended to its parent.
+	 * TODO: rename this to replaceSubtree and create new addSubtree without terminal.
+	 * TODO: adapt this to replace entire subtrees.
+	 * The terminal vessel is passed as a SingleVessel(AbstractVascularElement) where the replacing will occur.
+	 * TODO: If terminal is null, tree is appended to parent with no scaling.
+	 * The subtree is passed as another SingleVesselCCOOTree object with the correct point coordinates mapped *BEFORE* this step.
+	 * This ensures no resource wasted with allocation.
+	 * The CCO tree diameters are not updated, must use the Update Massive Tree method to validate the vessels.
+	 * TODO: if extend this function, use this signature as a wrapper for extended method.
+	 * @param subtree The Subtree to be appended to the tree, replacing the terminal vessel.
+	 * @param parentVessel The terminal vessel parent to the subtree in the operation. Must be a distal_branching terminal.
+	 * -@param parent The parent vessel to the new subtree. // get parent inside with vessel->getParent()
+	 * @param nNewSegments Number of new terminals to add
+	 */
+	void addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *parentVessel, int nNewSegments);
+	/**
+	 * Appends subtree to xDist of a terminal vessel.
+	 * The terminal vessel is passed as a SingleVessel where the replacing will occur.
+	 * The subtree is passed as another SingleVesselCCOOTree object with the correct point coordinates mapped *BEFORE* this step.
+	 * This ensures no resource wasted with allocation.
+	 * The CCO tree diameters are not updated, must use the Update Massive Tree method to validate the vessels.
+	 * TODO: if extend this function, use this signature as a wrapper for extended method.
+	 * @param newSubtree The Subtree to be appended to the tree, replacing the terminal vessel.
+	 * @param subtreeRoot Root of the subtree.
+	 * @param parentVessel The terminal vessel parent to the subtree in the operation. Must be a distal_branching terminal.
+	 */
+	void appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel, vtkIdType parentVesselSegmentId,
+		const double& scaleFactor, const matrix& rotationMatrix, const point& translationVector);
+	/**
+	 * Clear the segments in a vascular tree after you safely moved them to another tree.
+	 * Be sure to move them to another structure, or be careful with memory leaks
+	 */
+	void clearElements();
+	/**
+	 * Clear one segment in a vascular tree after you safely moved them to another tree.
+	 * Be sure to move them to another structure, or be careful with memory leaks
+	 */
+	void eraseElement(vtkIdType keyID);
+
 
 //	/**
 //	 * Adds a new vessel to the CCO tree as continuation of the pre-existent vessel @p parent. @param xDist is the distal nodes of the new
@@ -253,6 +366,11 @@ public:
 	void setIsGammaStage(bool isGammaStage);
 
 	/**
+	 * Set the root vessel
+	 */
+	void setRoot(SingleVessel* newRoot);
+
+	/**
 	 * Bypass the vessel function when generating partitioned domains, allows bifurcating from partly-outside vessels
 	 */
 	bool bypassFunctionIfMidpointInside;
@@ -306,7 +424,7 @@ private:
 	 * Updates the tree values for the current topology in only one tree "in order" swept (O(N)).
 	 * As the recursion deepens, the level number is computed for each element. As the
 	 * recursion is returning, it computes the flow and resistance for the current node and the
-	 * radius ratio for its childs.
+	 * radius ratio for its children.
 	 * @param root Root vessel for the tree to update.
 	 * @param tree Tree to update.
 	 */

@@ -98,7 +98,7 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 		SingleVessel *v = new SingleVessel();
 		v->qReservedFraction = 0.0;
 		treeFile >> v->vtkSegmentId;
-		cout << v->vtkSegmentId << endl;
+		// cout << v->vtkSegmentId << endl;
 		treeFile >> v->xProx.p[0];
 		treeFile >> v->xProx.p[1];
 		treeFile >> v->xProx.p[2];
@@ -148,11 +148,11 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 		int vtkId, parentId, childId;
 
 		ss >> vtkId;
-		cout << "Vessel ID = " << vtkId;
+		// cout << "Vessel ID = " << vtkId;
 
 		//	Parent parsing
 		ss >> parentId;
-		cout << " - P = " << parentId;
+		// cout << " - P = " << parentId;
 		if (parentId == -1) {
 			elements[vtkId]->parent = NULL;
 			rootIndex = vtkId;
@@ -161,12 +161,12 @@ SingleVesselCCOOTree::SingleVesselCCOOTree(string filenameCCO, GeneratorData *in
 		}
 
 		//	Children parsing
-		cout << " - Children : ";
+		// cout << " - Children : ";
 		while (ss >> childId) {
-			cout << childId << " " ;
+			// cout << childId << " " ;
 			elements[vtkId]->addChild(elements[childId]);
 		}
-		cout << endl;
+		// cout << endl;
 	}
 
 	cout << "Assembling tree..." << endl;
@@ -1061,15 +1061,509 @@ void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractV
 
 }
 
-void SingleVesselCCOOTree::updateMassiveTree(){
-		//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
-		updateTree(((SingleVessel *) root), this);
-		
-		//	Update resistance, pressure and betas
-		double maxVariation = INFINITY;
-		while (maxVariation > variationTolerance) {
-			updateTreeViscositiesBeta(((SingleVessel *) root), &maxVariation);
+void SingleVesselCCOOTree::addVesselNoUpdate(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction,
+				AbstractVascularElement::BRANCHING_MODE branchingMode, vtkIdType &addedVesselID) {
+
+	nTerms++;
+	nCommonTerminals++;
+
+	//	Root
+	if (!parent) {
+
+		SingleVessel * newRoot = new SingleVessel();
+
+		//	Nodal quantities
+		newRoot->xDist = xDist;
+		newRoot->xProx = this->xPerf;
+		point dist = newRoot->xDist - newRoot->xProx;
+		newRoot->nLevel = 0;
+		newRoot->beta = rootRadius;
+		newRoot->radius = rootRadius;
+		newRoot->length = sqrt(dist ^ dist);
+		// newRoot->viscosity = nu->getValue(newRoot->nLevel);
+		newRoot->viscosity = 3.6; // I need this to run faster, instantiate the value and update later.
+		newRoot->resistance = (8 * newRoot->viscosity / M_PI) * newRoot->length;
+		newRoot->flow = qProx;
+		newRoot->treeVolume = M_PI * newRoot->length * rootRadius * rootRadius;
+		newRoot->parent = NULL;
+		newRoot->ID = nTerms;
+		newRoot->stage = currentStage;
+		newRoot->pressure = newRoot->resistance * newRoot->flow + refPressure;
+		newRoot->vesselFunction = vesselFunction;
+		newRoot->branchingMode = branchingMode;
+
+		//	Tree quantities
+		psiFactor = pow(newRoot->beta, 4) / newRoot->flow;	//	Not used
+		dp = newRoot->resistance / psiFactor;
+
+		//	Update tree geometry
+		vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+		vtkIdType idProx = pts->InsertNextPoint(newRoot->xProx.p);
+		vtkIdType idDist = pts->InsertNextPoint(newRoot->xDist.p);
+		vtkTree->SetPoints(pts);
+
+		newRoot->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		newRoot->vtkSegment->GetPointIds()->SetId(0, idProx); // the second 0 is the index of xProx
+		newRoot->vtkSegment->GetPointIds()->SetId(1, idDist); // the second 1 is the index of xDist
+		vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+		newRoot->vtkSegmentId = lines->InsertNextCell(newRoot->vtkSegment);
+		vtkTree->SetLines(lines);
+		elements[newRoot->vtkSegmentId] = newRoot;
+		addedVesselID = newRoot->vtkSegmentId;
+
+		root = newRoot;
+
+		//	Update tree locator
+		vtkTreeLocator->SetDataSet(vtkTree);
+		vtkTreeLocator->BuildLocator();
+	}
+	//	Non-root case & distal branching
+	else if(parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
+
+		if(parent->getChildren().empty()){
+			nTerms--;
+			nCommonTerminals--;
 		}
+
+		//	Add segment iNew, iCon and iBif in the cloned tree updating nLevel and lengths
+		point dNew = xDist - xProx;
+
+		SingleVessel *iNew = new SingleVessel();
+		iNew->xProx = xProx;
+		iNew->xDist = xDist;
+		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+		iNew->length = sqrt(dNew ^ dNew);
+		// iNew->viscosity = nu->getValue(iNew->nLevel);
+		iNew->viscosity = 3.6; // same as above
+		iNew->resistance = 8 * iNew->viscosity / M_PI * iNew->length;
+		iNew->parent = parent;
+		iNew->ID = nTerms;
+		iNew->stage = currentStage;
+		iNew->vesselFunction = vesselFunction;
+		iNew->branchingMode = branchingMode;
+		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
+
+		parent->addChild(iNew);
+
+		//	Update tree geometry
+		vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
+
+		iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		iNew->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second index is the global index of the mesh point
+		iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
+
+		iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
+		elements[iNew->vtkSegmentId] = iNew;
+		addedVesselID = iNew->vtkSegmentId;
+
+		vtkTree->BuildCells();
+		vtkTree->Modified();
+
+		//	Update tree locator
+		vtkTreeLocator->Update();
+
+	}
+	//	Non-root case & not distal branching
+	else{
+
+		//	Add segment iNew, iCon and iBif in the cloned tree updating nLevel and lengths
+		point dNew = xDist - xProx;
+		point dCon = ((SingleVessel *) parent)->xDist - xProx;
+		point dBif = xProx - ((SingleVessel *) parent)->xProx;
+
+		SingleVessel *iNew = new SingleVessel();
+		iNew->xProx = xProx;
+		iNew->xDist = xDist;
+		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+		iNew->length = sqrt(dNew ^ dNew);
+		// iNew->viscosity = nu->getValue(iNew->nLevel);
+		iNew->viscosity = 3.6; // see above
+		iNew->resistance = 8 * iNew->viscosity / M_PI * iNew->length;
+		iNew->parent = parent;
+		iNew->ID = nTerms;
+		iNew->stage = currentStage;
+		iNew->vesselFunction = vesselFunction;
+		iNew->branchingMode = branchingMode;
+		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
+
+		SingleVessel *iCon = new SingleVessel();
+		iCon->xProx = xProx;
+		iCon->xDist = ((SingleVessel *) parent)->xDist;
+		iCon->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+		iCon->length = sqrt(dCon ^ dCon);
+		// iCon->viscosity = nu->getValue(iCon->nLevel);
+		iCon->viscosity = 3.6;
+		iCon->parent = parent;
+		iCon->ID = ((SingleVessel *) parent)->ID;
+		iCon->branchingMode = parent->branchingMode;
+		iCon->stage = ((SingleVessel *) parent)->stage;
+		iCon->vesselFunction = ((SingleVessel *) parent)->vesselFunction;
+		iCon->radius = static_cast<SingleVessel *>(parent)->radius;
+
+		vector<AbstractVascularElement *> prevChildrenParent = parent->getChildren();
+		if (prevChildrenParent.empty()) {
+			iCon->resistance = 8 * iCon->viscosity / M_PI * iCon->length;
+		} else {
+			for (vector<AbstractVascularElement *>::iterator it = prevChildrenParent.begin(); it != prevChildrenParent.end(); ++it) {
+				iCon->addChild(*it);
+				(*it)->parent = iCon;
+			}
+			parent->removeChildren();
+		}
+		parent->addChild(iNew);
+		parent->addChild(iCon);
+
+		((SingleVessel *) parent)->xDist = xProx;
+		((SingleVessel *) parent)->length = sqrt(dBif ^ dBif);
+
+		//	Update tree geometry
+		vtkIdType idProx = vtkTree->GetPoints()->InsertNextPoint(xProx.p);
+		vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
+
+		iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		iNew->vtkSegment->GetPointIds()->SetId(0, idProx); // the second index is the global index of the mesh point
+		iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
+
+		iCon->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		iCon->vtkSegment->GetPointIds()->SetId(0, idProx); // the second 0 is the index of xProx
+		iCon->vtkSegment->GetPointIds()->SetId(1, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second 1 is the index of xDist
+
+		iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
+		iCon->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iCon->vtkSegment);
+
+		elements[iNew->vtkSegmentId] = iNew;
+		elements[iCon->vtkSegmentId] = iCon;
+		addedVesselID = iNew->vtkSegmentId;
+
+//		cout << "Parent VTK Cell ids : " << vtkTree->GetCell(parent->vtkSegmentId)->GetPointIds()->GetNumberOfIds() << endl;
+//		cout << "Intented modified id " << parent->vtkSegment->GetPointId(1) << endl;
+		vtkTree->ReplaceCellPoint(((SingleVessel *) parent)->vtkSegmentId, ((SingleVessel *) parent)->vtkSegment->GetPointId(1), idProx);
+		((SingleVessel *) parent)->vtkSegment->GetPointIds()->SetId(1, idProx);
+
+		vtkTree->BuildCells();
+		vtkTree->Modified();
+
+//		cout << "Points = " << vtkTree->GetNumberOfPoints() << endl;
+//		cout << "Vessels = " << vtkTree->GetNumberOfLines() << endl;
+
+		//	Update tree locator
+		vtkTreeLocator->Update();
+	}
+
+}
+
+void SingleVesselCCOOTree::addVesselNoUpdateNoVtkUpdate(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction,
+				AbstractVascularElement::BRANCHING_MODE branchingMode, vtkIdType &addedVesselID) {
+	/// WARNING: THIS FUNCTION DOES NOT UPDATE THE VTK LOCATOR (nor rebuild cells), PLEASE UPDATE THE VTK LOCATOR OUTSIDE THIS FUNCTION.
+	nTerms++;
+	nCommonTerminals++;
+
+	//	Root
+	if (!parent) {
+
+		SingleVessel * newRoot = new SingleVessel();
+
+		//	Nodal quantities
+		newRoot->xDist = xDist;
+		newRoot->xProx = this->xPerf;
+		point dist = newRoot->xDist - newRoot->xProx;
+		newRoot->nLevel = 0;
+		newRoot->beta = rootRadius;
+		newRoot->radius = rootRadius;
+		newRoot->length = sqrt(dist ^ dist);
+		// newRoot->viscosity = nu->getValue(newRoot->nLevel);
+		newRoot->viscosity = 3.6; // I need this to run faster, instantiate the value and update later.
+		newRoot->resistance = (8 * newRoot->viscosity / M_PI) * newRoot->length;
+		newRoot->flow = qProx;
+		newRoot->treeVolume = M_PI * newRoot->length * rootRadius * rootRadius;
+		newRoot->parent = NULL;
+		newRoot->ID = nTerms;
+		newRoot->stage = currentStage;
+		newRoot->pressure = newRoot->resistance * newRoot->flow + refPressure;
+		newRoot->vesselFunction = vesselFunction;
+		newRoot->branchingMode = branchingMode;
+
+		//	Tree quantities
+		psiFactor = pow(newRoot->beta, 4) / newRoot->flow;	//	Not used
+		dp = newRoot->resistance / psiFactor;
+
+		//	Update tree geometry
+		vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+		vtkIdType idProx = pts->InsertNextPoint(newRoot->xProx.p);
+		vtkIdType idDist = pts->InsertNextPoint(newRoot->xDist.p);
+		vtkTree->SetPoints(pts);
+
+		newRoot->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		newRoot->vtkSegment->GetPointIds()->SetId(0, idProx); // the second 0 is the index of xProx
+		newRoot->vtkSegment->GetPointIds()->SetId(1, idDist); // the second 1 is the index of xDist
+		vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+		newRoot->vtkSegmentId = lines->InsertNextCell(newRoot->vtkSegment);
+		vtkTree->SetLines(lines);
+		elements[newRoot->vtkSegmentId] = newRoot;
+		addedVesselID = newRoot->vtkSegmentId;
+
+		root = newRoot;
+
+		//	Update tree locator
+		vtkTreeLocator->SetDataSet(vtkTree);
+		vtkTreeLocator->BuildLocator();
+	}
+	//	Non-root case & distal branching
+	else if(parent->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING){
+
+		if(parent->getChildren().empty()){
+			nTerms--;
+			nCommonTerminals--;
+		}
+
+		//	Add segment iNew, iCon and iBif in the cloned tree updating nLevel and lengths
+		point dNew = xDist - xProx;
+
+		SingleVessel *iNew = new SingleVessel();
+		iNew->xProx = xProx;
+		iNew->xDist = xDist;
+		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+		iNew->length = sqrt(dNew ^ dNew);
+		// iNew->viscosity = nu->getValue(iNew->nLevel);
+		iNew->viscosity = 3.6; // same as above
+		iNew->resistance = 8 * iNew->viscosity / M_PI * iNew->length;
+		iNew->parent = parent;
+		iNew->ID = nTerms;
+		iNew->stage = currentStage;
+		iNew->vesselFunction = vesselFunction;
+		iNew->branchingMode = branchingMode;
+		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
+
+		parent->addChild(iNew);
+
+		//	Update tree geometry
+		vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
+
+		iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		iNew->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second index is the global index of the mesh point
+		iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
+
+		iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
+		elements[iNew->vtkSegmentId] = iNew;
+		addedVesselID = iNew->vtkSegmentId;
+
+		// moved to outside the addvessel
+		// vtkTree->BuildCells();
+		vtkTree->Modified();
+
+		//	Update tree locator
+		// DO THIS OUTSIDE THE FUNCTION FOR SPEED
+		// vtkTreeLocator->Update();
+
+	}
+	//	Non-root case & not distal branching
+	else{
+
+		//	Add segment iNew, iCon and iBif in the cloned tree updating nLevel and lengths
+		point dNew = xDist - xProx;
+		point dCon = ((SingleVessel *) parent)->xDist - xProx;
+		point dBif = xProx - ((SingleVessel *) parent)->xProx;
+
+		SingleVessel *iNew = new SingleVessel();
+		iNew->xProx = xProx;
+		iNew->xDist = xDist;
+		iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+		iNew->length = sqrt(dNew ^ dNew);
+		// iNew->viscosity = nu->getValue(iNew->nLevel);
+		iNew->viscosity = 3.6; // see above
+		iNew->resistance = 8 * iNew->viscosity / M_PI * iNew->length;
+		iNew->parent = parent;
+		iNew->ID = nTerms;
+		iNew->stage = currentStage;
+		iNew->vesselFunction = vesselFunction;
+		iNew->branchingMode = branchingMode;
+		iNew->radius = static_cast<SingleVessel *>(parent)->radius;
+
+		SingleVessel *iCon = new SingleVessel();
+		iCon->xProx = xProx;
+		iCon->xDist = ((SingleVessel *) parent)->xDist;
+		iCon->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+		iCon->length = sqrt(dCon ^ dCon);
+		// iCon->viscosity = nu->getValue(iCon->nLevel);
+		iCon->viscosity = 3.6;
+		iCon->parent = parent;
+		iCon->ID = ((SingleVessel *) parent)->ID;
+		iCon->branchingMode = parent->branchingMode;
+		iCon->stage = ((SingleVessel *) parent)->stage;
+		iCon->vesselFunction = ((SingleVessel *) parent)->vesselFunction;
+		iCon->radius = static_cast<SingleVessel *>(parent)->radius;
+
+		vector<AbstractVascularElement *> prevChildrenParent = parent->getChildren();
+		if (prevChildrenParent.empty()) {
+			iCon->resistance = 8 * iCon->viscosity / M_PI * iCon->length;
+		} else {
+			for (vector<AbstractVascularElement *>::iterator it = prevChildrenParent.begin(); it != prevChildrenParent.end(); ++it) {
+				iCon->addChild(*it);
+				(*it)->parent = iCon;
+			}
+			parent->removeChildren();
+		}
+		parent->addChild(iNew);
+		parent->addChild(iCon);
+
+		((SingleVessel *) parent)->xDist = xProx;
+		((SingleVessel *) parent)->length = sqrt(dBif ^ dBif);
+
+		//	Update tree geometry
+		vtkIdType idProx = vtkTree->GetPoints()->InsertNextPoint(xProx.p);
+		vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
+
+		iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		iNew->vtkSegment->GetPointIds()->SetId(0, idProx); // the second index is the global index of the mesh point
+		iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
+
+		iCon->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		iCon->vtkSegment->GetPointIds()->SetId(0, idProx); // the second 0 is the index of xProx
+		iCon->vtkSegment->GetPointIds()->SetId(1, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second 1 is the index of xDist
+
+		iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
+		iCon->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iCon->vtkSegment);
+
+		elements[iNew->vtkSegmentId] = iNew;
+		elements[iCon->vtkSegmentId] = iCon;
+		addedVesselID = iNew->vtkSegmentId;
+
+//		cout << "Parent VTK Cell ids : " << vtkTree->GetCell(parent->vtkSegmentId)->GetPointIds()->GetNumberOfIds() << endl;
+//		cout << "Intented modified id " << parent->vtkSegment->GetPointId(1) << endl;
+		vtkTree->ReplaceCellPoint(((SingleVessel *) parent)->vtkSegmentId, ((SingleVessel *) parent)->vtkSegment->GetPointId(1), idProx);
+		((SingleVessel *) parent)->vtkSegment->GetPointIds()->SetId(1, idProx);
+
+		// Moved to outside the addvessel
+		// vtkTree->BuildCells();
+		vtkTree->Modified();
+
+//		cout << "Points = " << vtkTree->GetNumberOfPoints() << endl;
+//		cout << "Vessels = " << vtkTree->GetNumberOfLines() << endl;
+
+		//	Update tree locator
+		// DO THIS OUTSIDE THE FUNCTION FOR SPEED
+		// vtkTreeLocator->Update();
+	}
+
+}
+
+void SingleVesselCCOOTree::addVesselNoAllocNoUpdate(point xProx, point xDist, AbstractVascularElement *newVessel, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction,
+				AbstractVascularElement::BRANCHING_MODE branchingMode, vtkIdType &addedVesselID) {
+	/**
+	 * This function is used only to append the subtree vessel, without allocating the vessel. Do not use for other cases.
+	 * Parent vessel must exist!
+	 * Parent vessel can be of any type, but appending will always occur at xDist (distal) points of occurence.
+	 * That means, we have the case for iNew, but iCon doesn't exist for this scenario, since parent vessel will not be broken into two parts.
+	 * In the alloc part 
+	 * // ... = new SingleVessel();
+	 * we pass the newVessel pointer instead.
+	 */
+
+	nTerms++;
+	nCommonTerminals++;
+
+	// We always go into this case because for this method appending always occur in distal points
+	// non-root & distal branching
+
+	if(parent->getChildren().empty()){
+		nTerms--;
+		nCommonTerminals--;
+	}
+
+	//	Add segment iNew, (NOT iCon NOR iBif) in the cloned tree updating nLevel and lengths
+	point dNew = xDist - xProx;
+
+	SingleVessel *iNew = (SingleVessel *) newVessel; // We don't allocate in this method.
+	iNew->xProx = xProx;
+	iNew->xDist = xDist;
+	iNew->nLevel = ((SingleVessel *) parent)->nLevel + 1;
+	iNew->length = sqrt(dNew ^ dNew);
+	iNew->viscosity = nu->getValue(iNew->nLevel);
+	iNew->resistance = 8 * nu->getValue(iNew->nLevel) / M_PI * iNew->length;
+	iNew->parent = parent;
+	iNew->ID = nTerms;
+	iNew->stage = currentStage;
+	iNew->vesselFunction = vesselFunction;
+	iNew->branchingMode = branchingMode;
+	iNew->radius = static_cast<SingleVessel *>(parent)->radius;
+
+	parent->addChild(iNew);
+
+	//	Update tree geometry
+	vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint(xDist.p);
+
+	iNew->vtkSegment = vtkSmartPointer<vtkLine>::New();
+	iNew->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *) parent)->vtkSegment->GetPointId(1)); // the second index is the global index of the mesh point
+	iNew->vtkSegment->GetPointIds()->SetId(1, idDist); // the second index is the global index of the mesh point
+
+	iNew->vtkSegmentId = vtkTree->GetLines()->InsertNextCell(iNew->vtkSegment);
+	elements[iNew->vtkSegmentId] = iNew;
+	addedVesselID = iNew->vtkSegmentId;
+
+	vtkTree->BuildCells();
+	vtkTree->Modified();
+
+	//	Update tree locator
+	vtkTreeLocator->Update();
+
+}
+
+void SingleVesselCCOOTree::updateMassiveTree(){
+	// Update the VTK locator and cells just in case i skip in a previous step.
+	cout << "Building the VTK tree cells 'BuildCells()'" << endl;
+	vtkTree->BuildCells();
+	cout << "Updating the VTK tree locator 'Update()'" << endl;
+	vtkTreeLocator->Update();
+
+	cout << "Updating the post-order nLevel, flux, pressure and determine initial resistance and beta values" << endl;
+	//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
+	updateTree(((SingleVessel *) this->root), this);
+	
+	cout << "Updating resistance, pressure and betas" << endl;
+	//	Update resistance, pressure and betas
+	double maxVariation = INFINITY;
+	while (maxVariation > variationTolerance) {
+		updateTreeViscositiesBeta(((SingleVessel *) this->root), &maxVariation);
+	}
+	cout << "Computing pressure" << endl;
+	this->computePressure(this->root);
+}
+void SingleVesselCCOOTree::updateSubtree(SingleVessel *subtreeRoot){
+	//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
+	updateTree(subtreeRoot, this);
+	
+	//	Update resistance, pressure and betas
+	double maxVariation = INFINITY;
+	while (maxVariation > variationTolerance) {
+		updateTreeViscositiesBeta(subtreeRoot, &maxVariation);
+	}
+	this->computePressure(subtreeRoot);
+}
+void SingleVesselCCOOTree::updateSubtree(SingleVessel *subtreeRoot, double tolerance){
+	//	Update post-order nLevel, flux, pressure and determine initial resistance and beta values.
+	updateTree(subtreeRoot, this);
+	
+	//	Update resistance, pressure and betas
+	double maxVariation = INFINITY;
+	while (maxVariation > tolerance) {
+		updateTreeViscositiesBeta(subtreeRoot, &maxVariation);
+	}
+	this->computePressure(subtreeRoot);
+}
+void SingleVesselCCOOTree::scaleTreeRootRadius(double scaleFactor){
+	this->rootRadius = (this->rootRadius)*scaleFactor;
+	((SingleVessel *)this->getRoot())->radius = (((SingleVessel *)this->getRoot())->radius)*scaleFactor;
+	((SingleVessel *)this->getRoot())->beta = (((SingleVessel *)this->getRoot())->radius);
+	return;
+}
+void SingleVesselCCOOTree::scaleTreeRadius(double scaleFactor){
+	this->rootRadius = (this->rootRadius)*scaleFactor;
+	((SingleVessel *)this->getRoot())->beta = this->rootRadius;
+	vector<SingleVessel *> allVessels = this->getVessels();
+	for (vector<SingleVessel *>::iterator it = allVessels.begin(); it != allVessels.end(); ++it) {
+		(*it)->scaleVesselRadius(scaleFactor);
+	}
+	return;
 }
 
 void SingleVesselCCOOTree::addVessel(point xProx, point xDist, AbstractVascularElement *parent, AbstractVascularElement::VESSEL_FUNCTION vesselFunction, unordered_set<vtkIdType> * partVessels, long long int *termPart, const vector<double> qPart) {
@@ -2186,6 +2680,209 @@ void SingleVesselCCOOTree::addValitatedVesselFast(SingleVessel *newVessel, Singl
 	}
 }
 
+void SingleVesselCCOOTree::appendSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *subtreeRoot, AbstractVascularElement *parentVessel, int subtreeLevel, vtkIdType parentVesselSegmentID,
+		const double& scaleFactor, const matrix& rotationMatrix, const point& translationVector) {
+	/// NOTE: THIS SHOULD BE MOVED TO THE SUBTREEREPLACER CLASS
+	/// NOTE: I cannot move it because i have to access the "elements" attribute...
+	/// TODO: create method getElement(elementID)
+	if (!subtreeRoot) {
+		// reached leaf node of subtree (? shouldn't happen in the for-loop below... but base case for recursion nonetheless)
+		return;
+	}
+	if (!parentVessel) {
+		// When we don't have parent vessel, pass the segment ID and we get from the elements! 
+		// (can't pass because elements is private attribute, so it must be done here)
+		parentVessel = elements[parentVesselSegmentID];
+	}
+	// addvessel to the tree
+	vtkIdType vesselSegmentId;
+	point xProx = ((SingleVessel*)subtreeRoot)->xProx;
+	point xDist = ((SingleVessel*)subtreeRoot)->xDist;
+	
+	xProx.p[0] = xProx.p[0]*scaleFactor;
+	xDist.p[0] = xDist.p[0]*scaleFactor;
+	xProx.p[1] = xProx.p[1]*scaleFactor;
+	xDist.p[1] = xDist.p[1]*scaleFactor;
+	xProx.p[2] = xProx.p[2]*scaleFactor;
+	xDist.p[2] = xDist.p[2]*scaleFactor;
+	xProx = matrix_vector_mult(rotationMatrix, xProx);
+	xDist = matrix_vector_mult(rotationMatrix, xDist);
+	xProx = xProx + translationVector;
+	xDist = xDist + translationVector;
+
+	if (!subtreeLevel) {
+		// subtree root only: i need this to fix possible numerical errors when moving the tree, the connection point must be the exact same point
+		xProx = ((SingleVessel*)parentVessel)->xDist;
+		/// TODO: make all xProx equal to xDist of the parent.
+	}
+	// This is the best place to add this, but i don't want to test it, so i'll clear in the other function just before deleting the temporary subtree.
+	// ((SingleVesselCCOOTree*)newSubtree)->eraseElement(((SingleVessel*)subtreeRoot)->vtkSegmentId);
+	// addVesselNoAllocNoUpdate(xProx, xDist, subtreeRoot, parentVessel,
+	// 	(AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+	// 	(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode,
+	// 	vesselSegmentId);
+	/// NOTE: use the yes-alloc option until i fix the bug in the recursive return for the move instead of copy option.
+	/// BUG: NoAlloc option is moving the tree, and the recursive call is coming back to the wrong parent.
+	/// FIXME: revert to Yes-Alloc option, this will be a lot more costly but will fix the implementation.
+	addVesselNoUpdateNoVtkUpdate(xProx, xDist, parentVessel,
+		(AbstractVascularElement::VESSEL_FUNCTION) instanceData->vesselFunction,
+		(AbstractVascularElement::BRANCHING_MODE) instanceData->branchingMode,
+		vesselSegmentId);
+	// loop over children
+	// this solves the problem of having an existing parent before appending the children, and add them in a correct consistent manner
+	for (vector<AbstractVascularElement *>::iterator itChildren = subtreeRoot->children.begin(); itChildren != subtreeRoot->children.end(); ++itChildren) {
+		// call itself recursively, but the root and parent vessel are changed
+		appendSubtree(newSubtree, *itChildren, nullptr /* parent vessel */, subtreeLevel+1, vesselSegmentId, scaleFactor, rotationMatrix, translationVector);
+		/// NOTE: DO NOT pass parent vessel id, we get from the vessel segment generated, this is a new segment (COPY) not the other case (MOVE)
+		/// we get the parent from the SegmentID
+	}
+	// if (subtreeLevel==0) {
+		/// NOTE: we only update the VTK Tree Locator here to increase speed, same with the 
+		// back at the root level, lets update the VTK
+		// vtkTreeLocator->Update();
+		/// NOTE: i decided to do this outside, when i update the entire tree.
+	// }
+	return;
+}
+
+void SingleVesselCCOOTree::clearElements() {
+	/// WARNING: If used incorrectly this will cause huge memory leaks
+	elements.clear();
+	return;
+}
+void SingleVesselCCOOTree::eraseElement(vtkIdType keyID) {
+	/// WARNING: If used incorrectly this will cause huge memory leaks
+    // Find the iterator for key
+    auto iter = elements.find(keyID);
+    // Delete the pair with key if found
+    if (iter != elements.end()) {
+        elements.erase(iter);
+    }
+	return;
+}
+
+// void AbstractObjectCCOTree::saveVessels(AbstractVascularElement * root, ofstream *treeFile){
+// 	if(!root){
+// 		return;
+// 	}
+// 	root->saveVesselData(treeFile);
+// 	*treeFile << endl;
+// 	for (std::vector<AbstractVascularElement *>::iterator it = root->children.begin(); it != root->children.end(); ++it) {
+// 		saveVessels(*it,treeFile);
+// 	}
+// }
+
+void SingleVesselCCOOTree::addSubtree(AbstractObjectCCOTree *newSubtree, AbstractVascularElement *parentVessel, int nNewSegments){
+	cout << "FATAL: experimental method." << endl;
+	exit(1); // refactor this method
+	// Subtree is passed with xDist and xProx updated before this, 
+	// assuming subtree->getRoot()->xProx and parentVessel->xDist are exactly the same.
+	// we don't allocate SingleVessel in this method.
+
+	// referencing the vessels that are to be connected
+	SingleVessel *targetParent = (SingleVessel *)parentVessel;
+	SingleVessel *subtreeRoot = (SingleVessel *)newSubtree->getRoot();
+	
+	cout << "INFO: nNewSegments " << nNewSegments << "was not updated, was passed as argument." << endl;
+	// // Subtract the terminal to be replaced
+	// nTerms--;
+	// nCommonTerminals--;
+	/// NOTE: we don't subtract --nTerms in this refactoring because we don't delete the oldvessel anymore, we append directly to the correct parent.
+	int nNewTerms = newSubtree->getNTerms();
+	cout << "Adding tree with " << nNewTerms << " new terms." << endl;
+	nTerms += nNewTerms;
+	nCommonTerminals += nNewTerms;	
+	/// TODO: update nTerms, nCommonTerminals in a smarter way.
+	// possible way:
+	// nNewTerms += newSubtree->getNTerms(); 
+	// but for segments not terminals
+
+
+	if (!targetParent){
+		// no sense in concatening empty and tree: 0 + Tree = Tree, use the subtree.
+		cout << "ERROR: Invalid parent, nowhere to append. Nothing was appended." << endl;
+		return;
+	}
+	if (!subtreeRoot){
+		// the tree is either empty or invalid. Please add a valid subtree.
+		cout << "ERROR: Invalid subtree, nothing to append. Nothing was appended." << endl;
+		return;
+	}
+
+	// The terminal descends from DISTAL_BRANCHING, The midpoint descends from RIGID_PARENT
+	// But the penetrating vessel segment is the exact same case for both situations
+	// Update properties recursively, for this get the subtree under subtreeRoot.
+	vector<SingleVessel *> subtreeVessels = newSubtree->getVessels();
+	// Update the new root radius, and the subtree vessel radii.
+	double radiusScalingFactor = ((SingleVessel *)parentVessel)->radius / (subtreeRoot->radius);
+	cout << "WARNING: nNewSegments " << nNewSegments << " was passed not calculated" << endl;
+	/// TODO: addVessel recursively in a smarter way.
+	for (vector<SingleVessel *>::iterator vessel = subtreeVessels.begin(); vessel != subtreeVessels.end(); ++vessel) {
+		(*vessel)->ID = (*vessel)->ID + nTerms;
+		/// NOTE: remember to setCurrentStage when generating!
+		(*vessel)->stage = currentStage; 
+		(*vessel)->nLevel = (*vessel)->nLevel + targetParent->nLevel + 1;
+		(*vessel)->radius = (*vessel)->radius * radiusScalingFactor;
+		(*vessel)->viscosity = nu->getValue((*vessel)->nLevel);
+		(*vessel)->resistance = 8 * nu->getValue((*vessel)->nLevel) / M_PI * (*vessel)->length;
+	}
+
+	// Swap parents for root vessels after updating all the properties.
+
+	// Move the new root to the tree.
+	if (targetParent->getChildren().size() != 0) {
+		cout << "WARNING: this target parent already has children. Removing them." << endl;
+	}
+	targetParent->removeChildren(); // this should be empty already.
+	targetParent->addChild(subtreeRoot);
+	subtreeRoot->parent = targetParent;
+
+	// delete the subtree root.
+	((SingleVesselCCOOTree*)newSubtree)->setRoot(NULL);
+	// oldTerminalVessel->parent = NULL;
+
+	// update the VTK properties
+	// the same object subtreeVessels refers to new vessels
+	// we must add nterms to every vtkIdType so we don't have two with the same number
+	int idOffset = nNewSegments;
+	for (vector<SingleVessel *>::iterator vessel = subtreeVessels.begin(); vessel != subtreeVessels.end(); ++vessel) {
+		// for the root vessel, we don't "InsertNextPoint", we SetPoint to not keep the ghost point/segment
+		/// UPDATE: the code was refactored, so rootVessel gets same treatment as other vessels.
+		// Update tree geometry
+		vtkIdType idDist = vtkTree->GetPoints()->InsertNextPoint((*vessel)->xDist.p);
+		// vtkIdType idDist = ((SingleVessel*)oldTerminalVessel)->vtkSegmentId; // get the ID to be replaced
+		// vtkTree->GetPoints()->SetPoint(idDist,(*vessel)->xDist.p); /// use the GetPoints()->SetPoint(...) to replace the root distal point with new root distal point.
+		// I will assume the iterator loops through the vessel list in a parent-first children-after order
+		/// WARNING: this will possibly induce in errors, but i haven't found a more elegant way to solve this by now.
+		/// TODO: pass this a recursive function will possibly solve this issue. (Todo later).
+		(*vessel)->vtkSegment = vtkSmartPointer<vtkLine>::New();
+		// (*vessel)->vtkSegment = ((SingleVessel *)oldTerminalVessel)->vtkSegment;
+		// ((SingleVessel *)oldTerminalVessel)->vtkSegment = nullptr;
+		(*vessel)->vtkSegment->GetPointIds()->SetId(0, ((SingleVessel *)(*vessel)->parent)->vtkSegment->GetPointId(1));
+		(*vessel)->vtkSegment->GetPointIds()->SetId(1, idDist);
+		
+		// I opted to re-include this, and use the remove ghost cells after.
+		(*vessel)->vtkSegmentId = vtkTree->GetLines()->InsertNextCell((*vessel)->vtkSegment);
+		elements[(*vessel)->vtkSegmentId] = (*vessel);
+		//// NOTE: I hope the old terminal vessel is removed, because i replace in the hash_map, but if not, uncomment the item below:
+		// elements[((SingleVessel*)oldTerminalVessel)->vtkSegmentId]
+
+	}
+	// if i want to replace the point ids of a cell, i could use the line below:
+	// vtkTree->ReplaceCellPoint(((SingleVessel *) parent)->vtkSegmentId, ((SingleVessel *) parent)->vtkSegment->GetPointId(1), idProx);
+	// ((SingleVessel *) parent)->vtkSegment->GetPointIds()->SetId(1, idProx);
+	// and remove ghost cells with:
+	// vtkTree->RemoveGhostCells();
+
+
+	vtkTree->BuildCells();
+	vtkTree->Modified();
+	vtkTreeLocator->Update(); // Update tree locator
+
+	return;
+}
+
+
 //void SingleVesselCCOOTree::addVessel(point xDist, AbstractVascularElement *parent, AbstractVascularElement::BRANCHING_MODE mode,
 //		AbstractVascularElement::VESSEL_FUNCTION vesselFunction) {
 //	//	Root
@@ -2412,11 +3109,12 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 				(pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR && domain->isSegmentInside(pVessel->xDist, bif) ) ||
 				(domain->isSegmentInside(pVessel->xProx, bif) && domain->isSegmentInside(pVessel->xDist, bif) ) ||  // Distribution
 				(pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING );
-			// check if the interval between 0%-100% of the vessel is inside the domain,
-			// point beforeMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*0.00);
-			// point afterMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*1.00);
-			point beforeMidpoint = pVessel->xProx; // 100% of vessel
-			point afterMidpoint = pVessel->xDist; // 100% of vessel
+			// check if the interval between A%-B% of the vessel is inside the domain,
+			point beforeMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*0.33);
+			point afterMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*0.67);
+			/// TODO: REVERT THIS HARDCODE BEFORE MERGING THIS TO MAIN
+			// point beforeMidpoint = pVessel->xProx; // 100% of vessel
+			// point afterMidpoint = pVessel->xDist; // 100% of vessel
 			bool midpointCondition = domain->isSegmentInside(beforeMidpoint, afterMidpoint);
 			// uses the condition
 			if ((domain->isSegmentInside(xNew, bif) && midpointCondition && domainCondition) || (pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::TRANSPORT)) {
@@ -3400,6 +4098,10 @@ void SingleVesselCCOOTree::updateAll() {
 
 void SingleVesselCCOOTree::setIsGammaStage(bool isGammaStage) {
 	this->isGammaStage = isGammaStage;
+}
+
+void SingleVesselCCOOTree::setRoot(SingleVessel *newRoot) {
+	this->root = newRoot;
 }
 
 double SingleVesselCCOOTree::getGamma(SingleVessel *vessel) {

@@ -145,6 +145,11 @@ public:
 	void saveVesselConnectivity(ofstream *treeFile);
 
 	string coordToString();
+	/**
+	 * Scale the vessel radius by a factor
+	 * @param scaleFactor Factor to scale the vessel diameter.
+	 */
+	void scaleVesselRadius(double scaleFactor);
 
 };
 

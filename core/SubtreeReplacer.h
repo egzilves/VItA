@@ -1,14 +1,14 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2024 Eduardo Guerreiro Zilves & Gonzalo Maso Talou */
 /*
- * PenetratingVesselTreeGenerator.h
+ * SubtreeReplacer.h
  *
- *  Created on: Feb 06, 2024
+ *  Created on: Mar 20, 2024
  *      Author: Eduardo G. Zilves
  */
 
-#ifndef PENETRATINGVESSELTREEGENERATOR_H_
-#define PENETRATINGVESSELTREEGENERATOR_H_
+#ifndef SUBTREEREPLACER_H_
+#define SUBTREEREPLACER_H_
 
 #include <chrono>
 #include <iostream>
@@ -16,7 +16,6 @@
 #include <vector>
 #include <ctime>
 #include <unordered_map>
-#include <map>
 
 #include <vtkSmartPointer.h>
 #include <vtkPolyData.h>
@@ -46,12 +45,23 @@ using namespace std;
 //     int stage;
 // };
 
+struct ProxySegment { // Rename this to ProxySegment when fully implementing to VItA
+	vtkIdType parentID;
+	point xProx;
+	point xDist;
+	ProxySegment(vtkIdType pID, point xP, point xD) {
+		parentID = pID;
+		xProx = xP;
+		xDist = xD;
+	}
+};
+
 /**
  * Generator for a projected perfusion from existing tree with many stages.
  * Generates a segment from terminals into the projectiondomain, and continues inside the domain
  * with the same normal versor.
  */
-class PenetratingVesselTreeGenerator : public IDomainObserver  {
+class SubtreeReplacer : public IDomainObserver  {
 
 	/** Time of the beggining of the tree generation process*/
 	time_t beginTime;
@@ -78,8 +88,8 @@ class PenetratingVesselTreeGenerator : public IDomainObserver  {
 	StagedDomain *domain;
 
 	/** Generated trees. */
-	AbstractObjectCCOTree *tree;
-	// SingleVesselCCOOTree *tree;
+	// AbstractObjectCCOTree *tree;
+	SingleVesselCCOOTree *tree;
 
 	vector<AbstractConstraintFunction<double,int> *> gams;
 	vector<AbstractConstraintFunction<double,int> *> epsLims;
@@ -99,7 +109,31 @@ class PenetratingVesselTreeGenerator : public IDomainObserver  {
 	 */
 	// bool bypassFunctionIfMidpointInside;
 
-	
+	// /** Domain. */
+	// string domainFile;
+	// /** Projection domain. */
+	// string projectionDomainFile;
+	// /** vtkPolydata description of the domain. */
+	// vtkSmartPointer<vtkPolyData> vtkGeometryIntersect;
+	// /** vtkPolydata description of the projection domain. */
+	// vtkSmartPointer<vtkPolyData> vtkGeometryProjection;
+	// /** Cell locator responsible to determine if a segment is inside the domain. */
+	// vtkSmartPointer<vtkCellLocator> locatorIntersect;
+	// /** Cell locator responsible to determine if a segment is inside the domain, check closest cell to project. */
+	// vtkSmartPointer<vtkCellLocator> locatorProjection;
+	// /**	Descending offset for projected points */
+	// double descendingOffset;
+	// /**	Penetration offset for projected points */
+	// double endpointOffset;
+	// /** Maximum distance between terminal and closest point/cell on projection surface to allow generating a vessel. */
+	// double maxDistanceToClosestPoint;
+	// /** Maximum segment length inside domain. */
+	// double maxPenetratingVesselLength;
+
+    // SingleVesselCCOOTree *treee;
+    // vector<vector<ReadData>*> *vesselToMerge;
+    // unordered_map<string, SingleVessel *> *stringToPointer;
+
 public:
 	/**
 	 * Constructor to resume from a pre-existent tree.
@@ -110,120 +144,61 @@ public:
 	 * @param epsLim	Symmetry constraint function.
 	 * @param nu		Viscosity function.
 	 */
-	PenetratingVesselTreeGenerator(StagedDomain *domain, string projectionDomainFile, AbstractObjectCCOTree *tree, long long int nTerm, 
+	SubtreeReplacer(StagedDomain *domain, string projectionDomainFile, AbstractObjectCCOTree *tree, long long int nTerm, 
 		vector<AbstractConstraintFunction<double,int> *>gam, vector<AbstractConstraintFunction<double,int> *>epsLim, 
 		vector<AbstractConstraintFunction<double,int> *>nu);
 	/**
 	 * Common destructor.
 	 */
-	~PenetratingVesselTreeGenerator();
+	~SubtreeReplacer();
+
+	/**
+	 * Replace the segment with a subtree given the probability of picking
+	 */
+	AbstractObjectCCOTree *appendSubtree(long long int saveInterval, string tempDirectory, vector<string> subtreeFilenameList, string filenameData, int max_iterations_count, int seed);
+
+	/**
+	 * Replace the segment with a subtree given the probability of picking
+	 */
+	AbstractObjectCCOTree *replaceSegments(long long int saveInterval, string tempDirectory, string subtreeFilename);
+
+	/**
+	 * Filters the target vessels
+	 */
+	vector<SingleVessel *> getFilteredVessels();
+	/**
+	 * Loads the data from a txt file
+	 */
+	int loadData(string filename);
+	/**
+	 * instantiates a new subtree
+	 */
+	SingleVesselCCOOTree *buildNewSubtree(string subtreeFilename);
+	/**
+	 * Scale, rotate, and translate the subtree to a factor to correct dimentions
+	 * @param subtree going to be mapped
+	 * @param xProx @param xDist proximal and distal "points" of the subtree position
+	*/
+	void mapSubtree(SingleVesselCCOOTree *subtree, point xProx, point xDist);
+	
+	// // /**
+	// //  * Resumes the tree generation.
+	// //  * @param saveInterval Number of iterations performed between saved steps.
+	// //  * @param tempDirectory Directory where intermediate solutions are saved.
+	// //  * @return	Perfusion tree.
+	// //  */
+	// // AbstractObjectCCOTree *resume(long long int saveInterval, string tempDirectory);
+	// // /**
+	// //  * Resumes the tree generation process and saves the optimal xNew and xBif in @param fp.
+	// //  */
+	// // AbstractObjectCCOTree *resumeSavePointsMidPoint(long long int saveInterval, string tempDirectory, FILE *fp);
 	// /**
-	//  * Resumes the tree generation.
+	//  * Generates the tree penetration into domain.
 	//  * @param saveInterval Number of iterations performed between saved steps.
 	//  * @param tempDirectory Directory where intermediate solutions are saved.
 	//  * @return	Perfusion tree.
 	//  */
-	// AbstractObjectCCOTree *resume(long long int saveInterval, string tempDirectory);
-	// /**
-	//  * Resumes the tree generation process and saves the optimal xNew and xBif in @param fp.
-	//  */
-	// AbstractObjectCCOTree *resumeSavePointsMidPoint(long long int saveInterval, string tempDirectory, FILE *fp);
-
-	/**
-	 * Generates the tree descending/penetration into domain.
-	 * @param saveInterval Number of iterations performed between saved steps.
-	 * @param tempDirectory Directory where intermediate solutions are saved.
-	 * @return	Perfusion tree.
-	 */
-	AbstractObjectCCOTree *generatePenetrating(long long int saveInterval, string tempDirectory, long long int maxGeneration);
-	/**
-	 * Generates the tree descending into domain and save penetrating data.
-	 * @param saveInterval Number of iterations performed between saved steps.
-	 * @param tempDirectory Directory where intermediate solutions are saved.
-	 * @return	Perfusion tree.
-	 */
-	AbstractObjectCCOTree *generateDescendingSave(long long int saveInterval, string tempDirectory, string filenameOut, long long int maxGeneration);
-
-	/**
-	 * Generates the tree descending into domain, the first step.
-	 * @param saveInterval Number of iterations performed between saved steps.
-	 * @param tempDirectory Directory where intermediate solutions are saved.
-	 * @return	Perfusion tree.
-	 */
-	AbstractObjectCCOTree *generateData(long long int saveInterval, string tempDirectory);
-
-	/** 
-	 * Failsafe to avoid usage of incomplete class.
-	 */
-	inline void failsafeCheck();
-	/** 
-	 * Filter for terminal vessels and return the vector of singlevessels.
-	 */
-	vector<SingleVessel *> filterTerminalVessels();
-	/**
-	 * Build normal and locator structures for calculations
-	 */
-	void buildNormalLocator();
-	/**
-	 * Build intersection locator for other side
-	 */
-	void buildIntersectionLocator();
-	/**
-	 * Find the distal point for the first step descending vessel
-	 * @param terminal The point from where descending will occur.
-	 * @param normal Returned normal of the surface at that point.
-	 * @param distance2 Returned squared length of descending vessel.
-	 */
-	point findDistalDescending(point terminal, point& normal, double& distance2);
-	/**
-	 * Checks if descending vessel is valid.
-	 * @param distance2T Distance squared of the descending vessel.
-	 */
-	bool isDescendingValid(double distance2T);
-	/**
-	 * Find the distal point for the second step penetrating vessel
-	 * @param terminal The point from where penetration will occur.
-	 * @param normal Normal of the surface at the terminal.
-	 * @param foundRaycast Returned value if intersection is found.
-	 */
-	point findDistalPenetrating(point terminal, point normal, int& foundRaycast);
-	/**
-	 * Adjust the penetrating length to the maximum value
-	 * @param length Length of the penetrating vessel.
-	 */
-	double adjustMaxPenetratingLength(double length);
-	/**
-	 * Checks if penetrating vessel is valid.
-	 * @param foundRaycast Parameter passed, 1 if found, 0 if no intersection
-	 */
-	bool isPenetratingValid(int foundRaycast);
-	/**
-	 * Checks if generated penetrating segment is fully inside the geometry.
-	 * @param xProx proximal point of vessel
-	 * @param xDist distal point of vessel
-	 */
-	bool isPenetratingInside(point xProx, point xDist);
-	/**
-	 * Make parent rigid/distal/nobranching.
-	 */
-	void setParentMode(SingleVessel* parent, AbstractVascularElement::BRANCHING_MODE mode);
-	/**
-	 * Save the penetrating data to a file.
-	 */
-	int saveData(string fileName);
-	/**
-	 * Append descending arterioles to the tree.
-	 * @param parametric value for the position of the bifurcation. Go from 1.0 towards 0.5, in descending order.
-	 */
-	AbstractObjectCCOTree *descend(double parametricValue);
-	/**
-	 * Append penetrating arterioles to the descending arterioles.
-	 */
-	AbstractObjectCCOTree *penetrate(long long int saveInterval, string tempDirectory);
-	/**
-	 * Runs the command to update the tree after running the descend/penetrate methods.
-	 */
-	void updateGeneratedSegments();
+	// AbstractObjectCCOTree *generatePenetrating(long long int saveInterval, string tempDirectory);
 	
 	/**
 	 * Returns the perfusion domain.
@@ -249,7 +224,7 @@ public:
 	 * Return the currently generated @p tree
 	 * @return Generated tree.
 	 */
-	AbstractObjectCCOTree*& getTree();
+	SingleVesselCCOOTree*& getTree();
 	/**
 	 * Saves the current generation status using the @p savingTasks and the memory monitor.
 	 * @param terminals	Current iteration number.
@@ -316,60 +291,47 @@ public:
 	void setPenetrationOffset(double penetrationOffset);
 
 
+	/** maximum number of iterations, for testing */
+	int maxIterationsLimit;
+	/**
+	 * each element is a population, contains a list of cco files
+	 * example:
+	 * { {"file1", "file2", "file3"}, {"pop2file1", "pop2file2", ...} }
+	 */
+	vector<vector<string>> populations;
+	/**
+	 * the ACCUMULATED distributions for each population
+	 * {0.5, 1.0}
+	 */
+	vector<double> accumulatedPercentages;
+	/**
+	 * Generic gendata for subtrees
+	 */
+	GeneratorData *gen_data_0;
+	/**
+	 * Generic gam for subtrees
+	 */
+	AbstractConstraintFunction<double,int> *gam_0;
+	/**
+	 * Generic epslim for subtrees
+	 */
+	AbstractConstraintFunction<double, int> *eps_lim_1;
+	/**
+	 * Generic nu for subtrees
+	 */
+	AbstractConstraintFunction<double,int> *nu;
+	/** 
+	 * State to append subtrees, use the terminal tips stage
+	 */
+	int stageToAppend;
+	/** Generated segment ID of parent + xnew1,xnew2 of subtrees for when loading the data */
+	unordered_map<vtkIdType, vector<point>> toAppendVesselData;
+
+
+
     // void TreeMerger(SingleVesselCCOOTree *baseTree, vector<string>& derivedTreePoints);
     // void /*~*/dTreeMerger();
     // SingleVesselCCOOTree *mergeFast();
-
-
-	/** Domain. */
-	string domainFile;
-	/** Projection domain. */
-	string projectionDomainFile;
-	/** vtkPolydata description of the domain. */
-	vtkSmartPointer<vtkPolyData> vtkGeometryIntersect;
-	/** vtkPolydata description of the projection domain. */
-	vtkSmartPointer<vtkPolyData> vtkGeometryProjection;
-	/** Cell locator responsible to determine if a segment is inside the domain. */
-	vtkSmartPointer<vtkCellLocator> locatorIntersect;
-	/** Cell locator responsible to determine if a segment is inside the domain, check closest cell to project. */
-	vtkSmartPointer<vtkCellLocator> locatorProjection;
-	/** Normal geometry for the cells */
-	vtkSmartPointer<vtkDataArray> cellNormalsRetrieved;
-	/**	Descending offset for projected points */
-	double descendingOffset;
-	/**	Penetration offset for projected points */
-	double endpointOffset;
-	/** Maximum distance between terminal and closest point/cell on projection surface to allow generating a vessel. */
-	double maxDistanceToClosestPoint;
-	/** Maximum segment length inside domain. */
-	double maxPenetratingVesselLength;
-	/** Penetration length factor of generated penetrating vessels, 1.0 for full length up to max length */
-	double penetrationFactor;
-	/** Maximum generation limit for quantity of descending/penetrating vessels, for test purposes. If running, keep high value */
-	long long int maxGenerateLimit;
-	/** Raycast displacement for calculating intersecting cells */
-	double xRayDisplacement;
-	/** endpoint tolerance for intersecting cells */
-	double intersectionTolerance;
-	/** Parametric position of the terminal where descending will occur, 1.0 is distal, 0.5 is midpoint. */
-	double parametricT;
-	/** List of vessels allowed to descend */
-	vector<SingleVessel *> vesselsList;
-	/** Information about descending and penetrating vessels to be appended */
-	map<double,unordered_map<vtkIdType,vector<point>>> descendingData;
-	/** Generated segment ID of children + xnew1,xnew2 for when saving the data */
-	unordered_map<vtkIdType, vector<point>> appendedVesselData;
-	/** Vessel function for generation */
-	AbstractVascularElement::VESSEL_FUNCTION vesselFunction;
-	/** Branching mode for generation */
-	AbstractVascularElement::BRANCHING_MODE branchingMode;
-
-
-    // SingleVesselCCOOTree *treee;
-    // vector<vector<ReadData>*> *vesselToMerge;
-    unordered_map<string, SingleVessel *> *stringToPointer;
-
-	/** Failsafe to avoid usage of incomplete class.*/
 	bool allowThisClass = false;
 
 protected:
