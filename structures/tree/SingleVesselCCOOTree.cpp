@@ -3109,12 +3109,12 @@ int SingleVesselCCOOTree::testVessel(point xNew, AbstractVascularElement *parent
 				(pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::PERFORATOR && domain->isSegmentInside(pVessel->xDist, bif) ) ||
 				(domain->isSegmentInside(pVessel->xProx, bif) && domain->isSegmentInside(pVessel->xDist, bif) ) ||  // Distribution
 				(pVessel->branchingMode == AbstractVascularElement::BRANCHING_MODE::DISTAL_BRANCHING );
-			// check if the interval between 0%-100% of the vessel is inside the domain,
-			// point beforeMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*0.00);
-			// point afterMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*1.00);
+			// check if the interval between A%-B% of the vessel is inside the domain,
+			point beforeMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*0.33);
+			point afterMidpoint = pVessel->xProx + ((pVessel->xDist - pVessel->xProx)*0.67);
 			/// TODO: REVERT THIS HARDCODE BEFORE MERGING THIS TO MAIN
-			point beforeMidpoint = pVessel->xProx; // 100% of vessel
-			point afterMidpoint = pVessel->xDist; // 100% of vessel
+			// point beforeMidpoint = pVessel->xProx; // 100% of vessel
+			// point afterMidpoint = pVessel->xDist; // 100% of vessel
 			bool midpointCondition = domain->isSegmentInside(beforeMidpoint, afterMidpoint);
 			// uses the condition
 			if ((domain->isSegmentInside(xNew, bif) && midpointCondition && domainCondition) || (pVessel->vesselFunction == AbstractVascularElement::VESSEL_FUNCTION::TRANSPORT)) {
