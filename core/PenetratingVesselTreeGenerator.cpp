@@ -468,8 +468,6 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generatePenetrating(long 
 		cout << "FATAL: experimental class, set bool 'allowThisClass' to true to use this" << endl;
 		exit(1);
 	}
-	cout << "FATAL: Use the other method!"<< endl;
-	exit(1);
 	this->beginTime = time(nullptr);
 	generatesConfigurationFile(ios::out);
 
@@ -974,45 +972,35 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 		// this displacement is NOT the normal, it is in the direction from terminal to projection
 		point displacementT = projectionT - terminal;
 		point displacementM = projectionM - midpoint;
-		double descendingLengthT = sqrt(displacementT^displacementT);
-		double descendingLengthM = sqrt(displacementM^displacementM);
-		displacementT = displacementT / descendingLengthT;
-		displacementM = displacementM / descendingLengthM;
+		displacementT = displacementT / sqrt(displacementT^displacementT);
+		displacementM = displacementM / sqrt(displacementM^displacementM);
 
 		// add if same direction, subtract if going outwards
 		// however, start from terminal if point is inside, to avoid zig-zag pattern
 		// it checks if point is inside domain and then change how the first step is added, to avoid weird zig-zag patterns.
-		/// NOTE: changed from OFFSET to PARENT DIAMETER to reduce problems in the tree, and check if vessel inside the region.
-		SingleVessel* parent = (*it);
-		double minimumDescendingLength = parent->radius*2;
 		bool terminalIsInside = false;
 		bool midpointIsInside = false;
-
 		if ((normalT^displacementT)<0) {
-			descendingLengthT = max(descendingLengthT, minimumDescendingLength);
-			projectionT = terminal + displacementT * descendingLengthT;
+			projectionT = projectionT + displacementT * descendingOffset;
 		} else { // here the point is inside the domain
 			// projectionT = projectionT - displacementT * descendingOffset;
-			descendingLengthT = max(0.0, minimumDescendingLength);
-			projectionT = terminal - displacementT * descendingLengthT;
+			projectionT = terminal - displacementT * (descendingOffset + additionalDescendingOffset);
 			terminalIsInside = true;
 		}
 		if ((normalM^displacementM)<0) {
-			descendingLengthM = max(descendingLengthM, minimumDescendingLength);
-			projectionM = projectionM + displacementM * descendingLengthM;
+			projectionM = projectionM + displacementM * descendingOffset;
 		} else { // here the point is inside the domain
 			// projectionM = projectionM - displacementM * descendingOffset;
-			descendingLengthM = max(0.0, minimumDescendingLength);
-			projectionM = midpoint - displacementM * descendingLengthM;
+			projectionM = midpoint - displacementM * (descendingOffset + additionalDescendingOffset);
 			midpointIsInside = true;
 		}
-		/// NOTE: check after this if the segment is INSIDE the domain, assume the descending endpoint is not necessarily inside the domain
 
 		// define the new terminal point as the projection point.
 		// we do not do (*it)->xDist = projectionT; because it changes the tree
 		// we need to addVessel(...) instead.
 
 		// the bifurcation points are the terminal and midpoint points
+		SingleVessel* parent = (*it);
 		point xBifT = terminal;
 		point xBifM = midpoint;
 
@@ -1063,7 +1051,6 @@ AbstractObjectCCOTree *PenetratingVesselTreeGenerator::generateDescendingSave(lo
 		// Check if segment is too long, and clamp it to a maximum value
 
 		// point is always from inside the surface, we subtract to make the length shorter.
-		/// NOTE: point is not always inside the surface, since it can cross to the other side, we must check that
 		point endpointT;
 		point endpointM;
 		endpointT = hitpointT - directionT * endpointOffset;
